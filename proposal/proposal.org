@@ -1,0 +1,186 @@
+#+TITLE:
+#+AUTHOR:    David Spångberg
+#+EMAIL:     david@tunna.org
+#+OPTIONS:   H:3 num:t toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+LATEX_HEADER: \usepackage[margin=3.5cm]{geometry}
+#+LATEX_HEADER: \usepackage{lipsum, listings}
+#+LATEX_HEADER: \usepackage[style=alphabetic,citestyle=alphabetic]{biblatex}
+#+LATEX_HEADER: \addbibresource{references.bib}
+
+# #### Palatino font
+#+LATEX_HEADER: \usepackage[sc]{mathpazo}
+#+LATEX_HEADER: \usepackage[T1]{fontenc}
+#+LATEX_HEADER: \linespread{1.05} % Palatino needs more leading (space between lines)
+
+#+BEGIN_LATEX
+\hyphenation{testing}
+\hyphenation{abstract}
+\hyphenation{optimizations}
+
+\thispagestyle{empty}
+\setlength{\parskip}{0.2cm}
+\setlength{\parindent}{0pt}
+
+\lstset
+{
+keywordstyle=\textbf,
+numbers=left,
+numberstyle=\scriptsize,
+frame=l,
+numbersep=7pt,
+xleftmargin=10pt
+}
+
+\lstloadlanguages{Haskell}
+\lstnewenvironment{haskell}
+    {\lstset{}%
+      \csname lst@SetFirstLabel\endcsname}
+    {\csname lst@SaveFirstLabel\endcsname}
+    \lstset{
+      basicstyle=\small\ttfamily,
+      flexiblecolumns=false,
+      basewidth={0.5em,0.45em},
+      literate={+}{{$+$}}1 {/}{{$/$}}1 {*}{{$*$}}1 {=}{{$=$}}1
+               {>}{{$>$}}1 {<}{{$<$}}1 {\\}{{$\lambda$}}1
+               {\\\\}{{\char`\\\char`\\}}1
+               {->}{{$\rightarrow$}}2 {>=}{{$\geq$}}2 {<-}{{$\leftarrow$}}2
+               {<=}{{$\leq$}}2 {=>}{{$\Rightarrow$}}2
+               {\ .}{{$\circ$}}2 {\ .\ }{{$\circ$}}2
+               {>>}{{>>}}2 {>>=}{{>>=}}2
+               {|}{{$\mid$}}1
+    }
+
+\begin{center}
+\includegraphics{logo_gu.eps}
+
+\vspace{2cm}
+
+\hrule \bigskip
+{\Huge API-driven generation of well-typed terms} \bigskip
+\hrule
+
+\vspace{1.5cm}
+
+{\Large Master Thesis Project Proposal}
+
+\vspace{5cm}
+
+\Large David Spångberg \texttt{<davspa@student.gu.se>} \bigskip
+
+\today
+\end{center}
+
+\newpage
+\setcounter{page}{1}
+\renewcommand{\abstractname}{Background}
+#+END_LATEX
+
+* Problem background
+
+  When developing a compiler for a Domain Specific Language (DSL) one
+  often want to test certain aspects of the compiler. For instance one
+  might want to test that the result of evaluating an expression
+  produces the same result both before and after specific
+  optimizations. One way to achieve this is to design unit tests that
+  cover all developed optizimations. This approach has several
+  limitations. For instance, when new optimizations are added, new
+  unit tests have to be developed. Similarly, when optimizations are
+  modified, the corresponding unit tests have to be updated.
+
+  Instead when testing DSL compilers it might sometimes be possible to
+  construct a generator for random Abstract Syntax Trees (AST) of the
+  given language and use this generator to test the optimizations.
+  However, these ASTs might have several invariants and constructing a
+  generator producing only valid ASTs might be non-trivial. One
+  solution to this problem is to only use smart constructors given by
+  an API to produce values of the requested type. However, combining
+  these smart constructors in a sensible way might be equally
+  non-trivial.
+
+  Other aspects of the compiler can be tested in similar ways. For
+  instance testing that interpreting a program versus compiling and
+  executing it produces the same result. This test also requires that
+  there exists some program to be tested.
+
+* Project goal and project motivation
+
+# Jag saknar en diskussion om problematiken med att generera högre
+# ordningens termer. Är det medvetet? Å ena sidan kan det vara bra att
+# förenkla problemet, men å andra sidan är högre ordningens termer
+# väsentliga för att testa EDSL.
+
+  The goal of this project is to develop an algorithm and library
+  using Haskell for constructing (possible higher-order) terms of a
+  given type using functions of a user specified api. For instance,
+  given the api:
+  \begin{haskell}
+  (+) :: Int -> Int -> Int
+  map :: (a -> b) -> [a] -> [b]
+  \end{haskell}
+  and the type \lstinline$[Int]->[Int]$, the library should be able to
+  generate the term:
+  \begin{haskell}
+  \a -> map ((+) 5) a
+  \end{haskell}
+
+  One motivating use case for the library is for generating test data
+  for Embedded DSLs in Haskell. An api for a EDSL is supplied by the
+  user and the library should then be used to produce random,
+  hopefully interesting, well-typed terms using this api.
+
+* Problem approaches
+
+  Several approaches for solving this problem might be interesting to
+  examine. In this section some of them are discussed although many
+  more, like brute forcing, might also be interesting to study.
+
+** Efficient enumeration
+   In \cite{feat} a library for defining enumerations of arbitrary
+   algebraic data types is developed. These enumerations can also be
+   indexed efficiently. As an example the term at position $10^{100}$
+   for the =Exp= type found in Template Haskell is generated in less
+   than a second on a normal desktop computer. A similar idea could be
+   employed to enumerate all values of a given type and then simply
+   generating random indices to produce random test data.
+
+** Theorem provers
+   Another way to solve the problem might be to look at all functions
+   in the API as axioms in a logical system and then try to find a
+   proof of a sequent, which corresponds to a type, in that system. In
+   \cite{djinn} Augustsson presents a system for generating functions
+   from a type. The author is however unsure if this can be used to
+   generate terms using functions from a given api.
+
+   Some more problems might arise by using a theorem prover. In this
+   proposal the problem is to generate a random proof. Theorem provers
+   usually work by finding the first, or the smallest, proof. It is
+   also unknown to the author what happens when the axioms added to
+   the system is unsound, i.e. if the proof, or program, generated
+   will correspond to bottom elimination.
+
+** Inductive programming
+   In the field of inductive programming \cite{ip}, the interest lies
+   in generating a program from an incomplete specification. Several
+   systems seems interesting, although \textsc{MagicHaskeller}
+   \cite{mh} seems to be the one most similar to this project. In
+   \textsc{MagicHaskeller}, the algorithm used works by generating all
+   functions matching a given type and then filtering out certain
+   functions not matching a user defined criteria. The first part of
+   this algorithm seems to match fairly well to the task described by
+   this proposal, the only difference seems to be that functions
+   should only be generated using a set of user defined functions.
+
+   However, it is worth noting that some experimentation has been done
+   by the author of this proposal to compile and run
+   \textsc{MagicHaskeller} in the current stable version of
+   \textsc{GHC} (7.6) without any success.
+
+* References
+
+  This section contains some articles and other material that might be
+  relevant to this project.
+
+# Mark all references as cited
+  \nocite{*}
+
+  \printbibliography[heading=none]
