@@ -1,0 +1,15 @@
+*.pdf
+!propsal/proposal.org
+cabal-dev
+dist
+Setup.hs
+
+# Org mode files
+*.bbl
+*.bcf
+*.blg
+*.dvi
+*.fdb_latexmk
+*.fls
+*.run.xml
+*.tex
