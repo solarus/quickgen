@@ -78,29 +78,31 @@ xleftmargin=10pt
 * Problem background
 
   When developing a compiler for a Domain Specific Language (DSL) one
-  often want to test certain aspects of the compiler. For instance one
-  might want to test that the result of evaluating an expression
-  produces the same result both before and after specific
-  optimizations. One way to achieve this is to design unit tests that
-  cover all developed optizimations. This approach has several
-  limitations. For instance, when new optimizations are added, new
-  unit tests have to be developed. Similarly, when optimizations are
-  modified, the corresponding unit tests have to be updated.
+  often want to test certain aspects of the compiler. For instance,
+  testing that the result of evaluating an expression produces the
+  same result both before and after certain optimizations. One way to
+  achieve this is to design unit tests that cover all developed
+  optizimations. This approach has several limitations. For instance,
+  when new optimizations are added, new unit tests have to be
+  developed. Similarly, when optimizations are modified, the
+  corresponding unit tests have to be updated.
 
-  Instead when testing DSL compilers it might sometimes be possible to
-  construct a generator for random Abstract Syntax Trees (AST) of the
-  given language and use this generator to test the optimizations.
-  However, these ASTs might have several invariants and constructing a
+  When testing DSL compilers it might instead be possible to construct
+  a generator for random Abstract Syntax Trees (AST) of the given
+  language and use this generator to test the optimizations. However,
+  these ASTs might have several invariants and constructing a
   generator producing only valid ASTs might be non-trivial. One
   solution to this problem is to only use smart constructors given by
   an API to produce values of the requested type. However, combining
   these smart constructors in a sensible way might be equally
   non-trivial.
 
-  Other aspects of the compiler can be tested in similar ways. For
-  instance testing that interpreting a program versus compiling and
-  executing it produces the same result. This test also requires that
-  there exists some program to be tested.
+  Other aspects of the compiler can be tested in similar ways. One
+  example is testing that interpreting a program versus compiling and
+  executing it produces the same result. This test and several others
+  has similar preconditions as the optimization tests, it requires
+  that a program is generated or constructed before the test in
+  question can finish.
 
 * Project goal and project motivation
 
@@ -111,8 +113,8 @@ xleftmargin=10pt
 
   The goal of this project is to develop an algorithm and library
   using Haskell for constructing (possible higher-order) terms of a
-  given type using functions of a user specified api. For instance,
-  given the api:
+  given type using functions of a user specified API. For instance,
+  given the API:
   \begin{haskell}
   (+) :: Int -> Int -> Int
   map :: (a -> b) -> [a] -> [b]
@@ -124,9 +126,10 @@ xleftmargin=10pt
   \end{haskell}
 
   One motivating use case for the library is for generating test data
-  for Embedded DSLs in Haskell. An api for a EDSL is supplied by the
+  for Embedded DSLs in Haskell. An API for a EDSL is supplied by the
   user and the library should then be used to produce random,
-  hopefully interesting, well-typed terms using this api.
+  hopefully interesting, well-typed terms using this API. The terms
+  can then be used to test several different aspects of the EDSL.
 
 * Problem approaches
 
@@ -149,7 +152,7 @@ xleftmargin=10pt
    proof of a sequent, which corresponds to a type, in that system. In
    \cite{djinn} Augustsson presents a system for generating functions
    from a type. The author is however unsure if this can be used to
-   generate terms using functions from a given api.
+   generate terms using functions from a given API.
 
    Some more problems might arise by using a theorem prover. In this
    proposal the problem is to generate a random proof. Theorem provers
