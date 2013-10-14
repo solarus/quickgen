@@ -87,8 +87,8 @@ xleftmargin=10pt
   developed. Similarly, when optimizations are modified, the
   corresponding unit tests have to be updated.
 
-  When testing DSL compilers it might instead be possible to construct
-  a generator for random Abstract Syntax Trees (AST) of the given
+  Instead, when testing compilers, it might be possible to construct a
+  generator for random Abstract Syntax Trees (AST) of the given
   language and use this generator to test the optimizations. However,
   these ASTs might have several invariants and constructing a
   generator producing only valid ASTs might be non-trivial. One
@@ -97,45 +97,58 @@ xleftmargin=10pt
   these smart constructors in a sensible way might be equally
   non-trivial.
 
-  Other aspects of the compiler can be tested in similar ways. One
-  example is testing that interpreting a program versus compiling and
-  executing it produces the same result. This test and several others
-  has similar preconditions as the optimization tests, it requires
-  that a program is generated or constructed before the test in
-  question can finish.
+  Aspects of the compiler other than optimizations can also be tested
+  in similar ways. One example is testing that interpreting a program
+  versus compiling and executing it produces the same result. This
+  test and several others has similar preconditions as the
+  optimization tests, it requires that a program is somehow generated
+  or constructed before the test in question can finish.
 
 * Project goal and project motivation
 
-# Jag saknar en diskussion om problematiken med att generera högre
-# ordningens termer. Är det medvetet? Å ena sidan kan det vara bra att
-# förenkla problemet, men å andra sidan är högre ordningens termer
-# väsentliga för att testa EDSL.
-
   The goal of this project is to develop an algorithm and library
   using Haskell for constructing (possible higher-order) terms of a
-  given type using functions of a user specified API. For instance,
-  given the API:
+  given type using functions of a user specified API. I.e. not any
+  term should be considered but instead only terms that can be
+  constructed using the given functions. By only using these functions
+  the problem will hopefully be simpler and more interesting terms can
+  be generated faster. It should also be possible to focus the testing
+  on specific parts of a compiler by only generating terms related to
+  a certain problem.
+
+  As an example, consider the API given below and the goal type
+  \lstinline$[Int]->[Int]$.
   \begin{haskell}
   (+) :: Int -> Int -> Int
   map :: (a -> b) -> [a] -> [b]
   \end{haskell}
-  and the type \lstinline$[Int]->[Int]$, the library should be able to
-  generate the term:
+  In this specific instance the library should be able to generate the
+  term:
   \begin{haskell}
   \a -> map ((+) 5) a
   \end{haskell}
 
+  \newpage
+
   One motivating use case for the library is for generating test data
-  for Embedded DSLs in Haskell. An API for a EDSL is supplied by the
-  user and the library should then be used to produce random,
-  hopefully interesting, well-typed terms using this API. The terms
-  can then be used to test several different aspects of the EDSL.
+  for Embedded DSLs in Haskell. An API for an EDSL is supplied by the
+  user and the library should then be used to quickly produce random,
+  interesting, well-typed and possibly higher-order terms using this
+  API. The terms can then be used to test several different aspects of
+  the EDSL.
 
 * Problem approaches
 
-  Several approaches for solving this problem might be interesting to
-  examine. In this section some of them are discussed although many
-  more, like brute forcing, might also be interesting to study.
+  Generating higher-order terms and functions have been the subject of
+  some research recently. In \cite{lambda} the difficulty of producing
+  such generators is discussed briefly. Furthermore, a solution for
+  generating any simply typed random lambda term is examined and used
+  for proving some properties in the GHC Haskell compiler \cite{ghc}.
+  This work and other related research material might be interesting
+  to examine. In this section some articles with their corresponding
+  solutions to a similar problem is discussed. However, many more
+  solution approaches, like brute forcing, might also be interesting
+  to study.
 
 ** Efficient enumeration
    In \cite{feat} a library for defining enumerations of arbitrary
