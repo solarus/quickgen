@@ -16,6 +16,7 @@
 \hyphenation{testing}
 \hyphenation{abstract}
 \hyphenation{optimizations}
+\hyphenation{successfully}
 
 \thispagestyle{empty}
 \setlength{\parskip}{0.2cm}
@@ -137,6 +138,14 @@ xleftmargin=10pt
   API. The terms can then be used to test several different aspects of
   the EDSL.
 
+  The goal of the project is considered reached when the library has
+  been used to successfully test a real world domain specific
+  language, such as \textsc{Feldspar} \cite{feldspar}. Successfully
+  here means that it should be possible to use the library to quickly
+  produce testing procedures that either validates[fn:1] or finds
+  counterexamples to several optimization or other techniques employed
+  by the language in question.
+
 * Problem approaches
 
   Generating higher-order terms and functions have been the subject of
@@ -200,3 +209,9 @@ xleftmargin=10pt
   \nocite{*}
 
   \printbibliography[heading=none]
+
+* Footnotes
+
+[fn:1] Normally you cannot completely validate something with random
+testing, you can only say that with some degree of confidence a given
+property is valid.
