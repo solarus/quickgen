@@ -16,7 +16,11 @@ cabal-version:       >=1.8
 
 library
   exposed-modules: Testing.QuickGen
-  -- other-modules:
-  build-depends: base ==4.6.*
-               , testing-feat
+  other-modules:   Testing.QuickGen.TH
+  build-depends:   base ==4.6.*
+                 , testing-feat
+                 , template-haskell
+                 , mtl
+                 , lens
+                 , random
   hs-source-dirs: src
