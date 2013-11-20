@@ -4,10 +4,10 @@
 module Testing.QuickGen where
 
 import Control.Lens (_1, _2, _3, (^.), to, (.~), (&), (%~))
+import Control.Monad
 import Data.Char (ord, chr)
 import Data.Maybe (catMaybes, listToMaybe, fromJust)
 import Data.Typeable
-import Language.Haskell.TH (mkName)
 import System.Random
 import Test.Feat
 
@@ -16,24 +16,57 @@ import Testing.QuickGen.GenContext
 import Testing.QuickGen.TH
 import Testing.QuickGen.Types
 
-argsAndRet :: Type -> (Cxt, [Type])
-argsAndRet (AppT (AppT ArrowT t1) rest) = argsAndRet rest & _2 %~ (t1:)
+import Debug.Trace
 
--- TODO: merge constraints somehow. Right now I'm only overriding the
--- current value, i.e. I'm hoping there were no constraints before.
-argsAndRet (ForallT vars cxt rest)      = argsAndRet rest & _1 .~ cxt
-
-argsAndRet a                            = ([], [a])
-
-generate :: [Type] -> GenContext Exp
-generate = go . reverse
+generate :: Type -> Int -> Context -> Maybe Exp
+generate t seed ctx = case runGC g seed ctx of
+    Nothing             -> Nothing
+    Just (Prim (e,_,_)) -> Just e
   where
-    go :: [Type] -> GenContext Exp
-    go (match : args) = localLambda args $ do
-        fmap fromJust (randomMatching match)
+    (_, ts) = extractPrimType t
+    g       = generate' ts
 
-randomMatching :: Type -> GenContext (Maybe Exp)
-randomMatching match = undefined
+generate' :: [Type] -> GenContext (Maybe Primitive)
+generate' [t] = replicateM 10 p >>= return . listToMaybe . catMaybes
+  where
+    p = do
+        m <- randomMatching t
+        case m of
+            Nothing                    -> return Nothing
+            Just (_, Prim (e, c, [t]))  -> return m
+            Just (Prim (e, c, all@(t:ts))) -> do
+                args <- forM ts (generate' . (:[]))
+                case toExpList args of
+                    Nothing    -> return Nothing
+                    Just args' ->
+                        let e' = foldl AppE e args'
+                        in return (Just (Prim (e, c, [t])))
+
+    toExpList :: [Maybe Primitive] -> Maybe [Exp]
+    toExpList xs = fmap (reverse . map ((^. _1) . unPrimitive)) (sequence xs)
+
+generate' all@(t:ts) = do
+    ret <- localLambda ts (generate' [t])
+    case ret of
+        Nothing        -> return Nothing
+        Just (Prim (e, c, _)) -> do
+            d <- getDepth
+            let vars = [ VarP (mkName [chr (i + d + ord 'a')])
+                       | i <- [0 .. length ts - 1]
+                       ]
+                e' = LamE vars e
+            return (Just (Prim (e', c, all)))
+
+randomMatching :: Type -> GenContext (Maybe Primitive)
+randomMatching match = do
+    ms <- getMatching match
+    -- trace ("ms = " ++ show ms) (return ())
+    case length ms of
+        0 -> return Nothing
+        n -> do
+            i <- getRandomR (0, n-1)
+
+            getRandomR (0, n-1) >>= return . Just . (ms !!)
 
 -- | First argument is type to match. Second is a list of current
 -- argument types (innermost binding first).
@@ -65,17 +98,20 @@ randomMatching match = undefined
 --------------------------------------------------
 -- Testing
 
--- bar = 5 :: Int
+bar = 5 :: Int
 
--- foo = $(p [| ( bar :: Int
---              , map :: (a -> b) -> [a] -> [b]
---              , (+) :: Int -> Int -> Int
---              , id  :: a -> a
---              )
---            |])
+foo = $(p [| ( bar :: Int
+             , map :: (a -> b) -> [a] -> [b]
+             , (+) :: Int -> Int -> Int
+             , id  :: a -> a
+             )
+           |])
 
--- t = snd (argsAndRet ((foo !! 2) ^. _3))
--- c = toContext 10 foo
+t = (foo !! 2) ^. _3
+
+t' = snd (extractPrimType t)
+
+c = listToContext 10 foo
 
 -- f n = let (_,g) = next (mkStdGen n)
 --           s = newState g c
