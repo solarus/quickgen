@@ -3,6 +3,12 @@
 cabal-dev
 dist
 Setup.hs
+.cabal-sandbox
+cabal.sandbox.config
+
+MagicHaskeller*
+testing-feat*
+feldspar-language*
 
 # Org mode files
 *.bbl
