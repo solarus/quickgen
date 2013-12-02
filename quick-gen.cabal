@@ -14,6 +14,11 @@ category:            Testing
 build-type:          Simple
 cabal-version:       >=1.8
 
+executable test
+  main-is: Test.hs
+  build-depends: base ==4.6.*
+               , quick-gen
+
 library
   exposed-modules: Testing.QuickGen
   other-modules:   Testing.QuickGen.GenContext
