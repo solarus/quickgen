@@ -16,8 +16,6 @@ import Testing.QuickGen.GenContext
 import Testing.QuickGen.TH
 import Testing.QuickGen.Types
 
-import Debug.Trace
-
 generate :: Type -> Int -> Context -> Maybe Exp
 generate t seed ctx = case runGC g seed ctx of
     Nothing             -> Nothing
@@ -27,23 +25,31 @@ generate t seed ctx = case runGC g seed ctx of
     g       = generate' ts
 
 generate' :: [Type] -> GenContext (Maybe Primitive)
-generate' [t] = replicateM 10 p >>= return . listToMaybe . catMaybes
+generate' [t] = replicateM 2 p >>= return . listToMaybe . catMaybes
   where
     p = do
         m <- randomMatching t
         case m of
             Nothing                    -> return Nothing
-            Just (_, Prim (e, c, [t]))  -> return m
-            Just (Prim (e, c, all@(t:ts))) -> do
-                args <- forM ts (generate' . (:[]))
-                case toExpList args of
-                    Nothing    -> return Nothing
-                    Just args' ->
-                        let e' = foldl AppE e args'
-                        in return (Just (Prim (e, c, [t])))
+            Just p@(Prim (e, c, [t]))  -> decUses p >> return m
+            Just p@(Prim (e, c, all@(t:ts))) -> do
+                decUses p
+                let go [] acc = return (True, acc)
+                    go (t : ts) acc = do
+                        mp <- generate' [t]
+                        case mp of
+                            Nothing -> return (False, acc)
+                            Just p  -> go ts (p : acc)
+
+                (b, args) <- go ts []
+                case b of
+                    False -> mapM_ incUses args >> incUses p >> return Nothing
+                    True  ->
+                        let e' = foldl AppE e (map ((^. _1) . unPrimitive) args)
+                        in return (Just (Prim (e', c, [t])))
 
     toExpList :: [Maybe Primitive] -> Maybe [Exp]
-    toExpList xs = fmap (reverse . map ((^. _1) . unPrimitive)) (sequence xs)
+    toExpList = fmap (reverse . map ((^. _1) . unPrimitive)) . sequence
 
 generate' all@(t:ts) = do
     ret <- localLambda ts (generate' [t])
@@ -68,32 +74,6 @@ randomMatching match = do
 
             getRandomR (0, n-1) >>= return . Just . (ms !!)
 
--- | First argument is type to match. Second is a list of current
--- argument types (innermost binding first).
--- randomMatching' :: Type -> [Type] -> GenContext (Maybe MatchData)
--- randomMatching' match args = do
---     let p = randBool >>= \b -> if b then randomLambda else randomPrimitive
-
---     -- Arbitrarily retry 10 times
---     replicateM 10 p >>= return . listToMaybe . catMaybes
---   where
---     mRandElem xs
---         | len == 0  = return Nothing
---         | otherwise = randR (0, len-1) >>= return . Just . (xs!!)
---       where len = length xs
-
---     randomLambda  = do
---         let mVars = [ MatchLambda (chr (i + ord 'a'))
---                     | (i, t) <- zip [0..] (reverse args)
---                     -- TODO: match polymorphic constants
---                     , t == match
---                     ]
---         mRandElem mVars
-
---     randomPrimitive = do
---         cs <- fmap unContext getContext
---         let mPrims = [ MatchPrim id | (id, (_, Prim (_, _, t))) <- cs, match == t ]
---         mRandElem mPrims
 
 --------------------------------------------------
 -- Testing
@@ -113,11 +93,4 @@ t' = snd (extractPrimType t)
 
 c = listToContext 10 foo
 
--- f n = let (_,g) = next (mkStdGen n)
---           s = newState g c
---       in fst (runGC (generate t) s)
-
--- g n = let s = newState (mkStdGen n) c
---       in fst (runGC (randR (0,1)) s)
-
--- h n = fst (randomR (0,2) (mkStdGen n))
+f n = let Just e = generate t n c in pprint e

@@ -10,10 +10,13 @@ module Testing.QuickGen.GenContext
        -- , getId
        , runGC
        , localLambda
+       , incUses
+       , decUses
        ) where
 
 import Testing.QuickGen.Types
 
+import Control.Lens ((^.), (&), (%~), _1, _2, _3)
 import Control.Monad
 import Control.Monad.Identity
 import Control.Monad.State
@@ -25,44 +28,67 @@ import System.Random
 
 type Depth = Int
 
-newtype GenContext a = GC { unGC :: ReaderT (Depth, Context) (State StdGen) a }
+newtype GenContext a = GC { unGC :: State (Depth, Context, StdGen) a }
   deriving (Functor, Monad)
 
 runGC :: GenContext a -> Int -> Context -> a
-runGC g seed ctx = evalState (runReaderT (unGC g) (0, ctx)) gen
+runGC (GC g) seed ctx = evalState g (0, ctx, gen)
   where
     gen = snd . next . mkStdGen $ seed
 
 getDepth :: GenContext Depth
-getDepth = GC $ fmap fst ask
+getDepth = GC $ fmap (^. _1) get
 
 getRandomR :: (Int, Int) -> GenContext Int
-getRandomR p = GC $ state (randomR p)
+getRandomR p = GC $ state f
+  where
+    f (d, c, g) = let (a, g') = randomR p g in (a, (d, c, g'))
 
 getRandomBool :: GenContext Bool
 getRandomBool = getRandomR (0,1) >>= return . (==1)
 
 localLambda :: [Type] -> GenContext a -> GenContext a
-localLambda ts g = GC $ do
-    (depth, ctx) <- ask
-    let len  = length ts
+localLambda ts (GC g) = GC $ do
+    (depth, c, gen) <- get
+    let len = length ts
         uses = 10 -- FIXME: arbitrarily chosen
         vars = C [ (uses, Prim (toVar i, [], [t]))
-                 | (i,t) <- zip [depth..] ts
+                 | (i, t) <- zip [depth..] ts
                  ]
-    local (\(m, c) -> (m+len, vars <> c)) (unGC g)
+    put (depth + len, vars <> c, gen)
+    a <- g
+    modify (\(_, C c, gen) -> (depth, C (drop len c), gen))
+    return a
   where
-    -- TODO: check capture of var
+    -- FIXME: might capture variable names
     toVar i = VarE (mkName [chr (i + ord 'a')])
 
 getMatching :: Type -> GenContext [Primitive]
 getMatching t = GC $ do
-    ps <- fmap (unContext . snd) ask
+    ps <- fmap (unContext . (^. _2)) get
     return [ p
-           | (_, p@(Prim (_, c, (t':_)))) <- ps
+           | (n, p@(Prim (_, c, (t':_)))) <- ps
            , matches c t t'
+           , n > 0
            ]
-    -- undefined
+
+modContext :: (Context -> Context) -> GenContext ()
+modContext f = GC $ modify (& _2 %~ f)
+
+decUses :: Primitive -> GenContext ()
+decUses p = modContext (C . go . unContext)
+  where
+    go [] = []
+    go (np@(n, p') : ps)
+        | p == p'   = if n == 0 then error "wat" else (n-1, p') : ps
+        | otherwise = np : go ps
+
+incUses :: Primitive -> GenContext ()
+incUses p = modContext (C . go . unContext)  where
+    go [] = []
+    go (np@(n, p') : ps)
+        | p == p'   = (n+1, p') : ps
+        | otherwise = np : go ps
 
 -- TODO: real matching of types
 matches :: Cxt -> Type -> Type -> Bool

@@ -16,6 +16,7 @@ module Testing.QuickGen.Types
        , extractPrimType
        -- rexports
        , (<>)
+       , pprint
        ) where
 
 import Control.Lens ((&), _2, (%~), _1, (.~))
@@ -35,7 +36,10 @@ type Uses = Int
 --   represented as `[b, a, (a -> b)]'.
 newtype Primitive = Prim { unPrimitive :: (Exp, Cxt, [Type]) }
 
-newtype Context = C { unContext :: [(Id, (Uses, Primitive))] }
+instance Eq Primitive where
+    Prim (e1, _, _) == Prim (e2, _, _) = e1 == e2
+
+newtype Context = C { unContext :: [(Uses, Primitive)] }
 
 consContext :: Uses -> Primitive -> Context -> Context
 consContext uses p (C ctx) = C $ (uses, p) : ctx
