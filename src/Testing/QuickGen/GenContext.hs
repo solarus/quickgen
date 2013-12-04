@@ -12,6 +12,10 @@ module Testing.QuickGen.GenContext
        , localLambda
        , incUses
        , decUses
+
+       -- FIXME: remove later
+       , matchWith
+       , modContext
        ) where
 
 import Testing.QuickGen.Types
