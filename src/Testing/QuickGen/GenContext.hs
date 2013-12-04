@@ -93,5 +93,30 @@ incUses p = modContext (C . go . unContext)  where
         | otherwise = np : go ps
 
 -- TODO: real matching of types
-matches :: Cxt -> Type -> Type -> Bool
-matches _ = (==)
+matches :: Type -> (Cxt, Type) -> Bool
+matches t (c, t')
+    | t == t'   = True
+    | otherwise = okCxt && isVarT t'
+  where
+    okCxt = True -- FIXME
+
+isVarT (VarT _) = True
+isVarT _        = False
+
+matchWith :: Type -> (Cxt, [Type]) -> Maybe [Type]
+matchWith t (c, t':ts)
+    | t `matches` (c, t') = Just (t : ts')
+    | otherwise           = Nothing
+  where
+    ts' = map (subst t (t'==)) ts
+    -- transform t'' = if t' == t'' then t else t''
+
+subst :: Type -> (Type -> Bool) -> Type -> Type
+subst t p t'
+    | p t' = t
+subst t p (ForallT _ _ _) = error "subst"
+subst t p (AppT t1 t2)    = AppT (subst t p t1) (subst t p t2)
+subst _ _ ArrowT = ArrowT
+subst _ _ ListT  = ListT
+subst _ _ t'@(VarT _) = t'
+-- subst t (
