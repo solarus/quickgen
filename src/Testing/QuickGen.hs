@@ -26,8 +26,6 @@ generate t seed ctx = case runGC g seed ctx of
     g       = generate' ts
 
 generate' :: [Type] -> GenContext (Maybe Primitive)
--- generate' ts
---     | trace (show ts) False = undefined
 generate' [t] = replicateM 2 p >>= return . listToMaybe . catMaybes
   where
     p = do
@@ -69,7 +67,6 @@ generate' all@(t:ts) = do
 randomMatching :: Type -> GenContext (Maybe Primitive)
 randomMatching match = do
     ms <- getMatching match
-    -- trace ("ms = " ++ show ms) (return ())
     case length ms of
         0 -> return Nothing
         n -> do
