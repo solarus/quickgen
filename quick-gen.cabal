@@ -31,4 +31,5 @@ library
                  , lens
                  , random
                  , transformers
+                 , haskell-src-exts
   hs-source-dirs: src
