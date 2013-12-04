@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -80,19 +81,30 @@ randomMatching match = do
 --------------------------------------------------
 -- Testing
 
-bar = 5 :: Int
+genInt = 5 :: Int
 
-foo = $(p [| ( bar :: Int
-             , map :: (a -> b) -> [a] -> [b]
-             , (+) :: Int -> Int -> Int
-             , id  :: a -> a
-             )
-           |])
+foo = $(constructors [| ( genInt
+                        , map
+                        , (+) :: Int -> Int -> Int
+                        , (*) :: Int -> Int -> Int
+                        , id
+                        , ($) :: (a -> b) -> a -> b
+                        )
+                      |])
 
-t = (foo !! 2) ^. _3
+t1 = (foo !! 2) ^. _2
 
-t' = snd (extractPrimType t)
+t1' = snd (extractPrimType t1)
+
+t2 = extractPrimType ((foo !! 5) ^. _2)
 
 c = listToContext 10 foo
 
-f n = let Just e = generate t n c in pprint e
+f n = let Just e = generate t1 n c in pprint e
+
+test = matchWith (head t1') t2
+
+baz :: (forall a. a) -> (forall a. a)
+baz a = a
+
+id2 = id
