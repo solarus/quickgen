@@ -27,7 +27,7 @@ import Data.Monoid
 import Language.Haskell.TH
 import System.Random
 
-type Uses = Int
+type Uses = Maybe Int
 
 -- | A primitive value is an Expression together with the type of the
 --   expression. The type is represented as a list where the first
@@ -44,11 +44,14 @@ newtype Context = C { unContext :: [(Uses, Primitive)] }
 consContext :: Uses -> Primitive -> Context -> Context
 consContext uses p (C ctx) = C $ (uses, p) : ctx
 
-listToContext :: Int -> [(HValue, Exp, Type)] -> Context
-listToContext uses xs = C [ (uses, primFun x) | x <- xs ]
+listToContext :: Int -> [(Exp, Type)] -> Context
+listToContext uses xs = C [ ctxFun x | x <- xs ]
   where
-    primFun (_, e, t) = let (c, t') = extractPrimType t
-                        in Prim (e, c, t')
+    ctxFun (e, t) = let (c, t') = extractPrimType t
+                        uses' = case t' of
+                            [_] -> Nothing
+                            _   -> Just uses
+                    in (uses', Prim (e, c, t'))
 
 instance Monoid Context where
     mempty  = C []

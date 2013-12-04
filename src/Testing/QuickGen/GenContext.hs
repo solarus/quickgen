@@ -52,7 +52,7 @@ localLambda ts (GC g) = GC $ do
     (depth, c, gen) <- get
     let len = length ts
         uses = 10 -- FIXME: arbitrarily chosen
-        vars = C [ (uses, Prim (toVar i, [], [t]))
+        vars = C [ (Just uses, Prim (toVar i, [], [t]))
                  | (i, t) <- zip [depth..] ts
                  ]
     put (depth + len, vars <> c, gen)
@@ -66,10 +66,10 @@ localLambda ts (GC g) = GC $ do
 getMatching :: Type -> GenContext [Primitive]
 getMatching t = GC $ do
     ps <- fmap (unContext . (^. _2)) get
-    return [ p
-           | (n, p@(Prim (_, c, (t':_)))) <- ps
-           , matches c t t'
-           , n > 0
+    return [ Prim (e, c, ts')
+           | (mn, (Prim (e, c, ts))) <- ps
+           , Just ts' <- [ matchWith t (c, ts) ]
+           , maybe True (> 0) mn
            ]
 
 modContext :: (Context -> Context) -> GenContext ()
@@ -79,15 +79,17 @@ decUses :: Primitive -> GenContext ()
 decUses p = modContext (C . go . unContext)
   where
     go [] = []
-    go (np@(n, p') : ps)
-        | p == p'   = if n == 0 then error "wat" else (n-1, p') : ps
+    go (np@(mn, p') : ps)
+        | p == p'   = case mn of
+            Just n  -> if n == 0 then error "wat" else (Just (n-1), p') : ps
+            Nothing -> (Nothing, p') : ps
         | otherwise = np : go ps
 
 incUses :: Primitive -> GenContext ()
 incUses p = modContext (C . go . unContext)  where
     go [] = []
-    go (np@(n, p') : ps)
-        | p == p'   = (n+1, p') : ps
+    go (np@(mn, p') : ps)
+        | p == p'   = (fmap (+1) mn, p') : ps
         | otherwise = np : go ps
 
 -- TODO: real matching of types
