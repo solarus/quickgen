@@ -25,6 +25,8 @@ generate t seed ctx = case runGC g seed ctx of
     g       = generate' ts
 
 generate' :: [Type] -> GenContext (Maybe Primitive)
+-- generate' ts
+--     | trace (show ts) False = undefined
 generate' [t] = replicateM 2 p >>= return . listToMaybe . catMaybes
   where
     p = do
