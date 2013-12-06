@@ -27,7 +27,7 @@ import Control.Monad.State
 import Control.Monad.Trans.Reader
 import Data.Char
 import Data.Maybe
-import Language.Haskell.TH (mkName)
+import Language.Haskell.TH (mkName, Name, TyVarBndr(PlainTV))
 import System.Random
 
 type Depth = Int
@@ -96,31 +96,33 @@ incUses p = modContext (C . go . unContext)  where
         | p == p'   = (fmap (+1) mn, p') : ps
         | otherwise = np : go ps
 
--- TODO: real matching of types
-matches :: Type -> (Cxt, Type) -> Bool
+matches :: Type -> (Cxt, Type) -> (Bool, Maybe Name)
 matches t (c, t')
-    | t == t'   = True
-    | otherwise = okCxt && isVarT t'
+    | t == t'   = (True, Nothing)
+    | otherwise = case t' of
+        VarT n | okCxt -> (True, Just n)
+        _              -> (False, Nothing)
   where
-    okCxt = True -- FIXME
+    okCxt = True -- FIXME: Check constraints!
 
 isVarT (VarT _) = True
 isVarT _        = False
 
 matchWith :: Type -> (Cxt, [Type]) -> Maybe [Type]
-matchWith t (c, t':ts)
-    | t `matches` (c, t') = Just (t : ts')
-    | otherwise           = Nothing
-  where
-    ts' = map (subst t (t'==)) ts
-    -- transform t'' = if t' == t'' then t else t''
+matchWith t (c, t':ts) = case t `matches` (c, t') of
+    (True, Nothing) -> Just (t : ts)
+    (True, Just n)  -> Just (t : ts')
+      where
+        ts' = map (subst n t) ts
+    (False, _)      -> Nothing
 
-subst :: Type -> (Type -> Bool) -> Type -> Type
-subst t p t'
-    | p t' = t
-subst t p (ForallT _ _ _) = error "subst"
-subst t p (AppT t1 t2)    = AppT (subst t p t1) (subst t p t2)
-subst _ _ ArrowT = ArrowT
-subst _ _ ListT  = ListT
-subst _ _ t'@(VarT _) = t'
--- subst t (
+subst :: Name -> Type -> Type -> Type
+subst match new t@(VarT name)
+    | match == name = new
+    | otherwise     = t
+subst match new (AppT t1 t2) = AppT (subst match new t1) (subst match new t2)
+subst match new t@(ForallT ns c t') = case match `elem` map (\(PlainTV n) -> n) ns of
+    True  -> t
+    False -> ForallT ns c (subst match new t')
+subst match new (SigT t k) = SigT (subst match new t) k
+subst _ _ t = t
