@@ -10,6 +10,7 @@ module Testing.QuickGen.Types
        , Context(..)
        , Uses
        , Primitive(..)
+       , ClassEnv
        , mkName
        , consContext
        , listToContext
@@ -67,6 +68,8 @@ instance Show Context where
 
 -- TODO: figure out why this is needed
 newtype HValue = HV (forall a. a)
+
+type ClassEnv = [(Name, [InstanceDec])]
 
 extractPrimType :: Type -> (Cxt, [Type])
 extractPrimType t = (cxt, reverse ts)
