@@ -62,6 +62,16 @@ getClassnames :: TH.Type -> [TH.Name]
 getClassnames (TH.ForallT _ cxt _) = [ n | TH.ClassP n _ <- cxt ]
 getClassnames _                    = []
 
+
+--------------------------------------------------
+-- Lift instances for template haskell types
+
+-- TODO: Decide if this is ok or not. I.e. to define these `Lift'
+-- instances for the TH types. Doing this instead of having separate
+-- `lift*' functions is much more clean. I'm unsure if this is the
+-- intended usage of the lift class. If this is the case then the
+-- instances has to be completed!
+
 instance Lift Exp where
     lift (VarE name)  = [| TH.VarE name |]
     lift (AppE e1 e2) = [| AppE e1 e2 |]
