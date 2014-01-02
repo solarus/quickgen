@@ -1,84 +1,113 @@
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE Rank2Types #-}
-
 module Testing.QuickGen.Types
-       ( Exp(..)
-       , Pat(..)
+       ( Nat
+       , Name
+       , SType(..)
+       , Pred(..)
+       , Cxt
        , Type(..)
-       , Cxt(..)
-       , HValue(..)
-       , Context(..)
+       , Constructor
+       , Exp(..)
+       , Id
        , Uses
-       , Primitive(..)
+       , Context
+       , Substitution
+       , Depth
        , ClassEnv
-       , mkName
-       , consContext
-       , listToContext
-       , extractPrimType
-       -- rexports
-       , (<>)
-       , pprint
+       , Language
+       , Seed
        ) where
 
-import Control.Lens ((&), _2, (%~), _1, (.~))
-import Control.Monad
-import Data.List (lookup)
-import Data.Maybe (fromJust, maybe, listToMaybe)
-import Data.Monoid
-import Language.Haskell.TH
-import System.Random
+import           Data.Map (Map)
+import qualified Data.Map as M
+import qualified Language.Haskell.TH as TH
 
-type Uses = Maybe Int
+--------------------------------------------------
+-- Types
 
--- | A primitive value is an Expression together with the type of the
---   expression. The type is represented as a list where the first
---   element is the return type, the second element is the last
---   argument. The type `(a -> b) -> a -> b' whould then be
---   represented as `[b, a, (a -> b)]'.
-newtype Primitive = Prim { unPrimitive :: (Exp, Cxt, [Type]) }
+-- | Natural numbers
+type Nat = Int
 
-instance Eq Primitive where
-    Prim (e1, _, _) == Prim (e2, _, _) = e1 == e2
+-- | Names are template haskell names
+type Name = TH.Name
 
-newtype Context = C { unContext :: [(Uses, Primitive)] }
+-- | Functions of simple types and type constructors with n type
+-- arguments. In the `FunT' case the argument types will be reversed
+-- i.e. the type:
+--
+-- > a -> b
+--
+-- will be represented as:
+--
+-- > [VarT "b", VarT "a"]
+--
+-- `FunT' will never be used with less than two arguments. For example
+-- the type for the constructor
+--
+-- > Just :: a -> Maybe a
+--
+-- will be represented as:
+--
+-- > FunT [ConT "Maybe" ["a"], VarT "a"]
+data SType =
+    FunT [SType]
+  | VarT Name
+  | ConT Name [Name]
 
-consContext :: Uses -> Primitive -> Context -> Context
-consContext uses p (C ctx) = C $ (uses, p) : ctx
+-- | A predicate is a type class constraint, for instance:
+--
+-- > Eq (Int, a)
+--
+-- Will be represented as:
+--
+-- > ClassP "Eq" (ConT "Tup2" [ConT "Int" [], VarT "a"])
+data Pred = ClassP Name SType
 
-listToContext :: Int -> [(Exp, Type)] -> Context
-listToContext uses xs = C [ ctxFun x | x <- xs ]
-  where
-    ctxFun (e, t) = let (c, t') = extractPrimType t
-                        uses' = case t' of
-                            [_] -> Nothing
-                            _   -> Just uses
-                    in (uses', Prim (e, c, t'))
+-- | The constraints is a, possibly empty, list of predicates.
+type Cxt = [Pred]
 
-instance Monoid Context where
-    mempty  = C []
-    mappend (C c1) (C c2) = C $ mappend c1 c2
+-- | A type is a simple type with a list of variable names used in the
+-- type and possibly constraints for the names.
+data Type = ForallT [Name] Cxt SType
 
-instance Show Primitive where
-    show (Prim (e, _, t)) = "Prim " ++ show e ++ " :: " ++ show t
+-- | A constructor is a name for a constructor (for instance `id' or
+-- `Just') together with its, possibly specialized, type.
+type Constructor = (Name, Type)
 
-instance Show Context where
-    show = show . map showPrim . unContext
-      where
-        showPrim (uses, p) = "Uses: " ++ show uses ++ " " ++ show p
+-- | An expression is either the name of a `Constructor', an
+-- expression applied to another expression or a lambda expression.
+-- The list of `Name's in `LamE' will always be non empty.
+data Exp =
+    ConE Name
+  | AppE Exp Exp
+  | LamE [Name] Exp
 
--- TODO: figure out why this is needed
-newtype HValue = HV (forall a. a)
+-- | Represents an unique id for a constructor.
+type Id = Nat
 
-type ClassEnv = [(Name, [InstanceDec])]
+-- | Represents the number of uses left for a constructor. `Nothing'
+-- represents an unlimited number of uses left.
+type Uses = Maybe Nat
 
-extractPrimType :: Type -> (Cxt, [Type])
-extractPrimType t = (cxt, reverse ts)
-  where
-    (cxt, ts) = go t
-    go (AppT (AppT ArrowT t1) rest) = go rest & _2 %~ (t1:)
+-- | A mapping from `Id's to constructors and their number of uses.
+type Context = Map Id (Uses, Constructor)
 
-    -- TODO: merge constraints somehow. Right now I'm only overriding the
-    -- current value, i.e. I'm hoping there were no constraints before.
-    go (ForallT vars cxt rest)      = go rest & _1 .~ cxt
+-- | A mapping from unique `Name's to `Type's.
+type Substitution = Map Name Type
 
-    go a                            = ([], [a])
+-- | The current lambda depth when generating expressions. This is
+-- used to select the next variable names when generating lambda
+-- abstractions.
+type Depth = Nat
+
+-- | A mapping from a type class name to a list of super classes and
+-- all template haskell instance declarations for the type class.
+type ClassEnv = Map Name ([Name], [TH.InstanceDec])
+
+-- | The representation of a user defined \"language\" containing all
+-- `Constructor' that may be used when generating expressions. The
+-- `ClassEnv' contains all relevant classes needed to do constraint
+-- solving for the types mentioned in any of the `Constructor's.
+newtype Language = L (ClassEnv, [Constructor])
+
+-- | A random seed.
+type Seed = Int
