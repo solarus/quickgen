@@ -52,6 +52,7 @@ data SType =
     FunT [SType]
   | VarT Name
   | ConT Name [Name]
+  deriving Show
 
 -- | A predicate is a type class constraint, for instance:
 --
@@ -61,6 +62,7 @@ data SType =
 --
 -- > ClassP "Eq" (ConT "Tup2" [ConT "Int" [], VarT "a"])
 data Pred = ClassP Name SType
+  deriving Show
 
 -- | The constraints is a, possibly empty, list of predicates.
 type Cxt = [Pred]
@@ -68,6 +70,7 @@ type Cxt = [Pred]
 -- | A type is a simple type with a list of variable names used in the
 -- type and possibly constraints for the names.
 data Type = ForallT [Name] Cxt SType
+  deriving Show
 
 -- | A constructor is a name for a constructor (for instance `id' or
 -- `Just') together with its, possibly specialized, type.
