@@ -23,6 +23,7 @@ library
   exposed-modules: Testing.QuickGen
   other-modules:   Testing.QuickGen.ExpGen
                  , Testing.QuickGen.TH
+                 , Testing.QuickGen.THInstances
                  , Testing.QuickGen.Types
   build-depends:   base ==4.6.*
                  , testing-feat
