@@ -21,7 +21,7 @@ executable test
 
 library
   exposed-modules: Testing.QuickGen
-  other-modules:   Testing.QuickGen.GenContext
+  other-modules:   Testing.QuickGen.ExpGen
                  , Testing.QuickGen.TH
                  , Testing.QuickGen.Types
   build-depends:   base ==4.6.*
@@ -32,4 +32,6 @@ library
                  , random
                  , transformers
                  , haskell-src-exts
+                 , containers
+  GHC-options: -Wall
   hs-source-dirs: src
