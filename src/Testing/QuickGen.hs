@@ -13,7 +13,7 @@ import System.Random
 import Test.Feat
 
 -- Local imports
-import Testing.QuickGen.GenContext
+import Testing.QuickGen.ExpGen
 import Testing.QuickGen.TH
 import Testing.QuickGen.Types
 

@@ -13,12 +13,14 @@ module Testing.QuickGen.Types
        , Substitution
        , Depth
        , ClassEnv
-       , Language
+       , Language(..)
        , Seed
+
+       , thToType
+       , TH.mkName
        ) where
 
 import           Data.Map (Map)
-import qualified Data.Map as M
 import qualified Language.Haskell.TH as TH
 
 --------------------------------------------------
@@ -114,3 +116,6 @@ newtype Language = L (ClassEnv, [Constructor])
 
 -- | A random seed.
 type Seed = Int
+
+thToType :: TH.Type -> Type
+thToType = undefined
