@@ -18,6 +18,14 @@ module Testing.QuickGen.Types
 
        , thTypeToType
        , thCxtToCxt
+       , getClassNames
+       , getCxtNames
+
+       -- ClassEnv functions
+       , empty
+       , insert
+       , Testing.QuickGen.Types.lookup
+
        , TH.mkName
        ) where
 
@@ -172,4 +180,20 @@ thTypeToSType t@(TH.AppT (TH.AppT TH.ArrowT _) _) = FunT (go [] t)
 -- type: (AppT (AppT (AppT (ConT "Foo") (VarT "a") ...))) is valid and
 -- should be converted to: (ConT "Foo" [VarT "a", ...])
 thTypeToSType t = error $ "thTypeToSType: Type not matched " ++ show t
+
+-- | Gets all class names mentioned in a `Type'.
+getClassNames :: Type -> [Name]
+getClassNames (ForallT _ cxt _) = getCxtNames cxt
+
+getCxtNames :: Cxt -> [Name]
+getCxtNames cxt = nub [ n | ClassP n _ <- cxt ]
+
+empty :: ClassEnv
+empty = M.empty
+
+insert :: Name -> ([Name], [TH.InstanceDec]) -> ClassEnv -> ClassEnv
+insert = M.insert
+
+lookup :: Name -> ClassEnv -> Maybe ([Name], [TH.InstanceDec])
+lookup = M.lookup
 
