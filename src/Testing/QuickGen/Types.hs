@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Testing.QuickGen.Types
        ( Nat
        , Name
