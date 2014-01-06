@@ -135,7 +135,7 @@ type Depth = Nat
 type ClassEnv = Map Name ([Name], [TH.InstanceDec])
 
 -- | The representation of a user defined \"language\" containing all
--- `Constructor' that may be used when generating expressions. The
+-- `Constructor's that may be used when generating expressions. The
 -- `ClassEnv' contains all relevant classes needed to do constraint
 -- solving for the types mentioned in any of the `Constructor's.
 data Language = L ClassEnv [Constructor]
