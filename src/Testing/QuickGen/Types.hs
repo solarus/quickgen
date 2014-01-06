@@ -16,7 +16,8 @@ module Testing.QuickGen.Types
        , Language(..)
        , Seed
 
-       , thToType
+       , thTypeToType
+       , thCxtToCxt
        , TH.mkName
        ) where
 
@@ -117,5 +118,34 @@ newtype Language = L (ClassEnv, [Constructor])
 -- | A random seed.
 type Seed = Int
 
-thToType :: TH.Type -> Type
-thToType = undefined
+-- | Converts a Template Haskell type into the representation used by
+-- this library. Currently does not support rank > 1 types.
+thTypeToType :: TH.Type -> Type
+thTypeToType (TH.ForallT bs cs t) = ForallT bs' cs' t'
+  where
+    bs' = map parseBinder bs
+    cs' = thCxtToCxt cs
+    t' = thTypeToSType t
+
+    parseBinder (TH.PlainTV n) = n
+    parseBinder b = error $ "thTypeToType: Binder not matched " ++ show b
+thTypeToType t = ForallT [] [] (thTypeToSType t)
+
+thCxtToCxt :: TH.Cxt -> Cxt
+thCxtToCxt cs = map f cs
+  where
+    f (TH.ClassP n ts) = ClassP n (map thTypeToSType ts)
+    f c = error $ "thTypeToType: Constraint not matched " ++ show c
+
+thTypeToSType :: TH.Type -> SType
+thTypeToSType (TH.VarT name) = VarT name
+thTypeToSType (TH.ConT name) = ConT name []
+thTypeToSType t@(TH.AppT (TH.AppT TH.ArrowT _) _) = FunT (go [] t)
+  where
+    go acc (TH.AppT (TH.AppT TH.ArrowT t) rest) = go (thTypeToSType t : acc) rest
+    go acc a = thTypeToSType a : acc
+-- TODO: Missing case for type constructors names. For example the
+-- type: (AppT (AppT (AppT (ConT "Foo") (VarT "a") ...))) is valid and
+-- should be converted to: (ConT "Foo" [VarT "a", ...])
+thTypeToSType t = error $ "thTypeToSType: Type not matched " ++ show t
+
