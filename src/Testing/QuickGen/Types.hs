@@ -50,12 +50,17 @@ type Name = TH.Name
 --
 -- will be represented as:
 --
--- > FunT [ConT "Maybe" ["a"], VarT "a"]
+-- > FunT [ConT "Maybe" [VarT "a"], VarT "a"]
 data SType =
     FunT [SType]
   | VarT Name
-  | ConT Name [Name]
+  | ConT Name [SType]
   deriving Show
+
+instance TH.Lift SType where
+    lift (FunT ts)   = [| FunT ts |]
+    lift (VarT n)    = [| VarT n |]
+    lift (ConT n ns) = [| ConT n ns |]
 
 -- | A predicate is a type class constraint, for instance:
 --
@@ -63,9 +68,12 @@ data SType =
 --
 -- Will be represented as:
 --
--- > ClassP "Eq" (ConT "Tup2" [ConT "Int" [], VarT "a"])
-data Pred = ClassP Name SType
+-- > ClassP "Eq" [ConT "Tup2" [ConT "Int" [], VarT "a"]]
+data Pred = ClassP Name [SType]
   deriving Show
+
+instance TH.Lift Pred where
+    lift (ClassP n st) = [| ClassP n st |]
 
 -- | The constraints is a, possibly empty, list of predicates.
 type Cxt = [Pred]
@@ -74,6 +82,9 @@ type Cxt = [Pred]
 -- type and possibly constraints for the names.
 data Type = ForallT [Name] Cxt SType
   deriving Show
+
+instance TH.Lift Type where
+    lift (ForallT ns cs st) = [| ForallT ns cs st |]
 
 -- | A constructor is a name for a constructor (for instance `id' or
 -- `Just') together with its, possibly specialized, type.
@@ -113,7 +124,16 @@ type ClassEnv = Map Name ([Name], [TH.InstanceDec])
 -- `Constructor' that may be used when generating expressions. The
 -- `ClassEnv' contains all relevant classes needed to do constraint
 -- solving for the types mentioned in any of the `Constructor's.
-newtype Language = L (ClassEnv, [Constructor])
+data Language = L ClassEnv [Constructor]
+
+instance TH.Lift Language where
+    lift (L env cs) = [| L $(liftMap env) cs |]
+      where
+        liftMap :: Map Name ([Name], [TH.InstanceDec]) -> TH.Q TH.Exp
+        liftMap m = do
+            TH.VarE fromList <- [| M.fromList |]
+            let elems = M.assocs m
+            return . TH.AppE (TH.VarE fromList) =<< [| elems |]
 
 -- | A random seed.
 type Seed = Int
