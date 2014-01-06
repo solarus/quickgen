@@ -21,8 +21,12 @@ module Testing.QuickGen.Types
        , TH.mkName
        ) where
 
+import           Data.List (nub)
 import           Data.Map (Map)
-import qualified Language.Haskell.TH as TH
+import qualified Data.Map as M
+import qualified Language.Haskell.TH.Syntax as TH
+
+import           Testing.QuickGen.THInstances ()
 
 --------------------------------------------------
 -- Types
