@@ -25,9 +25,16 @@ module Testing.QuickGen.Types
        , TH.mkName
 
        -- ClassEnv functions
-       , empty
-       , insert
-       , Testing.QuickGen.Types.lookup
+       , emptyEnv
+       , insertEnv
+       , lookupEnv
+
+       -- Substitution functions
+       , emptySubst
+       , singletonSubst
+       , lookupSubst
+       , insertSubst
+       , unionSubst
        ) where
 
 import           Data.List (nub)
@@ -69,7 +76,7 @@ data SType =
   | VarT Name
   | ConT Name [SType]
   | ListT SType
-  deriving Show
+  deriving (Eq, Show)
 
 instance TH.Lift SType where
     lift (FunT ts)   = [| FunT ts |]
@@ -85,7 +92,7 @@ instance TH.Lift SType where
 --
 -- > ClassP "Eq" [ConT "Tup2" [ConT "Int" [], VarT "a"]]
 data Pred = ClassP Name [SType]
-  deriving Show
+  deriving (Eq, Show)
 
 instance TH.Lift Pred where
     lift (ClassP n st) = [| ClassP n st |]
@@ -96,7 +103,7 @@ type Cxt = [Pred]
 -- | A type is a simple type with a list of variable names used in the
 -- type and possibly constraints for the names.
 data Type = ForallT [Name] Cxt SType
-  deriving Show
+  deriving (Eq, Show)
 
 instance TH.Lift Type where
     lift (ForallT ns cs st) = [| ForallT ns cs st |]
@@ -193,11 +200,41 @@ getClassNames (ForallT _ cxt _) = getCxtNames cxt
 getCxtNames :: Cxt -> [Name]
 getCxtNames cxt = nub [ n | ClassP n _ <- cxt ]
 
-empty :: ClassEnv
-empty = M.empty
 
-insert :: Name -> ([Name], [TH.InstanceDec]) -> ClassEnv -> ClassEnv
-insert = M.insert
+--------------------------------------------------
+-- ClassEnv functions
 
-lookup :: Name -> ClassEnv -> Maybe ([Name], [TH.InstanceDec])
-lookup = M.lookup
+emptyEnv :: ClassEnv
+emptyEnv = M.empty
+
+insertEnv :: Name -> ([Name], [TH.InstanceDec]) -> ClassEnv -> ClassEnv
+insertEnv = M.insert
+
+lookupEnv :: Name -> ClassEnv -> Maybe ([Name], [TH.InstanceDec])
+lookupEnv = M.lookup
+
+
+--------------------------------------------------
+-- Substitution functions
+
+emptySubst :: Substitution
+emptySubst = M.empty
+
+singletonSubst :: Name -> Type -> Substitution
+singletonSubst = M.singleton
+
+lookupSubst :: Name -> Substitution -> Maybe Type
+lookupSubst = M.lookup
+
+insertSubst :: Name -> Type -> Substitution -> Substitution
+insertSubst = M.insert
+
+unionSubst :: Monad m => Substitution -> Substitution -> m Substitution
+unionSubst s1 s2 = case M.foldrWithKey f (Just s1) s2 of
+    Nothing -> fail "Substitutions doesn't match"
+    Just s  -> return s
+  where
+    f _ _ Nothing  = Nothing
+    f k a (Just s) = case lookupSubst k s of
+        Just b  -> if a == b then Just s else Nothing
+        Nothing -> Just (insertSubst k a s)

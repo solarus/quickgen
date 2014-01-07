@@ -45,7 +45,7 @@ defineLanguage' es = do
 -- the instances. Returns the `ClassEnv' with information about all
 -- instances for the initial classes and the discovered classes.
 getClassEnv :: [Name] -> TH.Q ClassEnv
-getClassEnv = go empty . S.fromList
+getClassEnv = go emptyEnv . S.fromList
   where
 
     go :: ClassEnv -> Set Name -> TH.Q ClassEnv
@@ -54,7 +54,7 @@ getClassEnv = go empty . S.fromList
         | otherwise               = do
             TH.ClassI (TH.ClassD cxt _ _ _ _) is <- TH.reify n
             let cxt' = toNameSet cxt
-                acc' = insert n (S.toList cxt', is) acc
+                acc' = insertEnv n (S.toList cxt', is) acc
                 is'  = map (toNameSet . (\(TH.InstanceD c _ _) -> c)) is
                 -- TODO: If I try to find all classes then when
                 -- splicing in the resulting expression it can take a
@@ -67,4 +67,4 @@ getClassEnv = go empty . S.fromList
       where
         (n,s') = S.deleteFindMin s
         toNameSet :: TH.Cxt -> Set Name
-        toNameSet c = S.fromList (filter (isNothing . (`T.lookup` acc)) (map (\(TH.ClassP n _) -> n) c))
+        toNameSet c = S.fromList (filter (isNothing . (`lookupEnv` acc)) (map (\(TH.ClassP n' _) -> n') c))
