@@ -69,12 +69,14 @@ data SType =
     FunT [SType]
   | VarT Name
   | ConT Name [SType]
+  | ListT SType
   deriving Show
 
 instance TH.Lift SType where
     lift (FunT ts)   = [| FunT ts |]
     lift (VarT n)    = [| VarT n |]
     lift (ConT n ns) = [| ConT n ns |]
+    lift (ListT n)   = [| ListT n |]
 
 -- | A predicate is a type class constraint, for instance:
 --
