@@ -22,13 +22,12 @@ module Testing.QuickGen.Types
        , thCxtToCxt
        , getClassNames
        , getCxtNames
+       , TH.mkName
 
        -- ClassEnv functions
        , empty
        , insert
        , Testing.QuickGen.Types.lookup
-
-       , TH.mkName
        ) where
 
 import           Data.List (nub)
@@ -161,7 +160,7 @@ thTypeToType (TH.ForallT bs cs t) = ForallT bs' cs' t'
   where
     bs' = map parseBinder bs
     cs' = thCxtToCxt cs
-    t' = thTypeToSType t
+    t'  = thTypeToSType t
 
     parseBinder (TH.PlainTV n) = n
     parseBinder b = error $ "thTypeToType: Binder not matched " ++ show b
@@ -202,4 +201,3 @@ insert = M.insert
 
 lookup :: Name -> ClassEnv -> Maybe ([Name], [TH.InstanceDec])
 lookup = M.lookup
-
