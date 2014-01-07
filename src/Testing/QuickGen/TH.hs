@@ -6,7 +6,9 @@ module Testing.QuickGen.TH
 
 import           Control.Monad ((>=>))
 import           Data.List (nub)
-import           Data.Maybe (isJust)
+import           Data.Maybe (isNothing)
+import           Data.Set (Set)
+import qualified Data.Set as S
 import qualified Language.Haskell.TH as TH
 import           Language.Haskell.TH.Syntax (lift)
 
@@ -45,17 +47,26 @@ defineLanguage' es = do
 -- the instances. Returns the `ClassEnv' with information about all
 -- instances for the initial classes and the discovered classes.
 getClassEnv :: [Name] -> TH.Q ClassEnv
-getClassEnv = go empty
+getClassEnv = go empty . S.fromList
   where
-    go :: ClassEnv -> [Name] -> TH.Q ClassEnv
-    go acc [] = return acc
-    go acc (n:ns) = do
-        TH.ClassI (TH.ClassD cxt _ _ _ _) is <- TH.reify n
-        let cxt' = thCxtToCxt cxt
-            acc' = insert n (getCxtNames cxt', is) acc
-            is'  = concatMap thCxtToCxt [ c | TH.InstanceD c _ _ <- is ]
-            new  = nub $ [ n'
-                         | n' <- getCxtNames (cxt' ++ is')
-                         , not (n' `elem` ns || isJust (T.lookup n' acc'))
-                         ]
-        go acc' (new ++ ns)
+
+    go :: ClassEnv -> Set Name -> TH.Q ClassEnv
+    go acc s
+        | S.null s                = return acc
+        | otherwise               = do
+            TH.ClassI (TH.ClassD cxt _ _ _ _) is <- TH.reify n
+            let cxt' = toNameSet cxt
+                acc' = insert n (S.toList cxt', is) acc
+                is'  = map (toNameSet . (\(TH.InstanceD c _ _) -> c)) is
+                -- TODO: If I try to find all classes then when
+                -- splicing in the resulting expression it can take a
+                -- minute or more to compile! Is there some way around
+                -- this? How to solve this. Maybe let the user specify
+                -- all type classes they want to consider instead? For
+                -- the moment only look in the super classes.
+                new  = [cxt'] -- cxt' : is'
+            go acc' (S.unions (s' : new))
+      where
+        (n,s') = S.deleteFindMin s
+        toNameSet :: TH.Cxt -> Set Name
+        toNameSet c = S.fromList (filter (isNothing . (`T.lookup` acc)) (map (\(TH.ClassP n _) -> n) c))
