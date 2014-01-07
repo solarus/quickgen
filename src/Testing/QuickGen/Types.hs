@@ -175,14 +175,16 @@ thCxtToCxt cs = map f cs
 
 thTypeToSType :: TH.Type -> SType
 thTypeToSType (TH.VarT name) = VarT name
-thTypeToSType (TH.ConT name) = ConT name []
 thTypeToSType t@(TH.AppT (TH.AppT TH.ArrowT _) _) = FunT (go [] t)
   where
-    go acc (TH.AppT (TH.AppT TH.ArrowT t) rest) = go (thTypeToSType t : acc) rest
+    go acc (TH.AppT (TH.AppT TH.ArrowT t') rest) = go (thTypeToSType t' : acc) rest
     go acc a = thTypeToSType a : acc
--- TODO: Missing case for type constructors names. For example the
--- type: (AppT (AppT (AppT (ConT "Foo") (VarT "a") ...))) is valid and
--- should be converted to: (ConT "Foo" [VarT "a", ...])
+-- At this point it has to be a ConT or ListT applied to some arguments
+thTypeToSType t = go [] t
+  where
+    go args (TH.ConT name) = ConT name args
+    go [t'] TH.ListT       = ListT t'
+    go args (TH.AppT a b)  = go (thTypeToSType b : args) a
 thTypeToSType t = error $ "thTypeToSType: Type not matched " ++ show t
 
 -- | Gets all class names mentioned in a `Type'.
