@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Testing.QuickGen.TH
        ( defineLanguage
        ) where
