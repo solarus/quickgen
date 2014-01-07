@@ -2,23 +2,30 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Testing.QuickGen where
+module Testing.QuickGen
+       ( -- generate
 
-import Control.Lens (_1, _2, _3, (^.), to, (.~), (&), (%~))
-import Control.Monad
-import Data.Char (ord, chr)
-import Data.Maybe (catMaybes, listToMaybe, fromJust)
-import Data.Typeable
-import System.Random
-import Test.Feat
+       -- Rexports
+       defineLanguage
+       ) where
+
+-- import Control.Lens (_1, _2, _3, (^.), to, (.~), (&), (%~))
+-- import Control.Monad
+-- import Data.Char (ord, chr)
+-- import Data.Maybe (catMaybes, listToMaybe, fromJust)
+-- import Data.Typeable
+-- import System.Random
+-- import Test.Feat
 
 -- Local imports
 import Testing.QuickGen.ExpGen
 import Testing.QuickGen.TH
 import Testing.QuickGen.Types
 
+{-
+
 generate :: Type -> Int -> Context -> Maybe Exp
-generate t seed ctx = case runGC g seed ctx of
+generate t seed ctx = case runEG g seed ctx of
     Nothing             -> Nothing
     Just (Prim (e,_,_)) -> Just e
   where
@@ -74,46 +81,4 @@ randomMatching match = do
 
             getRandomR (0, n-1) >>= return . Just . (ms !!)
 
-
---------------------------------------------------
--- Testing
-
-genInt = 5 :: Int
-
-instances :: ClassEnv
-foo :: [(Exp, Type)]
-(instances, foo) = $(constructors [| ( genInt
-                                     , map
-                                     , (+)
-                                     , (*)
-                                     -- , return
-                                     -- , id
-                                     -- , ($) :: (a -> b) -> a -> b
-                                     )
-                                   |])
-
--- the type `Int -> Int -> Int'
-t1 = AppT (AppT ArrowT (ConT (mkName "Int"))) (AppT (AppT ArrowT (ConT (mkName "Int"))) (ConT (mkName "Int")))
-
-t1' = snd (extractPrimType t1)
-
-t2 = ([] , [ VarT (mkName "b")
-           , VarT (mkName "a")
-           , AppT (AppT ArrowT (VarT (mkName "a"))) (VarT (mkName "b"))
-           ])
-
-c = listToContext 10 foo
-
-f n = let Just e = generate t1 n c in pprint e
-
-g from to = maximumBy (comparing length) (map f [from..to])
-
-baz :: (forall a. a) -> (forall a. a)
-baz a = a
-
-id2 = id
-
-test = matchWith (head t1') t2
-
-bar :: Integral a => a -> a -> a
-bar a b = a + b
+-}
