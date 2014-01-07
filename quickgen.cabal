@@ -14,14 +14,25 @@ category:            Testing
 build-type:          Simple
 cabal-version:       >=1.8
 
+Flag profiling
+  Default: False
+
 executable test
   main-is: Test.hs
+  GHC-Options: -Wall -O2 -fno-warn-type-defaults
   build-depends: base ==4.6.*
                , quickgen
+               , containers
+               , template-haskell
+               , groom
+
 
 library
   exposed-modules: Testing.QuickGen
-  other-modules:   Testing.QuickGen.ExpGen
+  -- The following internal modules should be hidden later
+  --  other-modules:
+                 ,
+                   Testing.QuickGen.ExpGen
                  , Testing.QuickGen.TH
                  , Testing.QuickGen.THInstances
                  , Testing.QuickGen.Types
@@ -34,5 +45,9 @@ library
                  , transformers
                  , haskell-src-exts
                  , containers
-  GHC-options: -Wall
+
+  if flag(profiling)
+     GHC-Options: -Wall -O2 -fno-warn-type-defaults -enable-library-profiling -auto-all
+  else
+     GHC-Options: -Wall -O2 -fno-warn-type-defaults
   hs-source-dirs: src
