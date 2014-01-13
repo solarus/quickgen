@@ -102,11 +102,14 @@ type Cxt = [Pred]
 
 -- | A type is a simple type with a list of variable names used in the
 -- type and possibly constraints for the names.
-data Type = ForallT [Name] Cxt SType
+data Type =
+    ForallT [Name] Cxt SType
+  | ExistsT [Name] Cxt SType
   deriving (Eq, Show)
 
 instance TH.Lift Type where
     lift (ForallT ns cs st) = [| ForallT ns cs st |]
+    lift (ExistsT ns cs st) = [| ExistsT ns cs st |]
 
 -- | A constructor is a name for a constructor (for instance `id' or
 -- `Just') together with its, possibly specialized, type.
@@ -196,6 +199,7 @@ thTypeToSType t = error $ "thTypeToSType: Type not matched " ++ show t
 -- | Gets all class names mentioned in a `Type'.
 getClassNames :: Type -> [Name]
 getClassNames (ForallT _ cxt _) = getCxtNames cxt
+getClassNames (ExistsT _ cxt _) = getCxtNames cxt
 
 getCxtNames :: Cxt -> [Name]
 getCxtNames cxt = nub [ n | ClassP n _ <- cxt ]
