@@ -133,8 +133,8 @@ type Uses = Maybe Nat
 -- | A mapping from `Id's to constructors and their number of uses.
 type Context = Map Id (Uses, Constructor)
 
--- | A mapping from unique `Name's to `Type's.
-type Substitution = Map Name Type
+-- | A mapping from unique `Name's to `SType's.
+type Substitution = Map Name SType
 
 -- | The current lambda depth when generating expressions. This is
 -- used to select the next variable names when generating lambda
@@ -224,13 +224,13 @@ lookupEnv = M.lookup
 emptySubst :: Substitution
 emptySubst = M.empty
 
-singletonSubst :: Name -> Type -> Substitution
+singletonSubst :: Name -> SType -> Substitution
 singletonSubst = M.singleton
 
 lookupSubst :: Name -> Substitution -> Maybe Type
 lookupSubst = M.lookup
 
-insertSubst :: Name -> Type -> Substitution -> Substitution
+insertSubst :: Name -> SType -> Substitution -> Substitution
 insertSubst = M.insert
 
 unionSubst :: Monad m => Substitution -> Substitution -> m Substitution
