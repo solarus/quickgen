@@ -32,11 +32,14 @@ module Testing.QuickGen.Types
        -- Substitution functions
        , emptySubst
        , singletonSubst
+       , (|->)
        , lookupSubst
        , insertSubst
        , unionSubst
+       , unionsSubst
        ) where
 
+import           Control.Monad (foldM)
 import           Data.List (nub)
 import           Data.Map (Map)
 import qualified Data.Map as M
@@ -227,7 +230,10 @@ emptySubst = M.empty
 singletonSubst :: Name -> SType -> Substitution
 singletonSubst = M.singleton
 
-lookupSubst :: Name -> Substitution -> Maybe Type
+(|->) :: Name -> SType -> Substitution
+(|->) = singletonSubst
+
+lookupSubst :: Name -> Substitution -> Maybe SType
 lookupSubst = M.lookup
 
 insertSubst :: Name -> SType -> Substitution -> Substitution
@@ -242,3 +248,6 @@ unionSubst s1 s2 = case M.foldrWithKey f (Just s1) s2 of
     f k a (Just s) = case lookupSubst k s of
         Just b  -> if a == b then Just s else Nothing
         Nothing -> Just (insertSubst k a s)
+
+unionsSubst :: Monad m => [Substitution] -> m Substitution
+unionsSubst ss = foldM unionSubst emptySubst ss
