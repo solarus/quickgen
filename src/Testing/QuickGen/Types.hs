@@ -171,7 +171,7 @@ type Seed = Int
 -- | Converts a Template Haskell type into the representation used by
 -- this library. Currently does not support rank > 1 types.
 thTypeToType :: TH.Type -> Type
-thTypeToType (TH.ForallT bs cs t) = ForallT bs' cs' t'
+thTypeToType (TH.ForallT bs cs t) = ExistsT bs' cs' t'
   where
     bs' = map parseBinder bs
     cs' = thCxtToCxt cs
@@ -179,7 +179,7 @@ thTypeToType (TH.ForallT bs cs t) = ForallT bs' cs' t'
 
     parseBinder (TH.PlainTV n) = n
     parseBinder b = error $ "thTypeToType: Binder not matched " ++ show b
-thTypeToType t = ForallT [] [] (thTypeToSType t)
+thTypeToType t = ExistsT [] [] (thTypeToSType t)
 
 thCxtToCxt :: TH.Cxt -> Cxt
 thCxtToCxt cs = map f cs
