@@ -1,8 +1,10 @@
+{-# OPTIONS -fno-warn-unused-do-bind #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Testing.QuickGen.ExpGen
        ( ExpGen
 
+       , generate
        , runEG
        , getDepth
        , getRandomR
@@ -13,7 +15,7 @@ module Testing.QuickGen.ExpGen
        -- , getMatching
        ) where
 
-import           Control.Lens ((^.), (&), (%~), _1, _2)
+import           Control.Lens ((^.), (&), (%~), (.~), _1, _2)
 import           Control.Monad.State
 import           Data.Char (chr, ord)
 import           Data.Functor ((<$>))
@@ -21,17 +23,75 @@ import qualified Data.Map as M
 import           System.Random
 
 import           Testing.QuickGen.Types
+import           Testing.QuickGen.TypeCheck
 
-newtype ExpGen a = EG { unEG :: State (Depth, [Context], StdGen, Substitution) a }
-  deriving (Functor, Monad, MonadState (Depth, [Context], StdGen, Substitution))
+type EGState = (Depth, [Context], StdGen, Substitution)
 
-runEG :: ExpGen a -> Seed -> Context -> a
-runEG (EG g) seed initCtx = evalState g (0, [initCtx], gen, M.empty)
+newtype ExpGen a = EG { unEG :: State EGState a }
+  deriving (Functor, Monad, MonadState EGState)
+
+generate :: Type -> Seed -> Language -> (Maybe Exp, EGState)
+generate t seed ctx = case runEG (generate' t) seed ctx of
+    (Just (_, e), s) -> (Just e, s)
+    (Nothing,     s) -> (Nothing, s)
+
+generate' :: Type -> ExpGen (Maybe ([Id], Exp))
+generate' (ForallT ns cxt (FunT (t:ts))) = do
+    let ts' = map (ExistsT ns cxt) ts
+    (ns', ret) <- localLambda ts' (generate' (ForallT ns cxt t))
+    case ret of
+        Nothing       -> return Nothing
+        Just (ids, e) -> return (Just (ids, LamE ns' e))
+generate' t@(ForallT _ _ _) = do
+    ret <- randomMatching t
+    return $ case ret of
+        Nothing          -> Nothing
+        Just (_, (n, _)) -> Just ([], ConE n)
+
+randomMatching :: Type -> ExpGen (Maybe (Id, Constructor))
+randomMatching t = do
+    matches <- getMatching t
+    case length matches of
+        0 -> return Nothing
+        n -> do
+            idx <- getRandomR (0, n-1)
+            let (i, c, _s) = matches !! idx
+            return (Just (i, c))
+
+runEG :: ExpGen a -> Seed -> Language -> (a, EGState)
+-- TODO: The environment is not used yet! Need to add this to the
+-- EGState.
+runEG g seed (L env cs) = runState g' (0, [], gen, M.empty)
   where
+    g'  = unEG $ pushContext cs >> modify (& _1 .~ 0) >> g
     gen = snd . next . mkStdGen $ seed
+
+-- | Pushes a list of constructors to the context stack. Returns the
+-- new depth and the number of constructors added.
+pushContext :: [Constructor] -> ExpGen (Depth, Int)
+pushContext cs = do
+    (depth, ctxs, g, s) <- get
+    let uses = 10 -- FIXME: arbitrarily chosen
+        ctx = M.fromList [ (i, (Just uses, c))
+                         | (i, c) <- zip [depth..] cs
+                         ] :: Context
+        len = M.size ctx
+        depth' = depth + len
+    put (depth', ctx : ctxs, g, s)
+    return (depth', len)
+
+popContext :: ExpGen Int
+popContext = do
+    (depth, c:cs, g, s) <- get
+    let depth' = depth - M.size c
+    put (depth', cs, g, s)
+    return depth'
 
 getDepth :: ExpGen Depth
 getDepth = fmap (^. _1) get
+
+getContexts :: ExpGen [Context]
+getContexts = (^. _2) <$> get
 
 getRandomR :: (Int, Int) -> ExpGen Int
 getRandomR p = state f
@@ -41,21 +101,23 @@ getRandomR p = state f
 getRandomBool :: ExpGen Bool
 getRandomBool = (==1) <$> getRandomR (0,1)
 
-localLambda :: [Type] -> ExpGen a -> ExpGen a
+localLambda :: [Type] -> ExpGen a -> ExpGen ([Name], a)
 localLambda ts eg = do
-    (depth, cs, g, s) <- get
-    let len = length ts
-        uses = 10 -- FIXME: arbitrarily chosen
-        c = M.fromList [ (i, (Just uses, (constr i t)))
-                       | (i, t) <- zip [depth..] ts
-                       ]
-    put (depth + len, c : cs, g, s)
+    depth <- getDepth
+    let cs = map constr (zip [depth..] ts)
+        ns = map fst cs
+
+    pushContext cs
     a <- eg
-    modify (& _2 %~ tail)
-    return a
+    popContext
+
+    return (ns, a)
   where
     -- FIXME: might capture variable names
-    constr i t = (mkName ("_lam_" ++ [chr (i + ord 'a')]), t)
+    constr (i, t) = (mkName ("_lam_" ++ [chr (i + ord 'a')]), t)
+
+getMatching :: Type -> ExpGen [(Id, Constructor, Substitution)]
+getMatching t = concatMap (matchInContext t) <$> getContexts
 
 {-
 
