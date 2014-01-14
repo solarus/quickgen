@@ -1,5 +1,6 @@
 module Testing.QuickGen.TypeCheck
        ( match
+       , matchInContext
        ) where
 
 import Control.Monad
@@ -71,3 +72,5 @@ match (ForallT _ _ t1) (ExistsT _ _ t2) = go t1 t2
 
 match t1 t2 = error $ "match: Not matched " ++ show t1 ++ " | " ++ show t2
 
+matchInContext :: Type -> Context -> [(Id, Constructor, Substitution)]
+matchInContext t c = (filterContextByType . match) t c
