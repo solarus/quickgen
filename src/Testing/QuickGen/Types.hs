@@ -37,6 +37,9 @@ module Testing.QuickGen.Types
        , insertSubst
        , unionSubst
        , unionsSubst
+
+       -- Context functions
+       , filterContextByType
        ) where
 
 import           Control.Monad (foldM)
@@ -253,3 +256,19 @@ unionSubst s1 s2 = case M.foldrWithKey f (Just s1) s2 of
 
 unionsSubst :: Monad m => [Substitution] -> m Substitution
 unionsSubst ss = foldM unionSubst emptySubst ss
+
+
+--------------------------------------------------
+-- Context functions
+
+filterContextByType :: (Type -> Maybe a) -> Context -> [(Id, Constructor, a)]
+filterContextByType f = M.foldrWithKey f' []
+  where
+    f' i (Nothing, c@(_,t)) cs = case f t of
+        Just a  -> (i, c, a) : cs
+        Nothing -> cs
+    f' i (Just u, c@(_,t)) cs
+        | u > 0 = case f t of
+            Just a  -> (i, c, a) : cs
+            Nothing -> cs
+        | otherwise = cs
