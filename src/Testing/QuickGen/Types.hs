@@ -125,6 +125,7 @@ data Exp =
     ConE Name
   | AppE Exp Exp
   | LamE [Name] Exp
+  deriving (Eq, Show)
 
 -- | Represents an unique id for a constructor.
 type Id = Nat
@@ -153,6 +154,7 @@ type ClassEnv = Map Name ([Name], [TH.InstanceDec])
 -- `ClassEnv' contains all relevant classes needed to do constraint
 -- solving for the types mentioned in any of the `Constructor's.
 data Language = L ClassEnv [Constructor]
+  deriving (Eq, Show)
 
 instance TH.Lift Language where
     lift (L env cs) = [| L $(liftMap env) cs |]
