@@ -4,17 +4,23 @@ module Main (main) where
 
 import qualified Control.Monad.Error as E
 import           Control.Monad.Identity
--- import           Data.List
+import           Data.Functor
+import           Data.List
 import qualified Data.Map.Strict as M
--- import           System.Environment
-import           Testing.QuickGen
-
+import           Data.Maybe
+import           System.Environment
 import           Text.Groom
+
+import           Testing.QuickGen
 import           Testing.QuickGen.Types
 import           Testing.QuickGen.TypeCheck
 
 main :: IO ()
 main = do
+    seed <- maybe 0 read . listToMaybe <$> getArgs
+    main' seed
+
+main' seed = do
     -- [a,b] <- fmap (map (read :: String -> Int)) getArgs
     -- print (maximumBy (comparing length) (map f [a..b]))
     -- putStrLn . pprint =<< foo
@@ -26,20 +32,30 @@ main = do
     putStrLn "\nTrivial type matching tests"
     mapM_ print typeTests
 
+    let int = tCon "Int"
+
+    putStrLn . groom . fst $ generate (ForallT [] [] (FunT [int, int, int])) seed lang
+
 genInt :: Int
 genInt = 5
 
-env :: ClassEnv
-cs  :: [ Constructor ]
-L env cs = $(defineLanguage [| ( id
-                               , (+)
-                               , (*)
-                               , const
-                               , (/)
-                               , map
-                               , either
-                               )
-                             |])
+genDouble :: Double
+genDouble = 6
+
+lang :: Language
+env  :: ClassEnv
+cs   :: [ Constructor ]
+lang@(L env cs) = $(defineLanguage [| ( genInt
+                                      , genDouble
+                                      , id
+                                      , (+)
+                                      , (*)
+                                      , const
+                                      , (/)
+                                      , map
+                                      , either
+                                      )
+                                    |])
 
 tCon :: String -> SType
 tCon a = ConT (mkName a) []
