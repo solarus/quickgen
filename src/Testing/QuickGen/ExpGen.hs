@@ -6,7 +6,7 @@ module Testing.QuickGen.ExpGen
 
        , generate
        , runEG
-       , getDepth
+       , nextLambda
        , getRandomR
        , getRandomBool
        , localLambda
@@ -26,12 +26,12 @@ import           System.Random
 import           Testing.QuickGen.Types
 import           Testing.QuickGen.TypeCheck
 
-type LambdaDepth = Depth
-type TypeDepth   = Depth
+type NextLambda = Nat
+type NextType   = Nat
 
 -- TODO: Make this a data type and derive lenses instead of using i.e.
 -- _1 or pattern matching and the whole state when using get.
-type EGState = (LambdaDepth, TypeDepth, [Context], StdGen, Substitution)
+type EGState = (NextLambda, NextType, [Context], StdGen, Substitution)
 
 newtype ExpGen a = EG { unEG :: State EGState a }
   deriving (Functor, Monad, MonadState EGState)
@@ -64,26 +64,25 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
         ret <- randomMatching t
         case ret of
             Nothing -> return Nothing
-            Just (i, (n, ExistsT ns cxt st), s) -> case st of
-                FunT (t':ts) -> do
-                    let go [] args ids        = return (True, args, ids)
-                        go (t'':ts') args ids = do
-                            ret <- generate' (ExistsT ns cxt t'')
-                            case ret of
-                                Nothing         -> return (False, args, ids)
-                                Just (ids', a)  -> go ts' (a:args) (ids' ++ ids)
+            Just (i, (n, ExistsT ns cxt st), s) -> do
+                decUses i
+                modify ((& _5 %~ (maybe (error "generate'") id . unionSubst s)))
+                case st of
+                    FunT (t':ts) -> do
+                        let go [] args ids        = return (True, args, ids)
+                            go (t'':ts') args ids = do
+                                ret <- generate' (ExistsT ns cxt t'')
+                                case ret of
+                                    Nothing         -> return (False, args, ids)
+                                    Just (ids', a)  -> go ts' (a:args) (ids' ++ ids)
 
-                    decUses i
-                    (success, args, ids) <- go ts [] []
-                    case success of
-                        False -> mapM incUses (i:ids) >> return Nothing
-                        True  -> do
-                            let e' = foldl AppE (ConE n) args
-                            return (Just (i:ids, e'))
-                _ -> do
-                    decUses i
-                    modify ((& _5 %~ (maybe (error "generate'") id . unionSubst s)))
-                    return (Just ([i], ConE n))
+                        (success, args, ids) <- go ts [] []
+                        case success of
+                            False -> mapM incUses (i:ids) >> return Nothing
+                            True  -> do
+                                let e' = foldl AppE (ConE n) args
+                                return (Just (i:ids, e'))
+                    _ -> return (Just ([i], ConE n))
 
 randomMatching :: Type -> ExpGen (Maybe (Id, Constructor, Substitution))
 randomMatching t = do
@@ -95,6 +94,8 @@ randomMatching t = do
         n -> do
             (i, c, s) <- (matches !!) <$> getRandomR (0, n-1)
             Just . uncurry (i,,) <$> uniqueTypes (c, s)
+    -- trace ("t = " ++ show t ++ " | t' = " ++ show t') () `seq`
+    --   trace ("Looking for: " ++ show t' ++ "\nFound: " ++ show ret ++ "\n") (return ret)
 
 getMatching :: Type -> ExpGen [(Id, Constructor, Substitution)]
 getMatching t = concatMap (matchInContext t) <$> getContexts
@@ -133,15 +134,11 @@ pushContext cs = do
     put (depth', td, ctx : ctxs, g, s)
     return (depth', len)
 
-popContext :: ExpGen Int
-popContext = do
-    (depth, td, c:cs, g, s) <- get
-    let depth' = depth - M.size c
-    put (depth', td, cs, g, s)
-    return depth'
+popContext :: ExpGen ()
+popContext = modify (& _3 %~ tail)
 
-getDepth :: ExpGen Depth
-getDepth = fmap (^. _1) get
+nextLambda :: ExpGen NextLambda
+nextLambda = fmap (^. _1) get
 
 getContexts :: ExpGen [Context]
 getContexts = (^. _3) <$> get
@@ -156,8 +153,8 @@ getRandomBool = (==1) <$> getRandomR (0,1)
 
 localLambda :: [Type] -> ExpGen a -> ExpGen ([Name], a)
 localLambda ts eg = do
-    depth <- getDepth
-    let cs = map constr (zip [depth..] ts)
+    n <- nextLambda
+    let cs = map constr (zip [n..] ts)
         ns = map fst cs
 
     pushContext cs
@@ -167,7 +164,8 @@ localLambda ts eg = do
     return (ns, a)
   where
     -- FIXME: might capture variable names
-    constr (i, t) = (mkName ("_lam_" ++ [chr (i + ord 'a')]), t)
+    constr (i, t) = let (n, c) = i `divMod` 26
+                    in (mkName ("_lam_" ++ chr (c + ord 'a') : '_' : show n), t)
 
 modContext :: ([Context] -> [Context]) -> ExpGen ()
 modContext f = modify (& _3 %~ f)
