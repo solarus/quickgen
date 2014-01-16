@@ -18,7 +18,7 @@ import           Testing.QuickGen.TypeCheck
 main :: IO ()
 main = do
     seed <- maybe 0 read . listToMaybe <$> getArgs
-    print =<< main' seed
+    main' seed
 
 main' seed = do
     -- [a,b] <- fmap (map (read :: String -> Int)) getArgs
@@ -29,16 +29,28 @@ main' seed = do
     putStrLn (groom env)
     putStrLn $ "Number of classes: " ++ show (length keys)
     mapM_ print keys
-    putStrLn "\nTrivial type matching tests"
+    putStrLn "\nTrivial type matching tests:"
     mapM_ print typeTests
 
+    putStrLn "\nTrivial substitution test:"
+    print applyTest
+
+    putStrLn "\nTrivial generation test:"
     print (genTest seed)
 
 -- Should generate expressions of type "Int -> Double -> [Int]"
-genTest seed = fst $ generate (ForallT [] [] (FunT [ListT int, double, int])) seed lang
-  where
-    int    = tCon "Int"
-    double = tCon "Double"
+genTest seed = fst $ generate (ForallT [] [] (FunT [ListT tInt, tDouble, tInt])) seed lang
+
+tInt    = tCon "Int"
+tDouble = tCon "Double"
+
+applyTest = let a0 = mkName "a0"
+                a2 = mkName "a2"
+                b1 = mkName "b1"
+                eq n = ClassP (mkName "Eq") [VarT n]
+                t1 = ExistsT [a0,b1] [eq a0, eq b1] (ListT (VarT a0))
+                s  = toSubst [(a0, VarT a2)]
+            in (t1, apply s t1)
 
 genInt :: Int
 genInt = 5
@@ -46,22 +58,26 @@ genInt = 5
 genDouble :: Double
 genDouble = 6
 
-sing :: a -> [a]
-sing = (:[])
+nil :: [a]
+nil = []
+
+cons :: a -> [a] -> [a]
+cons = (:)
 
 lang :: Language
 env  :: ClassEnv
 cs   :: [ Constructor ]
 lang@(L env cs) = $(defineLanguage [| ( genInt
                                       , genDouble
-                                      , sing
+                                      , nil
+                                      , cons
                                       , id
-                                      , (+)
-                                      , (*)
-                                      , const
-                                      , (/)
+                                      -- , (+)
+                                      -- , (*)
+                                      -- , const
+                                      -- , (/)
                                       , map
-                                      , either
+                                      -- , either
                                       )
                                     |])
 
