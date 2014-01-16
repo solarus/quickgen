@@ -22,7 +22,6 @@ module Testing.QuickGen.Types
        , thCxtToCxt
        , getClassNames
        , getCxtNames
-       , TH.mkName
 
        -- ClassEnv functions
        , emptyEnv
@@ -41,6 +40,10 @@ module Testing.QuickGen.Types
 
        -- Context functions
        , filterContextByType
+
+       -- Name functions
+       , TH.mkName
+       , appendName
        ) where
 
 import           Control.Monad (foldM)
@@ -276,3 +279,12 @@ filterContextByType f = M.foldrWithKey f' []
             Just a  -> (i, c, a) : cs
             Nothing -> cs
         | otherwise = cs
+
+
+--------------------------------------------------
+-- Name functions
+
+appendName :: String -> Name -> Name
+-- FIXME: Probably not correct (look at TH.nameBase, TH.nameModule)
+-- but works for now.
+appendName s n = TH.mkName (show n ++ s)
