@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances, TemplateHaskell, TypeSynonymInstances #-}
 
-module Main (main) where
+module Main where
 
 import qualified Control.Monad.Error as E
 import           Control.Monad.Identity
@@ -18,7 +18,7 @@ import           Testing.QuickGen.TypeCheck
 main :: IO ()
 main = do
     seed <- maybe 0 read . listToMaybe <$> getArgs
-    main' seed
+    print =<< main' seed
 
 main' seed = do
     -- [a,b] <- fmap (map (read :: String -> Int)) getArgs
@@ -32,9 +32,13 @@ main' seed = do
     putStrLn "\nTrivial type matching tests"
     mapM_ print typeTests
 
-    let int = tCon "Int"
+    print (genTest seed)
 
-    putStrLn . groom . fst $ generate (ForallT [] [] (FunT [int, int, int])) seed lang
+-- Should generate expressions of type "Int -> Double -> [Int]"
+genTest seed = fst $ generate (ForallT [] [] (FunT [ListT int, double, int])) seed lang
+  where
+    int    = tCon "Int"
+    double = tCon "Double"
 
 genInt :: Int
 genInt = 5
@@ -42,11 +46,15 @@ genInt = 5
 genDouble :: Double
 genDouble = 6
 
+sing :: a -> [a]
+sing = (:[])
+
 lang :: Language
 env  :: ClassEnv
 cs   :: [ Constructor ]
 lang@(L env cs) = $(defineLanguage [| ( genInt
                                       , genDouble
+                                      , sing
                                       , id
                                       , (+)
                                       , (*)
