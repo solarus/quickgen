@@ -296,7 +296,8 @@ instance Substitutable a => Substitutable [a] where
 instance Substitutable (Maybe Name) where
     apply s (Just n) = case lookupSubst n s of
         Just (VarT n') -> Just n'
-        _              -> Nothing
+        Just _         -> Nothing
+        Nothing        -> Just n
 
 instance Substitutable Substitution where
     -- Applies the substitution to the _keys_ of a map, i.e. if the
