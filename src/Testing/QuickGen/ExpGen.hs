@@ -49,7 +49,7 @@ generate' (ForallT ns cxt (FunT (t:ts))) = do
     (ns', ret) <- localLambda ts' (generate' (ForallT ns cxt t))
     case ret of
         Nothing       -> return Nothing
-        Just (ids, e) -> return (Just (ids, LamE ns' e))
+        Just (ids, e) -> return (Just (ids, LamE (reverse ns') e))
 
 generate' (ExistsT ns cxt (FunT (t:ts))) = do
     let ts' = map (ExistsT ns cxt) ts
