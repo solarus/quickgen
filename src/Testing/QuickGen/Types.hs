@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleInstances, TemplateHaskell, TypeSynonymInstances #-}
 
 module Testing.QuickGen.Types
        ( Nat
@@ -33,10 +33,11 @@ module Testing.QuickGen.Types
        , singletonSubst
        , (|->)
        , lookupSubst
-       , toSubst
        , insertSubst
+       , toSubst
        , unionSubst
        , unionsSubst
+       , apply
 
        -- Context functions
        , filterContextByType
@@ -50,6 +51,7 @@ import           Control.Monad (foldM)
 import           Data.List (nub)
 import           Data.Map (Map)
 import qualified Data.Map as M
+import           Data.Maybe (catMaybes)
 import qualified Language.Haskell.TH.Syntax as TH
 
 import           Testing.QuickGen.THInstances ()
@@ -264,6 +266,47 @@ unionSubst s1 s2 = case M.foldrWithKey f (Just s1) s2 of
 unionsSubst :: Monad m => [Substitution] -> m Substitution
 unionsSubst ss = foldM unionSubst emptySubst ss
 
+class Substitutable a where
+    apply :: Substitution -> a -> a
+
+instance Substitutable SType where
+    apply s (FunT ts)   = FunT (apply s ts)
+    apply s t@(VarT n)  = case lookupSubst n s of
+        Just t' -> t'
+        Nothing -> t
+    apply s (ConT c ts) = ConT c (apply s ts)
+    apply s (ListT t)   = ListT (apply s t)
+
+instance Substitutable Pred where
+    apply s (ClassP n ts) = ClassP n (apply s ts)
+
+instance Substitutable Type where
+    apply s (ForallT ns cxt st) = ForallT ns' (apply s cxt) (apply s st)
+      where
+        ns' = catMaybes . apply s . map Just $ ns
+    apply s (ExistsT ns cxt st) = ExistsT ns' (apply s cxt) (apply s st)
+      where
+        ns' = catMaybes . apply s . map Just $ ns
+
+instance Substitutable a => Substitutable [a] where
+    apply s = map (apply s)
+
+-- FIXME: I really don't like the following two instances. Need to
+-- figure out how to make this nice.
+instance Substitutable (Maybe Name) where
+    apply s (Just n) = case lookupSubst n s of
+        Just (VarT n') -> Just n'
+        _              -> Nothing
+
+instance Substitutable Substitution where
+    -- Applies the substitution to the _keys_ of a map, i.e. if the
+    -- map is [(a, a)] and the substitution is [(a, a')] then the new
+    -- map will be [(a', a)].
+    apply s = M.foldrWithKey f emptySubst
+      where f n a s' = case lookupSubst n s of
+                Just (VarT n') -> insertSubst n' a s'
+                Just _         -> error "Substitutable Substitution"
+                Nothing        -> s'
 
 --------------------------------------------------
 -- Context functions
