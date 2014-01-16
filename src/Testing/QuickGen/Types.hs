@@ -34,6 +34,7 @@ module Testing.QuickGen.Types
        , singletonSubst
        , (|->)
        , lookupSubst
+       , toSubst
        , insertSubst
        , unionSubst
        , unionsSubst
@@ -243,6 +244,9 @@ lookupSubst = M.lookup
 
 insertSubst :: Name -> SType -> Substitution -> Substitution
 insertSubst = M.insert
+
+toSubst :: [(Name, SType)] -> Substitution
+toSubst = M.fromList
 
 unionSubst :: Monad m => Substitution -> Substitution -> m Substitution
 unionSubst s1 s2 = case M.foldrWithKey f (Just s1) s2 of
