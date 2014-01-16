@@ -48,7 +48,7 @@ module Testing.QuickGen.Types
        ) where
 
 import           Control.Monad (foldM)
-import           Data.List (nub)
+import           Data.List (intercalate, isInfixOf, nub)
 import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Maybe (catMaybes)
@@ -88,7 +88,13 @@ data SType =
   | VarT Name
   | ConT Name [SType]
   | ListT SType
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show SType where
+    show (FunT ts)   = intercalate " -> " (map show (reverse ts))
+    show (VarT n)    = showVar n
+    show (ConT n ts) = show n ++ " " ++ unwords (map show ts)
+    show (ListT t)   = "[" ++ show t ++ "]"
 
 instance TH.Lift SType where
     lift (FunT ts)   = [| FunT ts |]
@@ -104,7 +110,10 @@ instance TH.Lift SType where
 --
 -- > ClassP "Eq" [ConT "Tup2" [ConT "Int" [], VarT "a"]]
 data Pred = ClassP Name [SType]
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show Pred where
+    show (ClassP n ts) = show n ++ " " ++ unwords (map show ts)
 
 instance TH.Lift Pred where
     lift (ClassP n st) = [| ClassP n st |]
@@ -112,12 +121,25 @@ instance TH.Lift Pred where
 -- | The constraints is a, possibly empty, list of predicates.
 type Cxt = [Pred]
 
+showCxt c = case c of
+    [c']    -> show c'
+    (_:_:_) -> "(" ++ intercalate ", " (map show c) ++ ")"
+
 -- | A type is a simple type with a list of variable names used in the
 -- type and possibly constraints for the names.
 data Type =
     ForallT [Name] Cxt SType
   | ExistsT [Name] Cxt SType
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show Type where
+    show (ForallT [] []         st) = "forall. " ++ show st
+    show (ForallT ns cxt@(_:_)  st) =    "forall " ++ unwords (map show ns) ++ ". "
+                                     ++ showCxt cxt ++ " => " ++ show st
+    show (ExistsT [] []        st) = "exists. " ++ show st
+    show (ExistsT ns []        st) = "exists " ++ unwords (map show ns) ++ ". " ++ show st
+    show (ExistsT ns cxt@(_:_) st) =    "exists " ++ unwords (map show ns) ++ ". "
+                                     ++ showCxt cxt ++ " => " ++ show st
 
 instance TH.Lift Type where
     lift (ForallT ns cs st) = [| ForallT ns cs st |]
@@ -134,7 +156,21 @@ data Exp =
     ConE Name
   | AppE Exp Exp
   | LamE [Name] Exp
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show Exp where
+    show (ConE n)     = showVar n
+    show (AppE e1 e2) = paran (show e1) ++ " " ++ paran (show e2)
+      where
+        paran e
+            | ' ' `elem` e = "(" ++ e ++ ")"
+            | otherwise    = e
+    show (LamE ns e) = "\\" ++ unwords (map showVar ns) ++ " -> " ++ show e
+
+showVar v
+    | "_lam_" `isInfixOf` v' = drop 5 v'
+    | otherwise              = v'
+  where v' = show v
 
 -- | Represents an unique id for a constructor.
 type Id = Nat
