@@ -5,6 +5,7 @@ dist
 Setup.hs
 .cabal-sandbox
 cabal.sandbox.config
+report/doc
 
 MagicHaskeller*
 testing-feat*
