@@ -189,7 +189,7 @@ findAndUpdate :: ((Uses, Constructor) -> (Uses, Constructor)) -> Id -> [Context]
 findAndUpdate f i = go
   where
     f' _ a = Just (f a)
-    go [] = error $ "findAndUpdate: Id " ++ show i ++ " not found!"
+    go []     = []
     go (c:cs) = case M.updateLookupWithKey f' i c of
         (Nothing, _) -> c : go cs
         (Just _, c') -> c' : cs
