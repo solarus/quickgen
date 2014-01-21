@@ -6,6 +6,7 @@ module Testing.QuickGen.Types
        , SType(..)
        , Pred(..)
        , Cxt
+       , Quantifier(..)
        , Type(..)
        , Constructor
        , Exp(..)
@@ -48,7 +49,7 @@ module Testing.QuickGen.Types
        ) where
 
 import           Control.Monad (foldM)
-import           Data.List (intercalate, isInfixOf, nub)
+import           Data.List (intercalate, isInfixOf, nub, partition)
 import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Maybe (catMaybes)
@@ -121,29 +122,38 @@ instance TH.Lift Pred where
 -- | The constraints is a, possibly empty, list of predicates.
 type Cxt = [Pred]
 
-showCxt c = case c of
-    [c']    -> show c'
-    (_:_:_) -> "(" ++ intercalate ", " (map show c) ++ ")"
+data Quantifier = Forall Name | Exists Name
+  deriving (Eq, Show)
 
--- | A type is a simple type with a list of variable names used in the
--- type and possibly constraints for the names.
-data Type =
-    ForallT [Name] Cxt SType
-  | ExistsT [Name] Cxt SType
+isForall :: Quantifier -> Bool
+isForall (Forall _) = True
+isForall (Exists _) = False
+
+getName :: Quantifier -> Name
+getName (Forall n) = n
+getName (Exists n) = n
+
+instance TH.Lift Quantifier where
+    lift (Forall n) = [| Forall n |]
+    lift (Exists n) = [| Exists n |]
+
+-- | A type is a simple type with a list of quantified variable names
+-- used in the type and possibly constraints for the names.
+data Type = Type [Quantifier] Cxt SType
   deriving (Eq)
 
 instance Show Type where
-    show (ForallT [] []         st) = "forall. " ++ show st
-    show (ForallT ns cxt@(_:_)  st) =    "forall " ++ unwords (map show ns) ++ ". "
-                                     ++ showCxt cxt ++ " => " ++ show st
-    show (ExistsT [] []        st) = "exists. " ++ show st
-    show (ExistsT ns []        st) = "exists " ++ unwords (map show ns) ++ ". " ++ show st
-    show (ExistsT ns cxt@(_:_) st) =    "exists " ++ unwords (map show ns) ++ ". "
-                                     ++ showCxt cxt ++ " => " ++ show st
+    show (Type qs cxt st) = showQs "Forall " fs ++ showQs "Exists " es ++ showCxt cxt ++ show st
+      where
+        showQs _ [] = ""
+        showQs s xs = s ++ unwords (map show xs) ++ ". "
+        (fs, es) = both (map getName) $ partition isForall qs
+        showCxt []        = ""
+        showCxt [c]       = show c ++ " => "
+        showCxt c@(_:_:_) = "(" ++ intercalate ", " (map show c) ++ ")" ++ " => "
 
 instance TH.Lift Type where
-    lift (ForallT ns cs st) = [| ForallT ns cs st |]
-    lift (ExistsT ns cs st) = [| ExistsT ns cs st |]
+    lift (Type ns cs st) = [| Type ns cs st |]
 
 -- | A constructor is a name for a constructor (for instance `id' or
 -- `Just') together with its, possibly specialized, type.
@@ -160,13 +170,14 @@ data Exp =
 
 instance Show Exp where
     show (ConE n)     = showVar n
-    show (AppE e1 e2) = paran (show e1) ++ " " ++ paran (show e2)
+    show (AppE e1 e2) = show e1 ++ " " ++ paran (show e2)
       where
         paran e
             | ' ' `elem` e = "(" ++ e ++ ")"
             | otherwise    = e
     show (LamE ns e) = "\\" ++ unwords (map showVar ns) ++ " -> " ++ show e
 
+showVar :: Name -> String
 showVar v
     | "_lam_" `isInfixOf` v' = drop 5 v'
     | otherwise              = v'
@@ -216,15 +227,15 @@ type Seed = Int
 -- | Converts a Template Haskell type into the representation used by
 -- this library. Currently does not support rank > 1 types.
 thTypeToType :: TH.Type -> Type
-thTypeToType (TH.ForallT bs cs t) = ExistsT bs' cs' t'
+thTypeToType (TH.ForallT bs cs t) = Type bs' cs' t'
   where
-    bs' = map parseBinder bs
+    bs' = map (Exists . parseBinder) bs
     cs' = thCxtToCxt cs
     t'  = thTypeToSType t
 
     parseBinder (TH.PlainTV n) = n
     parseBinder b = error $ "thTypeToType: Binder not matched " ++ show b
-thTypeToType t = ExistsT [] [] (thTypeToSType t)
+thTypeToType t = Type [] [] (thTypeToSType t)
 
 thCxtToCxt :: TH.Cxt -> Cxt
 thCxtToCxt cs = map f cs
@@ -248,8 +259,7 @@ thTypeToSType t = error $ "thTypeToSType: Type not matched " ++ show t
 
 -- | Gets all class names mentioned in a `Type'.
 getClassNames :: Type -> [Name]
-getClassNames (ForallT _ cxt _) = getCxtNames cxt
-getClassNames (ExistsT _ cxt _) = getCxtNames cxt
+getClassNames (Type _ cxt _) = getCxtNames cxt
 
 getCxtNames :: Cxt -> [Name]
 getCxtNames cxt = nub [ n | ClassP n _ <- cxt ]
@@ -317,10 +327,7 @@ instance Substitutable Pred where
     apply s (ClassP n ts) = ClassP n (apply s ts)
 
 instance Substitutable Type where
-    apply s (ForallT ns cxt st) = ForallT ns' (apply s cxt) (apply s st)
-      where
-        ns' = catMaybes . apply s . map Just $ ns
-    apply s (ExistsT ns cxt st) = ExistsT ns' (apply s cxt) (apply s st)
+    apply s (Type ns cxt st) = Type ns' (apply s cxt) (apply s st)
       where
         ns' = catMaybes . apply s . map Just $ ns
 
@@ -329,11 +336,15 @@ instance Substitutable a => Substitutable [a] where
 
 -- FIXME: I really don't like the following two instances. Need to
 -- figure out how to make this nice.
-instance Substitutable (Maybe Name) where
-    apply s (Just n) = case lookupSubst n s of
-        Just (VarT n') -> Just n'
-        Just _         -> Nothing
-        Nothing        -> Just n
+instance Substitutable (Maybe Quantifier) where
+    apply s (Just n) = let getCtr (Forall _) = Forall
+                           getCtr (Exists _) = Exists
+                           ctr = getCtr n
+                       in case lookupSubst (getName n) s of
+                           Just (VarT n') -> Just (ctr n')
+                           Just _         -> Nothing
+                           Nothing        -> Just n
+    apply _ Nothing = error "Types.apply (Maybe Quantifier): Should not happen?"
 
 instance Substitutable Substitution where
     -- Applies the substitution to the _keys_ of a map, i.e. if the
@@ -368,3 +379,6 @@ appendName :: String -> Name -> Name
 -- FIXME: Probably not correct (look at TH.nameBase, TH.nameModule)
 -- but works for now.
 appendName s n = TH.mkName (show n ++ s)
+
+both :: (a -> b) -> (a, a) -> (b, b)
+both f (a, b) =  (f a, f b)
