@@ -55,13 +55,13 @@ getClassEnv = go emptyEnv . S.fromList
             TH.ClassI (TH.ClassD cxt _ _ _ _) is <- TH.reify n
             let cxt' = toNameSet cxt
                 acc' = insertEnv n (S.toList cxt', is) acc
-                is'  = map (toNameSet . (\(TH.InstanceD c _ _) -> c)) is
                 -- TODO: If I try to find all classes then when
                 -- splicing in the resulting expression it can take a
                 -- minute or more to compile! Is there some way around
                 -- this? How to solve this. Maybe let the user specify
                 -- all type classes they want to consider instead? For
                 -- the moment only look in the super classes.
+                -- is'  = map (toNameSet . (\(TH.InstanceD c _ _) -> c)) is
                 new  = [cxt'] -- cxt' : is'
             go acc' (S.unions (s' : new))
       where

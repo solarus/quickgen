@@ -6,7 +6,7 @@ module Testing.QuickGen.Types
        , SType(..)
        , Pred(..)
        , Cxt
-       , Quantifier(..)
+       , QName(..)
        , Type(..)
        , Constructor
        , Exp(..)
@@ -19,10 +19,18 @@ module Testing.QuickGen.Types
        , Language(..)
        , Seed
 
+       , getName
+       , isForall
+       , isExists
+
        , thTypeToType
        , thCxtToCxt
        , getClassNames
        , getCxtNames
+
+       -- Type/SType functions
+       , toQuantifier
+       , getVars
 
        -- ClassEnv functions
        , emptyEnv
@@ -41,6 +49,7 @@ module Testing.QuickGen.Types
        , apply
 
        -- Context functions
+       , foldrContext
        , filterContextByType
 
        -- Name functions
@@ -52,7 +61,6 @@ import           Control.Monad (foldM)
 import           Data.List (intercalate, isInfixOf, nub, partition)
 import           Data.Map (Map)
 import qualified Data.Map as M
-import           Data.Maybe (catMaybes)
 import qualified Language.Haskell.TH.Syntax as TH
 
 import           Testing.QuickGen.THInstances ()
@@ -92,9 +100,11 @@ data SType =
   deriving (Eq)
 
 instance Show SType where
-    show (FunT ts)   = intercalate " -> " (map show (reverse ts))
+    show (FunT ts)   = intercalate " -> " (map (paren . show) (reverse ts))
+      where paren s = if ' ' `elem` s then "(" ++ s ++ ")" else s
     show (VarT n)    = showVar n
-    show (ConT n ts) = show n ++ " " ++ unwords (map show ts)
+    show (ConT n ts) = let args = unwords (map show ts)
+                       in show n ++ if null args then "" else " " ++ args
     show (ListT t)   = "[" ++ show t ++ "]"
 
 instance TH.Lift SType where
@@ -122,24 +132,27 @@ instance TH.Lift Pred where
 -- | The constraints is a, possibly empty, list of predicates.
 type Cxt = [Pred]
 
-data Quantifier = Forall Name | Exists Name
+data QName = Forall Name | Exists Name
   deriving (Eq, Show)
 
-isForall :: Quantifier -> Bool
+isForall :: QName -> Bool
 isForall (Forall _) = True
 isForall (Exists _) = False
 
-getName :: Quantifier -> Name
+isExists :: QName -> Bool
+isExists = not . isForall
+
+getName :: QName -> Name
 getName (Forall n) = n
 getName (Exists n) = n
 
-instance TH.Lift Quantifier where
+instance TH.Lift QName where
     lift (Forall n) = [| Forall n |]
     lift (Exists n) = [| Exists n |]
 
 -- | A type is a simple type with a list of quantified variable names
 -- used in the type and possibly constraints for the names.
-data Type = Type [Quantifier] Cxt SType
+data Type = Type [QName] Cxt SType
   deriving (Eq)
 
 instance Show Type where
@@ -229,7 +242,7 @@ type Seed = Int
 thTypeToType :: TH.Type -> Type
 thTypeToType (TH.ForallT bs cs t) = Type bs' cs' t'
   where
-    bs' = map (Exists . parseBinder) bs
+    bs' = map (Forall . parseBinder) bs
     cs' = thCxtToCxt cs
     t'  = thTypeToSType t
 
@@ -317,9 +330,7 @@ class Substitutable a where
 
 instance Substitutable SType where
     apply s (FunT ts)   = FunT (apply s ts)
-    apply s t@(VarT n)  = case lookupSubst n s of
-        Just t' -> t'
-        Nothing -> t
+    apply s t@(VarT n)  = maybe t id (lookupSubst n s)
     apply s (ConT c ts) = ConT c (apply s ts)
     apply s (ListT t)   = ListT (apply s t)
 
@@ -327,37 +338,42 @@ instance Substitutable Pred where
     apply s (ClassP n ts) = ClassP n (apply s ts)
 
 instance Substitutable Type where
-    apply s (Type ns cxt st) = Type ns' (apply s cxt) (apply s st)
+    apply s t@(Type qs cxt st) = Type qs' (apply s cxt) st'
       where
-        ns' = catMaybes . apply s . map Just $ ns
+        st'  = apply s st
+        vars = getVars st'
+        qs'  = nub (map getQuantifier vars)
+        getCtr _ [] = traceStack (unlines [show s, show t, show vars, show st, show st']) (error "foo")
+        getCtr n (x : xs)
+            | getName x == n = x
+            | otherwise      = getCtr n xs
+        getQuantifier n = getCtr n qs
 
 instance Substitutable a => Substitutable [a] where
     apply s = map (apply s)
 
--- FIXME: I really don't like the following two instances. Need to
--- figure out how to make this nice.
-instance Substitutable (Maybe Quantifier) where
-    apply s (Just n) = let getCtr (Forall _) = Forall
-                           getCtr (Exists _) = Exists
-                           ctr = getCtr n
-                       in case lookupSubst (getName n) s of
-                           Just (VarT n') -> Just (ctr n')
-                           Just _         -> Nothing
-                           Nothing        -> Just n
-    apply _ Nothing = error "Types.apply (Maybe Quantifier): Should not happen?"
 
-instance Substitutable Substitution where
-    -- Applies the substitution to the _keys_ of a map, i.e. if the
-    -- map is [(a, a)] and the substitution is [(a, a')] then the new
-    -- map will be [(a', a)].
-    apply s = M.foldrWithKey f emptySubst
-      where f n a s' = case lookupSubst n s of
-                Just (VarT n') -> insertSubst n' a s'
-                Just _         -> error "Substitutable Substitution"
-                Nothing        -> s'
+--------------------------------------------------
+-- Type functions
+
+toQuantifier :: Name -> Type -> Maybe QName
+toQuantifier n (Type qs _ _) = lookup n [ (getName q, q) | q <- qs ]
+
+--------------------------------------------------
+-- SType functions
+
+getVars :: SType -> [Name]
+getVars (FunT ts)   = nub (concatMap getVars ts)
+getVars (VarT n)    = [n]
+getVars (ConT _ ts) = nub (concatMap getVars ts)
+getVars (ListT t)   = getVars t
+
 
 --------------------------------------------------
 -- Context functions
+
+foldrContext :: (Id -> (Uses, Constructor) -> a -> a) -> a -> Context -> a
+foldrContext = M.foldrWithKey
 
 filterContextByType :: (Type -> Maybe a) -> Context -> [(Id, Constructor, a)]
 filterContextByType f = M.foldrWithKey f' []

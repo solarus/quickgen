@@ -15,12 +15,12 @@ module Testing.QuickGen.ExpGen
        -- , getMatching
        ) where
 
-import           Control.Lens ((^.), (&), (%~), (.~), _1, _2, _3, _5)
+import           Control.Lens ((^.), (&), (%~), _1, _2, _3, _5)
 import           Control.Monad.State
 import           Data.Char (chr, ord)
 import           Data.Functor ((<$>))
 import qualified Data.Map as M
-import           Data.Maybe (listToMaybe, catMaybes)
+import           Data.Maybe (catMaybes, listToMaybe)
 import           System.Random
 
 import           Testing.QuickGen.Types
@@ -43,20 +43,14 @@ generate t seed ctx = case runEG (generate' t) seed ctx of
 
 generate' :: Type -> ExpGen (Maybe ([Id], Exp))
 
--- TODO: Merge the next two patterns into one
-generate' (ForallT ns cxt (FunT (t:ts))) = do
-    let ts' = map (ExistsT ns cxt) ts
-    (ns', ret) <- localLambda ts' (generate' (ForallT ns cxt t))
+generate' (Type qs cxt (FunT (t:ts))) = do
+    let -- TODO: clean up qs and cxt?
+        ts' = map (Type qs cxt) ts
+        t'  = Type qs cxt t
+    (ns', ret) <- localLambda ts' (generate' t')
     case ret of
         Nothing       -> return Nothing
         Just (ids, e) -> return (Just (ids, LamE (reverse ns') e))
-
-generate' (ExistsT ns cxt (FunT (t:ts))) = do
-    let ts' = map (ExistsT ns cxt) ts
-    (ns', ret) <- localLambda ts' (generate' (ExistsT ns cxt t))
-    case ret of
-        Nothing       -> return Nothing
-        Just (ids, e) -> return (Just (ids, LamE ns' e))
 
 generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
   where
@@ -64,15 +58,16 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
         ret <- randomMatching t
         case ret of
             Nothing -> return Nothing
-            Just (i, (n, ExistsT ns cxt st), s) -> do
+            Just (i, (n, Type qs cxt st), s) -> do
                 decUses i
-                modify ((& _5 %~ (maybe (error "generate'") id . unionSubst s)))
+                -- modify ((& _5 %~ (either error id . unionSubst s)))
+                modify (& _5 %~ (`M.union` maybe emptySubst id s))
                 case st of
-                    FunT (t':ts) -> do
+                    FunT (_:ts) -> do
                         let go [] args ids        = return (True, args, ids)
                             go (t'':ts') args ids = do
-                                ret <- generate' (ExistsT ns cxt t'')
-                                case ret of
+                                ret' <- generate' (Type qs cxt t'')
+                                case ret' of
                                     Nothing         -> return (False, args, ids)
                                     Just (ids', a)  -> go ts' (a:args) (ids' ++ ids)
 
@@ -84,38 +79,41 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
                                 return (Just (i:ids, e'))
                     _ -> return (Just ([i], ConE n))
 
-randomMatching :: Type -> ExpGen (Maybe (Id, Constructor, Substitution))
+randomMatching :: Type -> ExpGen (Maybe (Id, Constructor, Maybe Substitution))
 randomMatching t = do
     s <- (^. _5) <$> get
     let t' = apply s t
+
+    -- TODO: Filter constraints either in getMatching or by retrying
+    -- the random selection until a valid constructor is found (while
+    -- keeping track of which ones was tried).
     matches <- getMatching t'
     case length matches of
         0 -> return Nothing
-        n -> do
-            (i, c, s) <- (matches !!) <$> getRandomR (0, n-1)
-            Just . uncurry (i,,) <$> uniqueTypes (c, s)
-    -- trace ("t = " ++ show t ++ " | t' = " ++ show t') () `seq`
-    --   trace ("Looking for: " ++ show t' ++ "\nFound: " ++ show ret ++ "\n") (return ret)
+        n -> Just . (matches !!) <$> getRandomR (0, n-1)
 
-getMatching :: Type -> ExpGen [(Id, Constructor, Substitution)]
+getMatching :: Type -> ExpGen [(Id, Constructor, Maybe Substitution)]
 getMatching t = concatMap (matchInContext t) <$> getContexts
 
-uniqueTypes :: (Constructor, Substitution) -> ExpGen (Constructor, Substitution)
-uniqueTypes ((n, t), s) = do
+uniqueTypes :: Constructor -> ExpGen Constructor
+uniqueTypes (n, t) = do
     td <- (^. _2) <$> get
-    let ExistsT ns cxt st = t
-        s' = toSubst [ (n', VarT (appendName ("_" ++ show i) n'))
-                     | (i, n') <- zip [td.. ] ns
-                     ]
-        t' = ExistsT (catMaybes (apply s' (map Just ns))) (apply s' cxt) (apply s' st)
+    let Type qs cxt st = t
+        s' = toSubst (zip (map getName qs) (map (VarT . getName) qs'))
+        getCtr (Forall _) = Forall
+        getCtr (Exists _) = Exists
+        qs' = [ getCtr q (appendName ("_" ++ show i) (getName q))
+              | (i, q) <- zip [td..] qs
+              ]
+        t' = Type qs' (apply s' cxt) (apply s' st)
 
-    modify (& _2 %~ (+ length ns))
-    return ((n, t'), apply s' s)
+    modify (& _2 %~ (+ length qs))
+    return (n, t')
 
 runEG :: ExpGen a -> Seed -> Language -> (a, EGState)
 -- TODO: The environment is not used yet! Need to add this to the
 -- EGState.
-runEG g seed (L env cs) = runState g' (0, 0, [], gen, M.empty)
+runEG g seed (L _env cs) = runState g' (0, 0, [], gen, M.empty)
   where
     g'  = unEG $ pushContext cs >> g
     gen = snd . next . mkStdGen $ seed
@@ -124,10 +122,11 @@ runEG g seed (L env cs) = runState g' (0, 0, [], gen, M.empty)
 -- new depth and the number of constructors added.
 pushContext :: [Constructor] -> ExpGen (Depth, Int)
 pushContext cs = do
+    cs' <- mapM uniqueTypes cs
     (depth, td, ctxs, g, s) <- get
     let uses = 10 -- FIXME: arbitrarily chosen
         ctx = M.fromList [ (i, (Just uses, c))
-                         | (i, c) <- zip [depth..] cs
+                         | (i, c) <- zip [depth..] cs'
                          ] :: Context
         len = M.size ctx
         depth' = depth + len
