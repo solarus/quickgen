@@ -34,17 +34,17 @@ match t1 t2 = do
 match' :: (Functor m, Monad m) => Type -> Type -> m (Maybe Substitution, Maybe Substitution)
 match' t1@(Type _ _ (FunT _)) _ = error $ "match: Unexpected function type " ++ show t1
 match' t1 (Type ns cxt (FunT (t2 : _))) = match' t1 (Type ns cxt t2)
-match' ta@(Type ns1 _ st1) tb@(Type _ _ st2) = go st1 st2
+match' ta@(Type ns1 _ st1) tb@(Type ns2 _ st2) = go st1 st2
   where
     getVar _ [] = error "match: The impossible happened!"
     getVar v (q:qs)
         | v == getName q = q
         | otherwise      = getVar v qs
 
-    go t1@(VarT _) (VarT n2) = return (Nothing, Just (n2 |-> t1))
-    go t1          (VarT n2) = return (Nothing, Just (n2 |-> t1))
+    go t1@(VarT _) (VarT n2) = return (Nothing, Just (n2 |-> (ns1, t1)))
+    go t1          (VarT n2) = return (Nothing, Just (n2 |-> (ns1, t1)))
     go (VarT n1)   t2
-        | isExists (getVar n1 ns1) = return (Just (n1 |-> t2), Nothing)
+        | isExists (getVar n1 ns1) = return (Just (n1 |-> (ns2, t2)), Nothing)
         | otherwise                = fail "No match"
 
     go (ConT n1 as1) (ConT n2 as2)

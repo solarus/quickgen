@@ -43,6 +43,7 @@ module Testing.QuickGen.Types
        , (|->)
        , lookupSubst
        , insertSubst
+       , differenceSubst
        , toSubst
        , unionSubst
        , unionsSubst
@@ -207,7 +208,7 @@ type Uses = Maybe Nat
 type Context = Map Id (Uses, Constructor)
 
 -- | A mapping from unique `Name's to `SType's.
-type Substitution = Map Name SType
+type Substitution = Map Name ([QName], SType)
 
 -- | The current lambda depth when generating expressions. This is
 -- used to select the next variable names when generating lambda
@@ -297,19 +298,22 @@ lookupEnv = M.lookup
 emptySubst :: Substitution
 emptySubst = M.empty
 
-singletonSubst :: Name -> SType -> Substitution
+singletonSubst :: Name -> ([QName], SType) -> Substitution
 singletonSubst = M.singleton
 
-(|->) :: Name -> SType -> Substitution
+(|->) :: Name -> ([QName], SType) -> Substitution
 (|->) = singletonSubst
 
-lookupSubst :: Name -> Substitution -> Maybe SType
+lookupSubst :: Name -> Substitution -> Maybe ([QName], SType)
 lookupSubst = M.lookup
 
-insertSubst :: Name -> SType -> Substitution -> Substitution
+insertSubst :: Name -> ([QName], SType) -> Substitution -> Substitution
 insertSubst = M.insert
 
-toSubst :: [(Name, SType)] -> Substitution
+differenceSubst :: Substitution -> Substitution -> Substitution
+differenceSubst = M.difference
+
+toSubst :: [(Name, ([QName], SType))] -> Substitution
 toSubst = M.fromList
 
 unionSubst :: Monad m => Substitution -> Substitution -> m Substitution
@@ -330,7 +334,7 @@ class Substitutable a where
 
 instance Substitutable SType where
     apply s (FunT ts)   = FunT (apply s ts)
-    apply s t@(VarT n)  = maybe t id (lookupSubst n s)
+    apply s t@(VarT n)  = maybe t snd (lookupSubst n s)
     apply s (ConT c ts) = ConT c (apply s ts)
     apply s (ListT t)   = ListT (apply s t)
 
@@ -343,11 +347,11 @@ instance Substitutable Type where
         st'  = apply s st
         vars = getVars st'
         qs'  = nub (map getQuantifier vars)
-        getCtr _ [] = traceStack (unlines [show s, show t, show vars, show st, show st']) (error "foo")
-        getCtr n (x : xs)
-            | getName x == n = x
-            | otherwise      = getCtr n xs
-        getQuantifier n = getCtr n qs
+        substBindings = concatMap fst (M.elems s)
+
+        getQuantifier n = case lookup n (map (\q -> (getName q, q)) (qs ++ substBindings)) of
+            Just q' -> q'
+            Nothing -> error . unlines $ [ show s, show t, show n, show qs, show vars ]
 
 instance Substitutable a => Substitutable [a] where
     apply s = map (apply s)

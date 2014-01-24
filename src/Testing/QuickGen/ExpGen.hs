@@ -99,7 +99,7 @@ uniqueTypes :: Constructor -> ExpGen Constructor
 uniqueTypes (n, t) = do
     td <- (^. _2) <$> get
     let Type qs cxt st = t
-        s' = toSubst (zip (map getName qs) (map (VarT . getName) qs'))
+        s' = toSubst (zip (map getName qs) (map ((qs,) . VarT . getName) qs'))
         getCtr (Forall _) = Forall
         getCtr (Exists _) = Exists
         qs' = [ getCtr q (appendName ("_" ++ show i) (getName q))
