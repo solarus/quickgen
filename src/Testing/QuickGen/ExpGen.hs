@@ -55,21 +55,20 @@ generate' (Type qs cxt (FunT (t:ts))) = do
 generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
   where
     p = do
-        ret <- randomMatching t
-        case ret of
+        m <- randomMatching t
+        case m of
             Nothing -> return Nothing
-            Just (i, (n, Type qs cxt st), s) -> do
+            Just (i, (n, Type qs cxt st), ms) -> do
                 decUses i
-                -- modify ((& _5 %~ (either error id . unionSubst s)))
-                modify (& _5 %~ (`M.union` maybe emptySubst id s))
+                modify (& _5 %~ (`M.union` maybe emptySubst id ms))
                 case st of
                     FunT (_:ts) -> do
                         let go [] args ids        = return (True, args, ids)
-                            go (t'':ts') args ids = do
-                                ret' <- generate' (Type qs cxt t'')
-                                case ret' of
-                                    Nothing         -> return (False, args, ids)
-                                    Just (ids', a)  -> go ts' (a:args) (ids' ++ ids)
+                            go (t':ts') args ids = do
+                                ret <- generate' (Type qs cxt t')
+                                case ret of
+                                    Nothing        -> return (False, args, ids)
+                                    Just (ids', a) -> go ts' (a:args) (ids' ++ ids)
 
                         (success, args, ids) <- go ts [] []
                         case success of

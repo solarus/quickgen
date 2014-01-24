@@ -134,36 +134,6 @@ typeTests = [ match tA tId
             , match (exists "a") (Type [] [] tDouble)
             ]
 
-{-
-
--- the type `Int -> Int -> Int'
-t1 = AppT (AppT ArrowT (ConT (mkName "Int"))) (AppT (AppT ArrowT (ConT (mkName "Int"))) (ConT (mkName "Int")))
-
-t1' = snd (extractPrimType t1)
-
-t2 = ([] , [ VarT (mkName "b")
-           , VarT (mkName "a")
-           , AppT (AppT ArrowT (VarT (mkName "a"))) (VarT (mkName "b"))
-           ])
-
-c = listToContext 10 foo
-
-f n = let Just e = generate t1 n c in pprint e
-
-g from to = maximumBy (comparing length) (map f [from..to])
-
-baz :: (forall a. a) -> (forall a. a)
-baz a = a
-
-id2 = id
-
-test = matchWith (head t1') t2
-
-bar :: Integral a => a -> a -> a
-bar a b = a + b
-
--}
-
 type Error a = E.ErrorT String Identity a
 
 instance Show a => Show (Error a) where
