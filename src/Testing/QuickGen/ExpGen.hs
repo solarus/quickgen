@@ -15,8 +15,9 @@ module Testing.QuickGen.ExpGen
        -- , getMatching
        ) where
 
-import           Control.Lens ((^.), (&), (%~), _1, _2, _3, _5)
+import           Control.Lens ((^.), (&), (%~), (.~), _1, _2, _3, _5)
 import           Control.Monad.State
+import           Control.Monad.Writer
 import           Data.Char (chr, ord)
 import           Data.Functor ((<$>))
 import qualified Data.Map as M
@@ -33,13 +34,13 @@ type NextType   = Nat
 -- _1 or pattern matching and the whole state when using get.
 type EGState = (NextLambda, NextType, [Context], StdGen, Substitution)
 
-newtype ExpGen a = EG { unEG :: State EGState a }
-  deriving (Functor, Monad, MonadState EGState)
+newtype ExpGen a = EG { unEG :: WriterT [String] (State EGState) a }
+  deriving (Functor, Monad, MonadState EGState, MonadWriter [String] )
 
-generate :: Type -> Seed -> Language -> (Maybe Exp, EGState)
+generate :: Type -> Seed -> Language -> (Maybe Exp, [String], EGState)
 generate t seed ctx = case runEG (generate' t) seed ctx of
-    (Just (_, e), s) -> (Just e, s)
-    (Nothing,     s) -> (Nothing, s)
+    (Just (_, e), d, s) -> (Just e, d, s)
+    (Nothing, d, s) -> (Nothing, d, s)
 
 generate' :: Type -> ExpGen (Maybe ([Id], Exp))
 
@@ -54,18 +55,22 @@ generate' (Type qs cxt (FunT (t:ts))) = do
 
 generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
   where
-    p = do
+    p = dropNothing $ do
         m <- randomMatching t
-        case m of
+        indent 2 $ case m of
             Nothing -> return Nothing
-            Just (i, (n, Type qs cxt st), ms) -> do
+            Just (i, c@(n, Type qs cxt st), ms) -> do
                 decUses i
+                tell [ "c  = " ++ show c
+                     , "ms = " ++ show ms
+                     ]
                 modify (& _5 %~ (`M.union` maybe emptySubst id ms))
                 case st of
                     FunT (_:ts) -> do
                         let go [] args ids        = return (True, args, ids)
                             go (t':ts') args ids = do
-                                ret <- generate' (Type qs cxt t')
+                                tell ["Argument for " ++ show n]
+                                ret <- indent 2 $ generate' (Type qs cxt t')
                                 case ret of
                                     Nothing        -> return (False, args, ids)
                                     Just (ids', a) -> go ts' (a:args) (ids' ++ ids)
@@ -75,13 +80,18 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
                             False -> mapM incUses (i:ids) >> return Nothing
                             True  -> do
                                 let e' = foldl AppE (ConE n) args
+                                tell ["Returning " ++ show e']
                                 return (Just (i:ids, e'))
-                    _ -> return (Just ([i], ConE n))
+                    _ -> do
+                        tell ["Returning " ++ show (ConE n)]
+                        return (Just ([i], ConE n))
 
 randomMatching :: Type -> ExpGen (Maybe (Id, Constructor, Maybe Substitution))
 randomMatching t = do
     s <- (^. _5) <$> get
     let t' = apply s t
+
+    tell [ "Looking for " ++ show t ++ " | t' = " ++ show t' ]
 
     -- TODO: Filter constraints either in getMatching or by retrying
     -- the random selection until a valid constructor is found (while
@@ -109,11 +119,12 @@ uniqueTypes (n, t) = do
     modify (& _2 %~ (+ length qs))
     return (n, t')
 
-runEG :: ExpGen a -> Seed -> Language -> (a, EGState)
+runEG :: ExpGen a -> Seed -> Language -> (a, [String], EGState)
 -- TODO: The environment is not used yet! Need to add this to the
 -- EGState.
-runEG g seed (L _env cs) = runState g' (0, 0, [], gen, M.empty)
+runEG g seed (L _env cs) = (e, debug, s)
   where
+    ((e, debug), s) = runState (runWriterT g') (0, 0, [], gen, M.empty)
     g'  = unEG $ pushContext cs >> g
     gen = snd . next . mkStdGen $ seed
 
@@ -224,3 +235,13 @@ subst match new (SigT t k) = SigT (subst match new t) k
 subst _ _ t = t
 
 -}
+
+dropNothing :: ExpGen (Maybe t) -> ExpGen (Maybe t)
+dropNothing e = pass $ do
+    a <- e
+    return $ case a of Nothing -> (a, const []); _ -> (a, id)
+
+indent :: Int -> ExpGen a -> ExpGen a
+indent n e = pass $ do
+    a <- e
+    return (a, map (replicate n ' ' ++))

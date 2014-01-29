@@ -39,7 +39,9 @@ main' low high = do
     putStrLn (maximumBy (comparing length) . map (show . fst . genTest) $ [low .. high])
 
 -- Should generate expressions of type "Int -> Double -> [Int]"
-genTest seed = generate (Type [] [] (FunT [ListT tInt, tDouble, tInt])) seed lang
+genTest seed = (a, b)
+    where
+      (a, _ , b) = generate (Type [] [] (FunT [ListT tInt, tDouble, tInt])) seed lang
 
 tInt    = tCon "Int"
 tDouble = tCon "Double"
@@ -80,6 +82,13 @@ lang@(L env cs) = $(defineLanguage [| ( genInt
                                       -- , either
                                       )
                                     |])
+
+lang2 = $(defineLanguage [| ( nil
+                            , cons
+                            , map
+                            )
+                            |])
+
 
 tCon :: String -> SType
 tCon a = ConT (mkName a) []
@@ -140,3 +149,12 @@ instance Show a => Show (Error a) where
     show e = case runIdentity (E.runErrorT e) of
         Left err -> "ERROR: " ++ err
         Right ok -> "OK: " ++ show ok
+
+test debug s = do
+    when debug $ mapM_ putStrLn d
+    return e
+  where
+    (e, d, _) = generate t s lang2
+    x  = mkName "x"
+    xt = VarT x
+    t  = (Type [Exists x] [] xt)
