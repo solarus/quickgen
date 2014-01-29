@@ -15,7 +15,7 @@ module Testing.QuickGen.ExpGen
        -- , getMatching
        ) where
 
-import           Control.Lens ((^.), (&), (%~), _1, _2, _3, _5)
+import           Control.Lens ((^.), (&), (%~), (.~), _1, _2, _3, _5)
 import           Control.Monad.State
 import           Data.Char (chr, ord)
 import           Data.Functor ((<$>))
@@ -37,11 +37,9 @@ newtype ExpGen a = EG { unEG :: State EGState a }
   deriving (Functor, Monad, MonadState EGState)
 
 generate :: Type -> Seed -> Language -> (Maybe Exp, EGState)
-generate t seed ctx = case runEG (generate' t) seed ctx of
-    (Just (_, e), s) -> (Just e, s)
-    (Nothing,     s) -> (Nothing, s)
+generate t seed ctx = runEG (generate' t) seed ctx
 
-generate' :: Type -> ExpGen (Maybe ([Id], Exp))
+generate' :: Type -> ExpGen (Maybe Exp)
 
 generate' (Type qs cxt (FunT (t:ts))) = do
     let -- TODO: clean up qs and cxt?
@@ -49,8 +47,8 @@ generate' (Type qs cxt (FunT (t:ts))) = do
         t'  = Type qs cxt t
     (ns', ret) <- localLambda ts' (generate' t')
     case ret of
-        Nothing       -> return Nothing
-        Just (ids, e) -> return (Just (ids, LamE (reverse ns') e))
+        Nothing -> return Nothing
+        Just e  -> return (Just (LamE (reverse ns') e))
 
 generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
   where
@@ -59,24 +57,28 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
         case m of
             Nothing -> return Nothing
             Just (i, (n, Type qs cxt st), ms) -> do
+                (_,_,ctxs,_,s) <- get
                 decUses i
                 modify (& _5 %~ (`M.union` maybe emptySubst id ms))
                 case st of
                     FunT (_:ts) -> do
-                        let go [] args ids        = return (True, args, ids)
-                            go (t':ts') args ids = do
+                        let go [] args        = return (True, args)
+                            go (t':ts') args = do
                                 ret <- generate' (Type qs cxt t')
                                 case ret of
-                                    Nothing        -> return (False, args, ids)
-                                    Just (ids', a) -> go ts' (a:args) (ids' ++ ids)
+                                    Nothing -> return (False, args)
+                                    Just a  -> go ts' (a:args)
 
-                        (success, args, ids) <- go ts [] []
+                        (success, args) <- go ts []
                         case success of
-                            False -> mapM incUses (i:ids) >> return Nothing
+                            False -> do
+                                modify (& _3 .~ ctxs)
+                                modify (& _5 .~ s)
+                                return Nothing
                             True  -> do
                                 let e' = foldl AppE (ConE n) args
-                                return (Just (i:ids, e'))
-                    _ -> return (Just ([i], ConE n))
+                                return (Just e')
+                    _ -> return (Just (ConE n))
 
 randomMatching :: Type -> ExpGen (Maybe (Id, Constructor, Maybe Substitution))
 randomMatching t = do
