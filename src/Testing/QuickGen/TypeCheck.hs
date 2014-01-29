@@ -41,7 +41,6 @@ match' ta@(Type ns1 _ st1) tb@(Type ns2 _ st2) = go st1 st2
         | v == getName q = q
         | otherwise      = getVar v qs
 
-    go t1@(VarT _) (VarT n2) = return (Nothing, Just (n2 |-> (ns1, t1)))
     go t1          (VarT n2) = return (Nothing, Just (n2 |-> (ns1, t1)))
     go (VarT n1)   t2
         | isExists (getVar n1 ns1) = return (Just (n1 |-> (ns2, t2)), Nothing)
