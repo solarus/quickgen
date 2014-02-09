@@ -25,13 +25,11 @@ library
                  , Testing.QuickGen.Types
                  , Testing.QuickGen.TypeCheck
   build-depends:   base ==4.6.*
-                 , testing-feat
                  , template-haskell
                  , mtl
                  , lens
                  , random
                  , transformers
-                 , haskell-src-exts
                  , containers
 
   GHC-Options: -Wall -O2 -fno-warn-type-defaults -fprof-auto
