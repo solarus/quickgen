@@ -1,30 +1,23 @@
 {-# OPTIONS -fno-warn-unused-do-bind #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving, TupleSections #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving
+           , TupleSections #-}
 
 module Testing.QuickGen.ExpGen
        ( ExpGen
-
        , generate
-       , runEG
-       , nextLambda
-       , getRandomR
-       , getRandomBool
-       , localLambda
-       , incUses
-       , decUses
-       -- , getMatching
+       , match
        ) where
 
-import           Control.Lens ((^.), (&), (%~), (.~), _1, _2, _3, _5)
+import           Control.Applicative
+import           Control.Lens (Field2, (^.), (&), (%~), (.~), _1, _2, _3, _5)
 import           Control.Monad.State
 import           Data.Char (chr, ord)
-import           Data.Functor ((<$>))
+import           Data.List ((\\))
 import qualified Data.Map as M
 import           Data.Maybe (catMaybes, listToMaybe)
 import           System.Random
 
 import           Testing.QuickGen.Types
-import           Testing.QuickGen.TypeCheck
 
 type NextLambda = Nat
 type NextType   = Nat
@@ -34,13 +27,14 @@ type NextType   = Nat
 type EGState = (NextLambda, NextType, [Context], StdGen, Substitution)
 
 newtype ExpGen a = EG { unEG :: State EGState a }
-  deriving (Functor, Monad, MonadState EGState)
+  deriving (Functor, Monad, Applicative, MonadState EGState)
 
-generate :: Type -> Seed -> Language -> (Maybe Exp, EGState)
-generate t seed ctx = runEG (generate' t) seed ctx
+generate :: Language -> Type -> Seed -> (Maybe Exp, EGState)
+generate ctx t seed = runEG seed ctx $ do
+    t' <- bindForall <$> uniqueTypes t
+    generate' t'
 
 generate' :: Type -> ExpGen (Maybe Exp)
-
 generate' (Type qs cxt (FunT (t:ts))) = do
     let -- TODO: clean up qs and cxt?
         ts' = map (Type qs cxt) ts
@@ -56,10 +50,9 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
         m <- randomMatching t
         case m of
             Nothing -> return Nothing
-            Just (i, (n, Type qs cxt st), ms) -> do
+            Just (i, (n, Type qs cxt st)) -> do
                 (_,_,ctxs,_,s) <- get
                 decUses i
-                modify (& _5 %~ (`M.union` maybe emptySubst id ms))
                 case st of
                     FunT (_:ts) -> do
                         let go [] args        = return (True, args)
@@ -80,10 +73,9 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
                                 return (Just e')
                     _ -> return (Just (ConE n))
 
-randomMatching :: Type -> ExpGen (Maybe (Id, Constructor, Maybe Substitution))
+randomMatching :: Type -> ExpGen (Maybe (Id, Constructor))
 randomMatching t = do
-    s <- (^. _5) <$> get
-    let t' = apply s t
+    t' <- apply <$> getSubstitution <*> pure t
 
     -- TODO: Filter constraints either in getMatching or by retrying
     -- the random selection until a valid constructor is found (while
@@ -91,30 +83,24 @@ randomMatching t = do
     matches <- getMatching t'
     case length matches of
         0 -> return Nothing
-        n -> Just . (matches !!) <$> getRandomR (0, n-1)
+        n -> do
+            (i,c,s)  <- (matches !!) <$> getRandomR (0, n-1)
+            modify (& _5 %~ maybe (error "should not happen") id . (`unionSubst` s))
+            return (Just (i,c))
 
-getMatching :: Type -> ExpGen [(Id, Constructor, Maybe Substitution)]
-getMatching t = concatMap (matchInContext t) <$> getContexts
-
-uniqueTypes :: Constructor -> ExpGen Constructor
-uniqueTypes (n, t) = do
+uniqueTypes :: Type -> ExpGen Type
+uniqueTypes t@(Type vs _ _) = do
     td <- (^. _2) <$> get
-    let Type qs cxt st = t
-        s' = toSubst (zip (map getName qs) (map ((qs,) . VarT . getName) qs'))
-        getCtr (Forall _) = Forall
-        getCtr (Exists _) = Exists
-        qs' = [ getCtr q (appendName ("_" ++ show i) (getName q))
-              | (i, q) <- zip [td..] qs
-              ]
-        t' = Type qs' (apply s' cxt) (apply s' st)
+    let subst = toSubst [ (n, let v = (i, q) in ([v], VarT v))
+                        | (i, (n, q)) <- zip [td..] vs
+                        ]
+    modify (& _2 %~ (+ sizeSubst subst))
+    return (apply subst t)
 
-    modify (& _2 %~ (+ length qs))
-    return (n, t')
-
-runEG :: ExpGen a -> Seed -> Language -> (a, EGState)
+runEG :: Seed -> Language -> ExpGen a -> (a, EGState)
 -- TODO: The environment is not used yet! Need to add this to the
 -- EGState.
-runEG g seed (L _env cs) = runState g' (0, 0, [], gen, M.empty)
+runEG seed (L _env cs) g = runState g' (0, 0, [], gen, M.empty)
   where
     g'  = unEG $ pushContext cs >> g
     gen = snd . next . mkStdGen $ seed
@@ -123,9 +109,9 @@ runEG g seed (L _env cs) = runState g' (0, 0, [], gen, M.empty)
 -- new depth and the number of constructors added.
 pushContext :: [Constructor] -> ExpGen (Depth, Int)
 pushContext cs = do
-    cs' <- mapM uniqueTypes cs
+    cs' <- mapM (\(n,t) -> (n,) <$> uniqueTypes t) cs
     (depth, td, ctxs, g, s) <- get
-    let uses = 10 -- FIXME: arbitrarily chosen
+    let uses = 3 -- FIXME: arbitrarily chosen
         ctx = M.fromList [ (i, (Just uses, c))
                          | (i, c) <- zip [depth..] cs'
                          ] :: Context
@@ -143,13 +129,13 @@ nextLambda = fmap (^. _1) get
 getContexts :: ExpGen [Context]
 getContexts = (^. _3) <$> get
 
+getSubstitution :: ExpGen Substitution
+getSubstitution = (^. _5) <$> get
+
 getRandomR :: (Int, Int) -> ExpGen Int
 getRandomR p = state f
   where
     f (d, td, cs, g, s) = let (a, g') = randomR p g in (a, (d, td, cs, g', s))
-
-getRandomBool :: ExpGen Bool
-getRandomBool = (==1) <$> getRandomR (0,1)
 
 localLambda :: [Type] -> ExpGen a -> ExpGen ([Name], a)
 localLambda ts eg = do
@@ -178,11 +164,6 @@ decUses i = modContext (findAndUpdate f i)
         | u <= 0    = error "decUses: The impossible happened!"
         | otherwise = (Just (pred u), c)
 
-incUses :: Id -> ExpGen ()
-incUses i = modContext (findAndUpdate f i)
-  where
-    f (mu, c) = (succ <$> mu, c)
-
 findAndUpdate :: ((Uses, Constructor) -> (Uses, Constructor)) -> Id -> [Context] -> [Context]
 findAndUpdate f i = go
   where
@@ -192,37 +173,72 @@ findAndUpdate f i = go
         (Nothing, _) -> c : go cs
         (Just _, c') -> c' : cs
 
-{-
+match :: (Applicative m, Monad m) => Type -> Type -> StateT Substitution m Type
+match t1@(Type ns1 _ _) t2 = do
+    t2'@(Type ns2 _ _) <- apply <$> match' t1 t2 <*> pure t2
+    let toExist = ns2 \\ ns1
+        subst   = toSubst [ (n, let n' = (n, Exists) in ([n'], VarT n'))
+                          | (n, Forall) <- toExist
+                          ]
+    return $ apply subst t2'
 
-matches :: Type -> (Cxt, Type) -> (Bool, Maybe Name)
-matches t (c, t')
-    | t == t'   = (True, Nothing)
-    | otherwise = case t' of
-        VarT n | okCxt -> (True, Just n)
-        _              -> (False, Nothing)
+match' :: Monad m => Type -> Type -> StateT Substitution m Substitution
+match' t1@(Type _ _ (FunT _)) _ = error $ "match: Unexpected function type " ++ show t1
+match' t1 (Type ns cxt (FunT (t2 : _))) = match' t1 (Type ns cxt t2)
+match' ta@(Type _ _ st1) tb@(Type _ _ st2) = go st1 st2
   where
-    okCxt = True -- FIXME: Check constraints!
+    go :: Monad m => SType -> SType -> StateT Substitution m Substitution
+    go t1@(VarT (_, Forall)) (VarT (n2, Forall)) = return (n2 |-> t1)
+    go t1 (VarT (n2, Forall)) = do
+        return (n2 |-> t1)
+    go t1 (VarT (n2, Exists)) = get >>= \s -> case lookupSubst n2 s of
+        Just (_, t2') -> go t1 t2'
+        _             -> do
+            let ret = (n2 |-> t1)
+            case unionSubst s ret of
+                Just s' -> put s'
+                Nothing -> fail "No match"
+            return ret
+    go (VarT (n1, Exists)) t2 = get >>= \s -> case lookupSubst n1 s of
+        Just (_, t1') -> go t1' t2
+        _             -> do
+            case unionSubst s (n1 |-> t2) of
+                Just s' -> put s'
+                Nothing -> fail "No match"
+            return emptySubst
 
-isVarT (VarT _) = True
-isVarT _        = False
+    go (ListT t1) (ListT t2) = go t1 t2
+    go (ListT _)  _          = noMatch
+    go _          (ListT _)  = noMatch
 
-matchWith :: Type -> (Cxt, [Type]) -> Maybe [Type]
-matchWith t (c, t':ts) = case t `matches` (c, t') of
-    (True, Nothing) -> Just (t : ts)
-    (True, Just n)  -> Just (t : ts')
-      where
-        ts' = map (subst n t) ts
-    (False, _)      -> Nothing
+    go (ConT n1 as1) (ConT n2 as2)
+        | n1 /= n2  = noMatch
+        | otherwise = unionsSubst =<< zipWithM go as1 as2
+    go (ConT _ _) _ = noMatch
+    go _ (ConT _ _) = noMatch
 
-subst :: Name -> Type -> Type -> Type
-subst match new t@(VarT name)
-    | match == name = new
-    | otherwise     = t
-subst match new (AppT t1 t2) = AppT (subst match new t1) (subst match new t2)
-subst match new t@(ForallT ns c t') = case match `elem` map (\(PlainTV n) -> n) ns of
-    True  -> t
-    False -> ForallT ns c (subst match new t')
-subst match new (SigT t k) = SigT (subst match new t) k
-subst _ _ t = t
+    go _ _ = error $ "match: Not matched " ++ show ta ++ " | " ++ show tb
 
--}
+    noMatch :: Monad m => m a
+    noMatch = fail $ "Types don't match: " ++ show ta ++ " | " ++ show tb
+
+getMatching :: Type -> ExpGen [(Id, Constructor, Substitution)]
+getMatching goalType = do
+    ctxs  <- getContexts
+    subst <- getSubstitution
+    let gt = apply subst goalType
+
+    let f i (mu, (n, t)) acc
+            -- If number of uses is a Just and less than 1 then
+            -- discard this constructor. TODO: maybe remove
+            -- constructor from the context instead when decreasing
+            -- uses?
+            | maybe False (< 1) mu = acc
+            | otherwise            = do
+                t' <- uniqueTypes (apply subst t)
+                case runStateT (match gt t') emptySubst of
+                    Just (newT, s) -> (:) <$> pure (i, (n, newT), s) <*> acc
+                    Nothing -> acc
+
+    -- <$> should have higher precedence than p :(
+    fmap concat . forM ctxs $ foldrContext f (return [])
