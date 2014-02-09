@@ -23,7 +23,6 @@ library
                  , Testing.QuickGen.TH
                  , Testing.QuickGen.THInstances
                  , Testing.QuickGen.Types
-                 , Testing.QuickGen.TypeCheck
   build-depends:   base ==4.6.*
                  , template-haskell
                  , mtl
