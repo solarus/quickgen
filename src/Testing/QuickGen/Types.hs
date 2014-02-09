@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleInstances, TemplateHaskell, TypeSynonymInstances #-}
+{-# LANGUAGE TemplateHaskell
+           , TupleSections #-}
 
 module Testing.QuickGen.Types
        ( Nat
@@ -6,7 +7,8 @@ module Testing.QuickGen.Types
        , SType(..)
        , Pred(..)
        , Cxt
-       , QName(..)
+       , Quantifier(..)
+       , Variable
        , Type(..)
        , Constructor
        , Exp(..)
@@ -14,14 +16,11 @@ module Testing.QuickGen.Types
        , Uses
        , Context
        , Substitution
+       , Substitutable
        , Depth
        , ClassEnv
        , Language(..)
        , Seed
-
-       , getName
-       , isForall
-       , isExists
 
        , thTypeToType
        , thCxtToCxt
@@ -29,8 +28,8 @@ module Testing.QuickGen.Types
        , getCxtNames
 
        -- Type/SType functions
-       , toQuantifier
        , getVars
+       , bindForall
 
        -- ClassEnv functions
        , emptyEnv
@@ -47,6 +46,7 @@ module Testing.QuickGen.Types
        , toSubst
        , unionSubst
        , unionsSubst
+       , sizeSubst
        , apply
 
        -- Context functions
@@ -59,9 +59,11 @@ module Testing.QuickGen.Types
        ) where
 
 import           Control.Monad (foldM)
+import           Data.Char
 import           Data.List (intercalate, isInfixOf, nub, partition)
 import           Data.Map (Map)
 import qualified Data.Map as M
+import           Data.Maybe (fromJust)
 import qualified Language.Haskell.TH.Syntax as TH
 
 import           Testing.QuickGen.THInstances ()
@@ -74,6 +76,15 @@ type Nat = Int
 
 -- | Names are template haskell names
 type Name = TH.Name
+
+data Quantifier = Forall | Exists
+  deriving (Eq, Show)
+
+instance TH.Lift Quantifier where
+    lift Forall = [| Forall |]
+    lift Exists = [| Exists |]
+
+type Variable = (Nat, Quantifier)
 
 -- | Functions of simple types and type constructors with n type
 -- arguments. In the `FunT' case the argument types will be reversed
@@ -95,7 +106,7 @@ type Name = TH.Name
 -- > FunT [ConT "Maybe" [VarT "a"], VarT "a"]
 data SType =
     FunT [SType]
-  | VarT Name
+  | VarT Variable
   | ConT Name [SType]
   | ListT SType
   deriving (Eq)
@@ -103,14 +114,21 @@ data SType =
 instance Show SType where
     show (FunT ts)   = intercalate " -> " (map (paren . show) (reverse ts))
       where paren s = if ' ' `elem` s then "(" ++ s ++ ")" else s
-    show (VarT n)    = showVar n
-    show (ConT n ts) = let args = unwords (map show ts)
-                       in show n ++ if null args then "" else " " ++ args
+    show (VarT (n, Forall))    = showForall n
+    show (VarT (n, Exists))    = showExists n
+    show (ConT n [])
+        | all isDigit n' = showTVar (read n')
+        | otherwise      = n'
+      where
+        n' = show n
+
+
+    show (ConT n ts) = show n ++ " " ++ unwords (map show ts)
     show (ListT t)   = "[" ++ show t ++ "]"
 
 instance TH.Lift SType where
     lift (FunT ts)   = [| FunT ts |]
-    lift (VarT n)    = [| VarT n |]
+    lift (VarT (n, q))  = [| VarT (n, q) |]
     lift (ConT n ns) = [| ConT n ns |]
     lift (ListT n)   = [| ListT n |]
 
@@ -133,41 +151,26 @@ instance TH.Lift Pred where
 -- | The constraints is a, possibly empty, list of predicates.
 type Cxt = [Pred]
 
-data QName = Forall Name | Exists Name
-  deriving (Eq, Show)
-
-isForall :: QName -> Bool
-isForall (Forall _) = True
-isForall (Exists _) = False
-
-isExists :: QName -> Bool
-isExists = not . isForall
-
-getName :: QName -> Name
-getName (Forall n) = n
-getName (Exists n) = n
-
-instance TH.Lift QName where
-    lift (Forall n) = [| Forall n |]
-    lift (Exists n) = [| Exists n |]
-
 -- | A type is a simple type with a list of quantified variable names
 -- used in the type and possibly constraints for the names.
-data Type = Type [QName] Cxt SType
+data Type = Type [Variable] Cxt SType
   deriving (Eq)
 
 instance Show Type where
-    show (Type qs cxt st) = showQs "Forall " fs ++ showQs "Exists " es ++ showCxt cxt ++ show st
+    show (Type vs cxt st) = fs' ++ es' ++ cxt' ++ show st
       where
-        showQs _ [] = ""
-        showQs s xs = s ++ unwords (map show xs) ++ ". "
-        (fs, es) = both (map getName) $ partition isForall qs
-        showCxt []        = ""
-        showCxt [c]       = show c ++ " => "
-        showCxt c@(_:_:_) = "(" ++ intercalate ", " (map show c) ++ ")" ++ " => "
+        (fs, es) = partition ((Forall ==) . snd) vs
+        showQuant _ _ [] = ""
+        showQuant s f xs = s ++ " " ++ unwords (map (f . fst) xs) ++ ". "
+        fs' = showQuant "Forall" showForall fs
+        es' = showQuant "Exists" showExists es
+        cxt' = case cxt of
+            []  -> ""
+            [c] -> show c ++ " => "
+            _   -> "(" ++ intercalate ", " (map show cxt) ++ ")" ++ " => "
 
 instance TH.Lift Type where
-    lift (Type ns cs st) = [| Type ns cs st |]
+    lift (Type vs cs st) = [| Type vs cs st |]
 
 -- | A constructor is a name for a constructor (for instance `id' or
 -- `Just') together with its, possibly specialized, type.
@@ -184,9 +187,9 @@ data Exp =
 
 instance Show Exp where
     show (ConE n)     = showVar n
-    show (AppE e1 e2) = show e1 ++ " " ++ paran (show e2)
+    show (AppE e1 e2) = show e1 ++ " " ++ paren (show e2)
       where
-        paran e
+        paren e
             | ' ' `elem` e = "(" ++ e ++ ")"
             | otherwise    = e
     show (LamE ns e) = "\\" ++ unwords (map showVar ns) ++ " -> " ++ show e
@@ -207,8 +210,8 @@ type Uses = Maybe Nat
 -- | A mapping from `Id's to constructors and their number of uses.
 type Context = Map Id (Uses, Constructor)
 
--- | A mapping from unique `Name's to `SType's.
-type Substitution = Map Name ([QName], SType)
+-- | A mapping from unique `Nat's to `SType's.
+type Substitution = Map Nat ([Variable], SType)
 
 -- | The current lambda depth when generating expressions. This is
 -- used to select the next variable names when generating lambda
@@ -240,36 +243,39 @@ type Seed = Int
 
 -- | Converts a Template Haskell type into the representation used by
 -- this library. Currently does not support rank > 1 types.
+-- thTypeToType :: Nat -> TH.Type -> (Nat, Type)
 thTypeToType :: TH.Type -> Type
-thTypeToType (TH.ForallT bs cs t) = Type bs' cs' t'
+thTypeToType (TH.ForallT bs cs t) = Type vs cs' t'
   where
-    bs' = map (Forall . parseBinder) bs
-    cs' = thCxtToCxt cs
-    t'  = thTypeToSType t
+    bs'   = map parseBinder bs
+    cs'   = thCxtToCxt [] cs
+    t'    = thTypeToSType subst t
+    subst = zip bs' [0..]
+    vs    = map ((,Forall) . snd) subst
 
-    parseBinder (TH.PlainTV n) = n
+    parseBinder (TH.PlainTV m) = m
     parseBinder b = error $ "thTypeToType: Binder not matched " ++ show b
-thTypeToType t = Type [] [] (thTypeToSType t)
+thTypeToType t = Type [] [] (thTypeToSType [] t)
 
-thCxtToCxt :: TH.Cxt -> Cxt
-thCxtToCxt cs = map f cs
+thCxtToCxt :: [(Name, Int)] -> TH.Cxt -> Cxt
+thCxtToCxt env cs = map f cs
   where
-    f (TH.ClassP n ts) = ClassP n (map thTypeToSType ts)
+    f (TH.ClassP n ts) = ClassP n (map (thTypeToSType env) ts)
     f c = error $ "thTypeToType: Constraint not matched " ++ show c
 
-thTypeToSType :: TH.Type -> SType
-thTypeToSType (TH.VarT name) = VarT name
-thTypeToSType t@(TH.AppT (TH.AppT TH.ArrowT _) _) = FunT (go [] t)
+thTypeToSType :: [(Name, Int)] -> TH.Type -> SType
+thTypeToSType env (TH.VarT name) = VarT (fromJust (lookup name env), Forall)
+thTypeToSType env t@(TH.AppT (TH.AppT TH.ArrowT _) _) = FunT (go [] t)
   where
-    go acc (TH.AppT (TH.AppT TH.ArrowT t') rest) = go (thTypeToSType t' : acc) rest
-    go acc a = thTypeToSType a : acc
+    go acc (TH.AppT (TH.AppT TH.ArrowT t') rest) = go (thTypeToSType env t' : acc) rest
+    go acc a = thTypeToSType env a : acc
 -- At this point it has to be a ConT or ListT applied to some arguments
-thTypeToSType t = go [] t
+thTypeToSType env t = go [] t
   where
     go args (TH.ConT name) = ConT name args
     go [t'] TH.ListT       = ListT t'
-    go args (TH.AppT a b)  = go (thTypeToSType b : args) a
-thTypeToSType t = error $ "thTypeToSType: Type not matched " ++ show t
+    go args (TH.AppT a b)  = go (thTypeToSType env b : args) a
+thTypeToSType _ t = error $ "thTypeToSType: Type not matched " ++ show t
 
 -- | Gets all class names mentioned in a `Type'.
 getClassNames :: Type -> [Name]
@@ -298,22 +304,22 @@ lookupEnv = M.lookup
 emptySubst :: Substitution
 emptySubst = M.empty
 
-singletonSubst :: Name -> ([QName], SType) -> Substitution
-singletonSubst = M.singleton
+singletonSubst :: Nat -> SType -> Substitution
+singletonSubst n st = M.singleton n (getVars st, st)
 
-(|->) :: Name -> ([QName], SType) -> Substitution
+(|->) :: Nat -> SType -> Substitution
 (|->) = singletonSubst
 
-lookupSubst :: Name -> Substitution -> Maybe ([QName], SType)
+lookupSubst :: Nat -> Substitution -> Maybe ([Variable], SType)
 lookupSubst = M.lookup
 
-insertSubst :: Name -> ([QName], SType) -> Substitution -> Substitution
+insertSubst :: Nat -> ([Variable], SType) -> Substitution -> Substitution
 insertSubst = M.insert
 
 differenceSubst :: Substitution -> Substitution -> Substitution
 differenceSubst = M.difference
 
-toSubst :: [(Name, ([QName], SType))] -> Substitution
+toSubst :: [(Nat, ([Variable], SType))] -> Substitution
 toSubst = M.fromList
 
 unionSubst :: Monad m => Substitution -> Substitution -> m Substitution
@@ -329,48 +335,60 @@ unionSubst s1 s2 = case M.foldrWithKey f (Just s1) s2 of
 unionsSubst :: Monad m => [Substitution] -> m Substitution
 unionsSubst ss = foldM unionSubst emptySubst ss
 
+sizeSubst :: Substitution -> Int
+sizeSubst = M.size
+
 class Substitutable a where
     apply :: Substitution -> a -> a
 
 instance Substitutable SType where
-    apply s (FunT ts)   = FunT (apply s ts)
-    apply s t@(VarT n)  = maybe t snd (lookupSubst n s)
-    apply s (ConT c ts) = ConT c (apply s ts)
-    apply s (ListT t)   = ListT (apply s t)
+    apply s (FunT ts)      = FunT (apply s ts)
+    apply s t@(VarT (n,_)) = maybe t snd (lookupSubst n s)
+    apply s (ConT c ts)    = ConT c (apply s ts)
+    apply s (ListT t)      = ListT (apply s t)
 
 instance Substitutable Pred where
     apply s (ClassP n ts) = ClassP n (apply s ts)
 
 instance Substitutable Type where
-    apply s t@(Type qs cxt st) = Type qs' (apply s cxt) st'
+    apply s (Type _ cxt st) = Type vs' cxt' st'
       where
+        vs'  = getVars st'
+        cxt' = apply s cxt
         st'  = apply s st
-        vars = getVars st'
-        qs'  = nub (map getQuantifier vars)
-        substBindings = concatMap fst (M.elems s)
-
-        getQuantifier n = case lookup n (map (\q -> (getName q, q)) (qs ++ substBindings)) of
-            Just q' -> q'
-            Nothing -> error . unlines $ [ show s, show t, show n, show qs, show vars ]
 
 instance Substitutable a => Substitutable [a] where
     apply s = map (apply s)
 
 
 --------------------------------------------------
--- Type functions
+-- Type/SType functions
 
-toQuantifier :: Name -> Type -> Maybe QName
-toQuantifier n (Type qs _ _) = lookup n [ (getName q, q) | q <- qs ]
-
---------------------------------------------------
--- SType functions
-
-getVars :: SType -> [Name]
+getVars :: SType -> [Variable]
 getVars (FunT ts)   = nub (concatMap getVars ts)
 getVars (VarT n)    = [n]
 getVars (ConT _ ts) = nub (concatMap getVars ts)
 getVars (ListT t)   = getVars t
+
+bindForall :: Type -> Type
+bindForall (Type vs cxt st) = Type vs' cxt' st'
+  where
+    (fs, vs') = partition ((== Forall) . snd) vs
+    subst     = toSubst [ (vn, ([], ConT (TH.mkName (show vn)) []))
+                        | (vn, _) <- fs
+                        ]
+    cxt'      = apply subst cxt
+    st'       = apply subst st
+
+showTVar :: Nat -> String
+showTVar n = let (c, n') = n `divMod` 28
+             in (chr (ord 'a' + c)) : "_" ++ show n'
+
+showForall :: Nat -> String
+showForall n = "∀_" ++ show n
+
+showExists :: Nat -> String
+showExists n = "∃_" ++ show n
 
 
 --------------------------------------------------
@@ -399,6 +417,3 @@ appendName :: String -> Name -> Name
 -- FIXME: Probably not correct (look at TH.nameBase, TH.nameModule)
 -- but works for now.
 appendName s n = TH.mkName (show n ++ s)
-
-both :: (a -> b) -> (a, a) -> (b, b)
-both f (a, b) =  (f a, f b)
