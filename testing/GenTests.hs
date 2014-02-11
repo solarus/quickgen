@@ -5,36 +5,46 @@ module GenTests
        ) where
 
 import Common
-import Control.Monad (replicateM)
-import Data.Functor
+import Control.Exception.Base
+import Data.Dynamic
+import GHC hiding (Type)
+import GHC.Paths (libdir)
+import System.Random
+
+import Language.Simple
 
 testAll :: Seed -> Test
-testAll s = testGroup "Generation tests"
+testAll s = testGroup "Generation tests "
     [ testCase "gen1" $ testGen s (Type [] [] (ListT tInt))
     ]
 
 testGen :: Seed -> Type -> Assertion
-testGen s t = do
-    res <- retry 3 . return . fst $ generate lang t s
-    assertBool ("Failed to generate  " ++ show t) (isJust res)
-
-
-retry :: (Monad f, Functor f) => Int -> f a -> f (Maybe a)
-retry n m = listToMaybe <$> replicateM n m
-
-lang :: Language
-lang = $(defineLanguage [| ( genInt
-                           , genDouble
-                           , nil
-                           , cons
-                           , id
-                           , foldr
-                           , const
-                           , map
-                           )
-                         |])
+testGen s t = let gen = mkStdGen s
+                  ss  = take 100 (randomRs (0,10000) gen)
+              in mapM_ p ss
   where
-    genInt    = 1 :: Int
-    genDouble = 2.5 :: Double
-    nil = []
-    cons = (:)
+    p s' = do
+        case fst (generate lang t s') of
+            Nothing -> return ()
+            Just g  -> do
+                let exprStr = unwords [ "let genInt = 0 :: Int;"
+                                      , "genDouble = 1 :: Double;"
+                                      , "nil = [];"
+                                      , "cons = (:)"
+                                      , "in (" ++ show g ++ ")"
+                                      , "`asTypeOf` (undefined :: [Int])"
+                                      ]
+
+                    go = do
+                        r <- runGhc (Just libdir) $ do
+                            _ <- getSessionDynFlags >>= setSessionDynFlags
+                            setContext [ IIDecl . simpleImportDecl . mkModuleName $ "Prelude" ]
+                            dynCompileExpr exprStr
+                        let expr = fromDyn r (error "wat" :: [Int])
+                        return (Right expr)
+
+                res <- catch go $ \e -> return (Left (e :: SomeException))
+                case res of
+                    Left  e -> assertFailure $
+                        "Failure for expression:\n" ++ exprStr ++ "\n" ++ show e
+                    Right _ -> return ()
