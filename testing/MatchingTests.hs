@@ -7,9 +7,9 @@ import Common
 import Control.Monad.State
 
 testAll :: Test
-testAll = testGroup "Matching tests"
+testAll = testGroup "Matching tests "
     [ testCase "match1" $ do
-           let tup@(Type _ _ stup) = tup2 a0 e0
+           let tup@(Type _ _ stup) = bindForall $ tup2 a0 e0
                e103 = (103, Exists)
                expected = Just ( Type [a0, e0, e103] [] (FunT [ stup, VarT e103, stup ])
                                , emptySubst)
