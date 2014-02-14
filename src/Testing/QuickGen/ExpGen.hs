@@ -188,9 +188,8 @@ match' t1 (Type ns cxt (FunT (t2 : _))) = match' t1 (Type ns cxt t2)
 match' ta@(Type _ _ st1) tb@(Type _ _ st2) = go st1 st2
   where
     go :: Monad m => SType -> SType -> StateT Substitution m Substitution
-    go t1@(VarT (_, Forall)) (VarT (n2, Forall)) = return (n2 |-> t1)
-    go t1 (VarT (n2, Forall)) = do
-        return (n2 |-> t1)
+    go t1@(VarT (_, Forall)) t2 = error $ "t1 = " ++ show t1 ++ " | t2 = " ++ show t2
+    go t1 (VarT (n2, Forall)) = return (n2 |-> t1)
     go t1 (VarT (n2, Exists)) = get >>= \s -> case lookupSubst n2 s of
         Just (_, t2') -> go t1 t2'
         _             -> do
