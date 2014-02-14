@@ -56,10 +56,12 @@ test-suite testing
                , mtl
                , test-framework
                , test-framework-hunit
+               , test-framework-quickcheck2
                , HUnit
                , random
                , ghc
                , ghc-paths
+               , QuickCheck
 
   default-language:
     Haskell2010
