@@ -225,7 +225,9 @@ getMatching :: Type -> ExpGen [(Id, Constructor, Substitution)]
 getMatching goalType = do
     ctxs  <- getContexts
     subst <- getSubstitution
-    let gt = apply subst goalType
+    let -- TODO: Probably can do this in apply instead.
+        ts = iterate (apply subst) goalType
+        gt = fst . head . dropWhile (uncurry (/=)) $ zip ts (tail ts)
 
     let f i (mu, (n, t)) acc
             -- If number of uses is a Just and less than 1 then
