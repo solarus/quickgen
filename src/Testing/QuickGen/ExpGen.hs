@@ -176,7 +176,7 @@ findAndUpdate f i = go
 match :: (Applicative m, Monad m) => Type -> Type -> StateT Substitution m Type
 match t1@(Type ns1 _ _) t2 = do
     t2'@(Type ns2 _ _) <- apply <$> match' t1 t2 <*> pure t2
-    let toExist = ns2 \\ ns1
+    let toExist = ns1 \\ ns2
         subst   = toSubst [ (n, let n' = (n, Exists) in ([n'], VarT n'))
                           | (n, Forall) <- toExist
                           ]
