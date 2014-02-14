@@ -6,6 +6,7 @@ import GenTests
 import MatchingTests
 import System.Environment
 import System.Random
+import TypesTests
 
 main :: IO ()
 main = do
@@ -15,6 +16,7 @@ main = do
 
     let allTests = [ MatchingTests.testAll
                    , GenTests.testAll seed
+                   , TypesTests.testAll
                    ]
 
     defaultMain allTests
