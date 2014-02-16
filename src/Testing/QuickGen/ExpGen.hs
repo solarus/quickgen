@@ -91,8 +91,8 @@ randomMatching t = do
 uniqueTypes :: Type -> ExpGen Type
 uniqueTypes t@(Type vs _ _) = do
     td <- (^. _2) <$> get
-    let subst = toSubst [ (n, let v = (i, q) in ([v], VarT v))
-                        | (i, (n, q)) <- zip [td..] vs
+    let subst = toSubst [ (n, let v = (i, Forall) in ([v], VarT v))
+                        | (i, (n, Forall)) <- zip [td..] vs
                         ]
     modify (& _2 %~ (+ sizeSubst subst))
     return (apply subst t)
