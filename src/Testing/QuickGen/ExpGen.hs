@@ -117,7 +117,7 @@ pushContext cs = do
                          ] :: Context
         len = M.size ctx
         depth' = depth + len
-    put (depth', td, ctx : ctxs, g, s)
+    modify (& (_3 %~ (ctx:)) . (_1 .~ depth'))
     return (depth', len)
 
 popContext :: ExpGen ()
