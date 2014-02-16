@@ -75,16 +75,20 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
 
 randomMatching :: Type -> ExpGen (Maybe (Id, Constructor))
 randomMatching t = do
-    t' <- apply <$> getSubstitution <*> pure t
+    s <- getSubstitution
+
+    let t' = applys s t
 
     -- TODO: Filter constraints either in getMatching or by retrying
     -- the random selection until a valid constructor is found (while
     -- keeping track of which ones was tried).
     matches <- getMatching t'
-    case length matches of
+    let matches' = filter f matches
+        f m@(_,_,s') = maybe False (const True) (unionSubst s' s)
+    case length matches' of
         0 -> return Nothing
         n -> do
-            (i,c,s)  <- (matches !!) <$> getRandomR (0, n-1)
+            (i,c,s)  <- (matches' !!) <$> getRandomR (0, n-1)
             modify (& _5 %~ maybe (error "should not happen") id . (`unionSubst` s))
             return (Just (i,c))
 
