@@ -30,6 +30,7 @@ module Testing.QuickGen.Types
        -- Type/SType functions
        , getVars
        , bindForall
+       , forallToExists
 
        -- ClassEnv functions
        , emptyEnv
@@ -379,6 +380,13 @@ bindForall (Type vs cxt st) = Type vs' cxt' st'
                         ]
     cxt'      = apply subst cxt
     st'       = apply subst st
+
+forallToExists :: SType -> SType
+forallToExists   (FunT ts)          = FunT (map forallToExists ts)
+forallToExists   (VarT (n, Forall)) = VarT (n, Exists)
+forallToExists t@(VarT _)           = t
+forallToExists   (ConT n ts)        = ConT n (map forallToExists ts)
+forallToExists   (ListT st)         = ListT (forallToExists st)
 
 showTVar :: Nat -> String
 showTVar n = let (c, n') = n `divMod` 28
