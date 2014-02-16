@@ -179,12 +179,16 @@ findAndUpdate f i = go
 
 match :: (Applicative m, Monad m) => Type -> Type -> StateT Substitution m Type
 match t1@(Type ns1 _ _) t2 = do
-    t2'@(Type ns2 _ _) <- apply <$> match' t1 t2 <*> pure t2
-    let toExist = ns1 \\ ns2
+    s <- match' t1 t2
+
+    -- FIXME: I'm basically doing exactly what forallToExists does
+    -- here but for a Type instead of a SType. Need to generalize.
+    let t2'@(Type ns2 _ _) = applys s t2
         subst   = toSubst [ (n, let n' = (n, Exists) in ([n'], VarT n'))
-                          | (n, Forall) <- toExist
+                          | (n, Forall) <- ns2
                           ]
-    return $ apply subst t2'
+
+    return (applys subst t2')
 
 match' :: Monad m => Type -> Type -> StateT Substitution m Substitution
 match' t1@(Type _ _ (FunT _)) _ = error $ "match: Unexpected function type " ++ show t1
@@ -193,8 +197,12 @@ match' ta@(Type _ _ st1) tb@(Type _ _ st2) = go st1 st2
   where
     go :: Monad m => SType -> SType -> StateT Substitution m Substitution
     go t1@(VarT (_, Forall)) t2 = error $ "t1 = " ++ show t1 ++ " | t2 = " ++ show t2
+    go t1@(VarT (n1, Exists)) (VarT (n2, Exists))
+        | n1 == n2 = return emptySubst
     go t1 (VarT (n2, Forall)) = return (n2 |-> t1)
-    go t1 (VarT (n2, Exists)) = get >>= \s -> case lookupSubst n2 s of
+    go t1 (VarT v@(n2, Exists))
+        | v `elem` getVars t1 = fail "No match"
+        | otherwise = get >>= \s -> case lookupSubst n2 s of
         Just (_, t2') -> go t1 t2'
         _             -> do
             let ret = (n2 |-> t1)
@@ -202,10 +210,14 @@ match' ta@(Type _ _ st1) tb@(Type _ _ st2) = go st1 st2
                 Just s' -> put s'
                 Nothing -> fail "No match"
             return ret
-    go (VarT (n1, Exists)) t2 = get >>= \s -> case lookupSubst n1 s of
+    go (VarT v@(n1, Exists)) t2
+        | v `elem` (getVars t2) = fail "No match"
+        | otherwise = get >>= \s -> case lookupSubst n1 s of
         Just (_, t1') -> go t1' t2
         _             -> do
-            case unionSubst s (n1 |-> t2) of
+            let t2' = forallToExists t2
+
+            case unionSubst s (n1 |-> t2') of
                 Just s' -> put s'
                 Nothing -> fail "No match"
             return emptySubst
@@ -229,21 +241,26 @@ getMatching :: Type -> ExpGen [(Id, Constructor, Substitution)]
 getMatching goalType = do
     ctxs  <- getContexts
     subst <- getSubstitution
-    let -- TODO: Probably can do this in apply instead.
-        ts = iterate (apply subst) goalType
-        gt = fst . head . dropWhile (uncurry (/=)) $ zip ts (tail ts)
-
-    let f i (mu, (n, t)) acc
+    let gt = applys subst goalType
+        f i (mu, (n, t)) acc
             -- If number of uses is a Just and less than 1 then
             -- discard this constructor. TODO: maybe remove
             -- constructor from the context instead when decreasing
             -- uses?
             | maybe False (< 1) mu = acc
             | otherwise            = do
-                t' <- uniqueTypes (apply subst t)
+                t' <- uniqueTypes (applys subst t)
                 case runStateT (match gt t') emptySubst of
                     Just (newT, s) -> (:) <$> pure (i, (n, newT), s) <*> acc
                     Nothing -> acc
 
     -- <$> should have higher precedence than p :(
     fmap concat . forM ctxs $ foldrContext f (return [])
+
+-- TODO: Remove need for this by doing something smarter in
+-- substitution.
+applys :: Substitution -> Type -> Type
+applys s t = t'
+  where
+    ts = iterate (apply s) t
+    t' = fst . head . dropWhile (uncurry (/=)) $ zip ts (tail ts)
