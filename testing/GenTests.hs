@@ -24,7 +24,9 @@ testGen s t = let gen = mkStdGen s
               in mapM_ p ss
   where
     p s' = do
-        case fst (generate lang t s') of
+        let (g, _) = generate lang t s'
+        putStrLn (show g)
+        case g of
             Nothing -> return ()
             Just g  -> do
                 let exprStr = unwords [ "let genInt = 0 :: Int;"
