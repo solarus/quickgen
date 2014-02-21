@@ -30,7 +30,7 @@ module Testing.QuickGen.Types
        -- Type/SType functions
        , getVars
        , bindForall
-       , forallToExists
+       , forallToUndecided
 
        -- ClassEnv functions
        , emptyEnv
@@ -78,12 +78,12 @@ type Nat = Int
 -- | Names are template haskell names
 type Name = TH.Name
 
-data Quantifier = Forall | Exists
+data Quantifier = Forall | Undecided
   deriving (Eq, Show)
 
 instance TH.Lift Quantifier where
-    lift Forall = [| Forall |]
-    lift Exists = [| Exists |]
+    lift Forall    = [| Forall |]
+    lift Undecided = [| Undecided |]
 
 type Variable = (Nat, Quantifier)
 
@@ -116,7 +116,7 @@ instance Show SType where
     show (FunT ts)   = intercalate " -> " (map (paren . show) (reverse ts))
       where paren s = if ' ' `elem` s then "(" ++ s ++ ")" else s
     show (VarT (n, Forall))    = showForall n
-    show (VarT (n, Exists))    = showExists n
+    show (VarT (n, Undecided)) = showUndecided n
     show (ConT n [])
         | all isDigit n' = showTVar (read n')
         | otherwise      = n'
@@ -164,7 +164,7 @@ instance Show Type where
         showQuant _ _ [] = ""
         showQuant s f xs = s ++ " " ++ unwords (map (f . fst) xs) ++ ". "
         fs' = showQuant "Forall" showForall fs
-        es' = showQuant "Exists" showExists es
+        es' = showQuant "Undecided" showUndecided es
         cxt' = case cxt of
             []  -> ""
             [c] -> show c ++ " => "
@@ -381,12 +381,12 @@ bindForall (Type vs cxt st) = Type vs' cxt' st'
     cxt'      = apply subst cxt
     st'       = apply subst st
 
-forallToExists :: SType -> SType
-forallToExists   (FunT ts)          = FunT (map forallToExists ts)
-forallToExists   (VarT (n, Forall)) = VarT (n, Exists)
-forallToExists t@(VarT _)           = t
-forallToExists   (ConT n ts)        = ConT n (map forallToExists ts)
-forallToExists   (ListT st)         = ListT (forallToExists st)
+forallToUndecided :: SType -> SType
+forallToUndecided   (FunT ts)          = FunT (map forallToUndecided ts)
+forallToUndecided   (VarT (n, Forall)) = VarT (n, Undecided)
+forallToUndecided t@(VarT _)           = t
+forallToUndecided   (ConT n ts)        = ConT n (map forallToUndecided ts)
+forallToUndecided   (ListT st)         = ListT (forallToUndecided st)
 
 showTVar :: Nat -> String
 showTVar n = let (c, n') = n `divMod` 28
@@ -395,8 +395,8 @@ showTVar n = let (c, n') = n `divMod` 28
 showForall :: Nat -> String
 showForall n = "∀_" ++ show n
 
-showExists :: Nat -> String
-showExists n = "∃_" ++ show n
+showUndecided :: Nat -> String
+showUndecided n = "∃_" ++ show n
 
 
 --------------------------------------------------

@@ -10,8 +10,8 @@ testAll :: Test
 testAll = testGroup "Matching tests "
     [ testCase "match1" $ do
            let tup@(Type _ _ stup) = bindForall $ tup2 a0 e0
-               expected = Just ( Type [e0, (203, Exists)] []
-                                      (FunT [ stup, VarT (203, Exists), stup ])
+               expected = Just ( Type [e0, (203, Undecided)] []
+                                      (FunT [ stup, VarT (203, Undecided), stup ])
                                , emptySubst)
            simpleMatch tup tConst expected
     ]

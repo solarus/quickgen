@@ -181,10 +181,10 @@ match :: (Applicative m, Monad m) => Type -> Type -> StateT Substitution m Type
 match t1@(Type ns1 _ _) t2 = do
     s <- match' t1 t2
 
-    -- FIXME: I'm basically doing exactly what forallToExists does
+    -- FIXME: I'm basically doing exactly what forallToUndecided does
     -- here but for a Type instead of a SType. Need to generalize.
     let t2'@(Type ns2 _ _) = applys s t2
-        subst   = toSubst [ (n, let n' = (n, Exists) in ([n'], VarT n'))
+        subst   = toSubst [ (n, let n' = (n, Undecided) in ([n'], VarT n'))
                           | (n, Forall) <- ns2
                           ]
 
@@ -197,10 +197,10 @@ match' ta@(Type _ _ st1) tb@(Type _ _ st2) = go st1 st2
   where
     go :: Monad m => SType -> SType -> StateT Substitution m Substitution
     go t1@(VarT (_, Forall)) t2 = error $ "t1 = " ++ show t1 ++ " | t2 = " ++ show t2
-    go t1@(VarT (n1, Exists)) (VarT (n2, Exists))
+    go t1@(VarT (n1, Undecided)) (VarT (n2, Undecided))
         | n1 == n2 = return emptySubst
     go t1 (VarT (n2, Forall)) = return (n2 |-> t1)
-    go t1 (VarT v@(n2, Exists))
+    go t1 (VarT v@(n2, Undecided))
         | v `elem` getVars t1 = fail "No match"
         | otherwise = get >>= \s -> case lookupSubst n2 s of
         Just (_, t2') -> go t1 t2'
@@ -210,12 +210,12 @@ match' ta@(Type _ _ st1) tb@(Type _ _ st2) = go st1 st2
                 Just s' -> put s'
                 Nothing -> fail "No match"
             return ret
-    go (VarT v@(n1, Exists)) t2
+    go (VarT v@(n1, Undecided)) t2
         | v `elem` (getVars t2) = fail "No match"
         | otherwise = get >>= \s -> case lookupSubst n1 s of
         Just (_, t1') -> go t1' t2
         _             -> do
-            let t2' = forallToExists t2
+            let t2' = forallToUndecided t2
 
             case unionSubst s (n1 |-> t2') of
                 Just s' -> put s'

@@ -41,11 +41,11 @@ a1 = (101, Forall)
 a2 = (102, Forall)
 a3 = (103, Forall)
 a4 = (104, Forall)
-e0 = (110, Exists)
-e1 = (111, Exists)
-e2 = (112, Exists)
-e3 = (113, Exists)
-e4 = (114, Exists)
+e0 = (110, Undecided)
+e1 = (111, Undecided)
+e2 = (112, Undecided)
+e3 = (113, Undecided)
+e4 = (114, Undecided)
 
 tInt :: SType
 tInt = ConT (mkName "Int") []
@@ -67,7 +67,7 @@ tup2 :: Variable -> Variable -> Type
 tup2 v1 v2 = Type [v1,v2] [] (ConT (mkName "Tup2") [VarT v1, VarT v2])
 
 instance Arbitrary Quantifier where
-    arbitrary = elements [ Forall, Exists ]
+    arbitrary = elements [ Forall, Undecided ]
 
 instance Arbitrary Name where
     arbitrary = mkName <$> (getNonEmpty <$> arbitrary)
