@@ -152,13 +152,79 @@ xleftmargin=10pt
   First the data types used to represent, for instance, types and
   values is presented together with the functions used to work with
   the respective data types. Some of the limitations imposed by the
-  specific representation scheme presented in this chapter is also
-  discussed.
+  specific representation scheme for the types presented is also
+  discussed. After this a brief presentation of the template haskell
+  part of the library is discussed and some examples are presented.
+
+  Finally, the implementation of the code generation and matching is
+  presented thoroughly. Initially a high level description of the
+  implementation is presented together with a explanation of how the
+  different functions fit together. Later the most important functions
+  are presented in detail. This is done by reasoning about several
+  edge-cases, invariants and the actual implementation of the
+  functions in question.
 
 ** Types and expressions
 *** Variables, Forall and Undecided
-*** Types and simple types
+    \label{variables}
+
 *** Constructors
+\label{constructors}
+*** Types and simple types
+    Below are the two data types in =QuickGen= that are used to
+    represent types in Haskell:
+
+\begin{haskell}
+data Type = Type [Variable] Cxt SType
+\end{haskell}
+
+\begin{haskell}
+data SType =
+    FunT [SType]
+  | VarT Variable
+  | ConT Name [SType]
+  | ListT SType
+\end{haskell}
+
+    The first data type is used to introduce variables, and
+    constraints on these variables, in types. The second data type
+    =SType= has constructors for representing functions, variables,
+    constructors \ref{constructors} and lists. For instance the the
+    implicitly forall quantified type \inlhask{a -> b -> b} could be
+    represented as
+
+\begin{haskell}
+Type [(0, Forall), (1, Forall)] [] (FunT [ VarT (1, Forall)
+                                         , VarT (1, Forall)
+                                         , VarT (0, Forall)
+                                         ])
+\end{haskell}
+
+    The name of a type variable are turned into a natural number and a
+    quantifier (here Forall) as explained in \ref{variables} . The
+    type variable =a= is here turned into \inlhask{(0, Forall)} and
+    =b= is turned into \inlhask{(1, Forall)}. A not so obvious
+    transformation is done for the inner =SType=. The order of the
+    type variables in the function type is reversed if you compare to
+    the original type. The reason this is done is to make the
+    implementation of the type matching more efficient. This is
+    discussed in section \ref{match}. For now, it is enough to
+    remember that function types are reversed.
+
+    The rest of the constructors, \inlhask{VarT, ConT} and
+    \inlhask{ListT} represents type variables, type constructors and
+    lists respectively. The observant reader may notice that there is
+    currently no way to represent type variables with arguments, i.e.
+    there is no way to represent the type of \inlhask{return :: Monad m => a -> m a}
+    This limitation and ways to solve it are discussed further in
+    section \ref{lim-typearg}.
+
+    The reason there is an extra constructor \inlhask{ListT} for lists
+    instead of representing them as \inlhask{ConT "List" a} [fn:1] is
+    just a convenience which make the implementation simpler, it also
+    follows the representation for types used in Template Haskell
+    \cite{TH}.
+
 *** Expressions
 *** Other types
 **** Languages
@@ -187,6 +253,8 @@ xleftmargin=10pt
 *** The ExpGen state
 *** Unique types
 *** Match function
+    \label{match}
+
 *** Selecting a random matching constructor
 *** Generating expressions
 
@@ -202,6 +270,8 @@ xleftmargin=10pt
 ** Type matching
 ** Rank >1 types
 ** Class environments
+** Type variable arguments
+   \label{lim-typearg}
 
 \newpage
 
@@ -230,3 +300,9 @@ xleftmargin=10pt
   \nocite{*}
 
   \printbibliography[heading=none]
+
+* Footnotes
+
+[fn:1] Also note that in this example you cannot use the name "List"
+for the list type constructor since a user might add this data type
+themselves.
