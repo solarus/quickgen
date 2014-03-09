@@ -176,9 +176,23 @@
     \inlhask{Variable} type alias.
 
 *** Constructors
-\label{constructors}
+    \label{constructors}
 
+    A constructor is the term used for the haskell functions found in
+    the specified user API. The intuition is that one of these terms
+    can be used to construct parts of an haskell expression. The
+    internal representation of a constructor is very simple:
 
+    \begin{haskellcode}
+    type Name = TH.Name
+    type Constructor = (Name, Type)
+    \end{haskellcode}
+
+    A \inlhask{Name} is simply a type alias for names in Template
+    Haskell \cite{TH}. A \inlhask{Type} corresponds to the, possibly
+    specialized, type of the constructor. Types are discussed in the
+    next section and how to a specialize a type for a constructor is
+    explained in section \ref{TH}.
 
 *** Types and simple types
     Below are the two data types in \quickgen that are used to
@@ -243,6 +257,8 @@
 **** Class environments
 **** Equality constraints
 ** Template Haskell
+   \label{TH}
+
    The library contains a small module =TH= with one exported Template
    Haskell function =defineLanguage= that an user can use to construct
    a =Language=.
