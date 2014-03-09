@@ -250,6 +250,27 @@
     \cite{TH}.
 
 *** Expressions
+    The following data type is used for the generated expressions in
+    \quickgen:
+
+    \begin{haskellcode}
+    data Exp =
+        ConE Name
+      | AppE Exp Exp
+      | LamE [Name] Exp
+    \end{haskellcode}
+
+    An expression is either the name of a \inlhask{Constructor}
+    \ref{constructors}, an expression applied to another expression or
+    a lambda expression. The list of \inlhask{Name}'s in a lambda
+    expression will always be non empty. This data types is very
+    simple when compared to the expression data type used by Template
+    Haskell \cite{TH}. However, this means that some haskell
+    expressions, like case- and let-expressions, cannot be generated
+    by the library. This limitation and why this has little effect on
+    the usability of the library is discussed more in section
+    \ref{lim-expressions}.
+
 *** Other types
 **** Languages
 **** Contexts
@@ -292,6 +313,9 @@
   chapter discusses all these limitations and how they affect the
   final product. Further, each subsection contains a short discussion
   about how one might extend the library to eliminate the limitation.
+
+** Expression type
+   \label{lim-expressions}
 
 ** Type matching
 ** Rank >1 types
