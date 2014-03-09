@@ -147,17 +147,18 @@
 
     A user wants to generate some expression of type \inlhask{[Int]}
     and \inlhask{map :: (a -> b) -> [a] -> [b]} is one of the
-    constructors in the context. When these types reach the matching
-    function the matching proceeds by only considering the return type
-    of \inlhask{map}, \inlhask{[b]}. The matching succeeds and a
-    substitution from \inlhask{Int} to =b= and the current matched
-    type now looks like: \inlhask{map :: (a -> Int) -> [a] -> [Int]}.
-    As you can see, the type =a= does not have anything to do with the
-    matched type \inlhask{[Int]} and can therefore be any type. It can
-    be a forall quantified type variable or it can be a more
-    specilized type, for instance \inlhask{[Double]}. In this case the
-    matching algorithm will therefore return something similar to:
-    \inlhask{map :: undecided a. (a -> Int) -> [a] -> [Int]}.
+    available functions in the user API. When these types reach the
+    matching function the matching proceeds by only considering the
+    return type of \inlhask{map}, \inlhask{[b]}. The matching succeeds
+    and a substitution from \inlhask{Int} to =b= and the current
+    matched type now looks like: \inlhask{map :: (a -> Int) -> [a] ->
+    [Int]}. As you can see, the type =a= does not have anything to do
+    with the matched type \inlhask{[Int]} and can therefore be any
+    type. It can be a forall quantified type variable or it can be a
+    more specilized type, for instance \inlhask{[Double]}. In this
+    case the matching algorithm will therefore return something
+    similar to: \inlhask{map :: undecided a. (a -> Int) -> [a] ->
+    [Int]}.
 
     With these explanations we can now look at how \quickgen encodes
     type variables internally:
