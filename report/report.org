@@ -3,7 +3,7 @@
 #+EMAIL:     david@tunna.org
 #+OPTIONS:   H:3 num:t toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
 #+LATEX_HEADER: \usepackage[margin=3.5cm]{geometry}
-#+LATEX_HEADER: \usepackage{lipsum, listings, xcolor, fancyhdr}
+#+LATEX_HEADER: \usepackage{lipsum, minted, xcolor, fancyhdr, xspace}
 #+LATEX_HEADER: \usepackage[style=alphabetic,citestyle=alphabetic]{biblatex}
 #+LATEX_HEADER: \addbibresource{references.bib}
 
@@ -18,49 +18,18 @@
 \hyphenation{optimizations}
 \hyphenation{successfully}
 
-\thispagestyle{empty}
 \setlength{\parskip}{0.2cm}
 \setlength{\parindent}{0pt}
 
-\lstset
-{
-keywordstyle=\textbf,
-numbers=left,
-numberstyle=\scriptsize,
-frame=l,
-numbersep=7pt,
-xleftmargin=10pt
-}
+\newcommand{\quickgen}[0]{\textsc{QuickGen}\xspace}
+\newcommand{\note}[1]{{\color{blue} Note: \emph{#1}}}
+\newcommand{\todo}[1]{{\color{red} TODO: \emph{#1}}}
 
-\lstloadlanguages{Haskell}
-\lstnewenvironment{haskell}
-    {\lstset{
-        frame=none,
-        xleftmargin=2pt,
-        stepnumber=1,
-        numbers=left,
-        numbersep=5pt,
-        numberstyle=\ttfamily\tiny\color[gray]{0.3},
-        belowcaptionskip=\bigskipamount,
-        captionpos=b,
-        escapeinside={*'}{'*},
-        language=haskell,
-        tabsize=2,
-        emphstyle={\bf},
-        commentstyle=\it,
-        stringstyle=\mdseries\rmfamily,
-        showspaces=false,
-        keywordstyle=\bfseries\rmfamily,
-        columns=flexible,
-        basicstyle=\small\sffamily,
-        showstringspaces=false,
-        morecomment=[l]\%,
-      }%
-      \csname lst@SetFirstLabel\endcsname}
-    {\csname lst@SaveFirstLabel\endcsname}
+\newminted{haskell}{linenos}
+\newcommand{\inlhask}[1]{\mintinline{haskell}?#1?}
 
-\newcommand{\inlhask}[1]{\lstinline[language=haskell]§#1§}
-
+%%% Front page
+\thispagestyle{empty}
 \begin{center}
 \includegraphics{logo_gu.eps}
 
@@ -82,9 +51,6 @@ xleftmargin=10pt
 \end{center}
 
 \newpage
-
-\newcommand{\note}[1]{{\color{blue} Note: \emph{#1}}}
-\newcommand{\todo}[1]{{\color{red} TODO: \emph{#1}}}
 #+END_LATEX
 
 \pagestyle{empty}
@@ -168,23 +134,66 @@ xleftmargin=10pt
 *** Variables, Forall and Undecided
     \label{variables}
 
+    In Haskell a type can contain forall quantified type variables.
+    For instance in the type for \inlhask{id :: a -> a} an implicit
+    forall for the type variable =a= is introduced resulting in the
+    final type \inlhask{id :: forall a. a -> a}. This type says that
+    \inlhask{id} works for *any* type =a=, be it integers, list of
+    strings or functions containing their own forall quantified type
+    variables. \quickgen introduces another kind of quantifier,
+    \inlhask{Undecided}. Basically, an undecided variable is
+    introduced during type matching when a forall quantified variable
+    has nothing to do with the matched type. Lets consider an example:
+
+    A user wants to generate some expression of type \inlhask{[Int]}
+    and \inlhask{map :: (a -> b) -> [a] -> [b]} is one of the
+    constructors in the context. When these types reach the matching
+    function the matching proceeds by only considering the return type
+    of \inlhask{map}, \inlhask{[b]}. The matching succeeds and a
+    substitution from \inlhask{Int} to =b= and the current matched
+    type now looks like: \inlhask{map :: (a -> Int) -> [a] -> [Int]}.
+    As you can see, the type =a= does not have anything to do with the
+    matched type \inlhask{[Int]} and can therefore be any type. It can
+    be a forall quantified type variable or it can be a more
+    specilized type, for instance \inlhask{[Double]}. In this case the
+    matching algorithm will therefore return something similar to:
+    \inlhask{map :: undecided a. (a -> Int) -> [a] -> [Int]}.
+
+    With these explanations we can now look at how \quickgen encodes
+    type variables internally:
+
+    \begin{haskellcode}
+    data Quantifier = Forall | Undecided
+    type Nat = Int
+    type Variable = (Nat, Quantifier)
+    \end{haskellcode}
+
+    Simply put, instead of storing the name of a type variable as a
+    string, a natural number is used instead. This is done for
+    performance reasons and is explained more in section \ref{match}.
+    Finally, the quantifier for the variable is also included in the
+    \inlhask{Variable} type alias.
+
 *** Constructors
 \label{constructors}
+
+
+
 *** Types and simple types
-    Below are the two data types in =QuickGen= that are used to
+    Below are the two data types in \quickgen that are used to
     represent types in Haskell:
 
-\begin{haskell}
-data Type = Type [Variable] Cxt SType
-\end{haskell}
+    \begin{haskellcode}
+    data Type = Type [Variable] Cxt SType
+    \end{haskellcode}
 
-\begin{haskell}
-data SType =
-    FunT [SType]
-  | VarT Variable
-  | ConT Name [SType]
-  | ListT SType
-\end{haskell}
+    \begin{haskellcode}
+    data SType =
+        FunT [SType]
+      | VarT Variable
+      | ConT Name [SType]
+      | ListT SType
+    \end{haskellcode}
 
     The first data type is used to introduce variables, and
     constraints on these variables, in types. The second data type
@@ -193,12 +202,12 @@ data SType =
     implicitly forall quantified type \inlhask{a -> b -> b} could be
     represented as
 
-\begin{haskell}
-Type [(0, Forall), (1, Forall)] [] (FunT [ VarT (1, Forall)
-                                         , VarT (1, Forall)
-                                         , VarT (0, Forall)
-                                         ])
-\end{haskell}
+    \begin{haskellcode}
+    Type [(0, Forall), (1, Forall)] [] (FunT [ VarT (1, Forall)
+                                             , VarT (1, Forall)
+                                             , VarT (0, Forall)
+                                             ])
+    \end{haskellcode}
 
     The name of a type variable are turned into a natural number and a
     quantifier (here Forall) as explained in \ref{variables} . The
