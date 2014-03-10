@@ -200,9 +200,7 @@
 
     \begin{haskellcode}
     data Type = Type [Variable] Cxt SType
-    \end{haskellcode}
 
-    \begin{haskellcode}
     data SType =
         FunT [SType]
       | VarT Variable
@@ -272,11 +270,56 @@
     \ref{lim-expressions}.
 
 *** Other types
-**** Languages
-**** Contexts
-**** Substitutions
-**** Class environments
-**** Equality constraints
+**** *Substitutions:*
+     A mapping from type identifiers, natural numbers, to simple
+     types, \inlhask{SType}'s. There is a value of this type in the
+     state when generating expressions. This value only contain
+     mappings for \inlhask{Undecided} variables since the
+     \inlhask{Forall} quantified variables has already been bound. The
+     \inlhask{Types} module contains several functions [fn:2] for
+     transforming and getting information from
+     \inlhask{Substitution}'s.
+
+**** *Contexts* and *Uses*:
+     A \inlhask{Context} is a mapping from type identifiers to
+     constructors paired together with the available \inlhask{Uses}
+     left for each particular constructor.
+
+     \begin{haskellcode}
+     type Uses = Maybe Nat
+     type Context = Map Id (Uses, Constructor)
+     \end{haskellcode}
+
+     The number of uses can either be \inlhask{Just} a natural number
+     or \inlhask{Nothing}, the latter indicating that this particular
+     constructor can be used an unlimited number of times. Further
+     discussion relating to \inlhask{Uses} can be found in section
+     \ref{random}.
+
+**** *Class environments:*
+     A mapping from names of Haskell type classes to a list of super
+     classes paired with the Template Haskell instance declaration.
+
+     \begin{haskellcode}
+     type ClassEnv = Map Name ([Name], [TH.InstanceDec])
+     \end{haskellcode}
+
+     Currently the class environment is not used internally apart from
+     being constructed in the Template Haskell module. Future work
+     regarding the usage of this type is discussed in section
+     \ref{fut-CE}.
+
+**** *Languages:*
+     Basically a \inlhask{ClassEnv} paired together with a list of
+     \inlhask{Constructor}'s. A \inlhask{Language}'s is one of the
+     arguments for the library function \inlhask{generate}, the other
+     two being a \inlhask{Type} and a \inlhask{Seed} [fn:3]. The
+     \inlhask{generate} function together with a value of these three
+     types are the only thing a user needs to generate well-typed
+     terms using this library. Currently the only way for an end user
+     to construct a value of this type is via the Template Haskell
+     function \inlhask{defineLanguage}.
+
 ** Template Haskell
    \label{TH}
 
@@ -303,6 +346,8 @@
     \label{match}
 
 *** Selecting a random matching constructor
+    \label{random}
+
 *** Generating expressions
 
 \newpage
@@ -323,6 +368,8 @@
 ** Type variable arguments
    \label{lim-typearg}
 
+** Equality constraints
+
 \newpage
 
 * Example usage
@@ -333,8 +380,10 @@
 \newpage
 
 * Future Work
+** Class Environments
+   \label{fut-CE}
 
-\newpage
+   \newpage
 
 * Related work
 
@@ -356,3 +405,8 @@
 [fn:1] Also note that in this example you cannot use the name "List"
 for the list type constructor since a user might add this data type
 themselves.
+
+[fn:2] For instance =lookupSubst :: Nat -> Substitution -> Maybe
+([Variable], SType)= and \hbox{\tt (|->) :: Nat -> SType -> Substitution}
+
+[fn:3] =Seed= is simply a type alias for a natural number.
