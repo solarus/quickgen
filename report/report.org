@@ -321,6 +321,8 @@
      \ref{fut-CE}.
 
 **** *Languages:*
+     \label{types-languages}
+
      Basically a \inlhask{ClassEnv} paired together with a list of
      \inlhask{Constructor}'s. A \inlhask{Language}'s is one of the
      arguments for the library function \inlhask{generate}, the other
@@ -336,9 +338,110 @@
 
    The library contains a small module =TH= with one exported Template
    Haskell function =defineLanguage= that an user can use to construct
-   a =Language=.
+   a =Language=. Below follows an example usage of this function:
 
-   \todo{Discuss todo in getClassEnv.}
+   \begin{haskellcode}
+   genInt = 0 :: Int
+   nil  = []
+   cons = (:)
+
+   lang :: Language
+   lang = $(defineLanguage [| ( genInt, nil, cons
+                              , id, map
+                              ) |])
+   \end{haskellcode}
+
+   As you might suspect, it is currently not possible to directly
+   include \inlhask{(:)} and \inlhask{[]}, the only thing that is
+   accepted is names of functions. How one might possibly add this
+   functionality is discussed in section \ref{fut-defineLanguage}.
+
+   There is also one additional form when specifying API functions:
+
+   \begin{haskellcode}
+   $(defineLanguage [| (map :: (a -> Int) -> [a] -> [Int], id) |])
+   \end{haskellcode}
+
+   This specializes the type of \inlhask{map} so that it can only be
+   used to construct expressions of type \inlhask{[Int]}.
+
+*** Calculating a class environment
+    As mentioned in section \ref{types-languages}, a
+    \inlhask{Language} is isomorphic to a \inlhask{ClassEnv} paired
+    with a list of \inlhask{Constructor}'s. The easiest way to explain
+    how a class environment is calculated is probably by presenting
+    the documentation for the internal function \inlhask{getClassEnv}
+    together with some Haskell type class instances:
+
+    \begin{haskellcode}
+     type ClassEnv = Map Name ([Name], [TH.InstanceDec])
+
+    -- | Given a list of class names iteratively find new classes
+    -- mentioned in either the constraints of a class name or in any of
+    -- the instances. Returns the `ClassEnv' with information about all
+    -- instances for the initial classes and the discovered classes.
+    getClassEnv :: [Name] -> TH.Q ClassEnv
+
+    class Functor f => Applicative f where
+        pure :: a -> f a
+
+    instance             Applicative [a]
+    instance Monoid a => Applicative ((,) a)
+
+    class Monoid a
+
+    instance Monoid [a]
+    instance Monoid a => Monoid (Maybe a)
+    \end{haskellcode}
+
+    For instance, lets say that a user includes the function
+    \inlhask{pure :: Applicative f => a -> f a} as a constructor in
+    the language. If this is the only function in the language
+    containing a type class constraint the initial list of names $ns$
+    will be \inlhask{[Applicative]}. The algorithm proceeds as
+    follows:
+
+    - Initialize a class environment $cenv$ to the empty set.
+    - Loop until $ns$ is empty:
+      1. Remove the first name $n$ from $ns$ and ask Template Haskell
+         about the superclasses $sups$ and instances $is$ of $n$.
+      2. Extend $cenv$ by adding a mapping from $n$ to $is$.
+      3. Extend $ns$ by adding all type classes in $sups$ that is not
+         yet mentioned in neither $ns$ nor $cenv$.
+      4. Extend $ns$ by adding all type classes mentioned in any of
+         the instances in $is$ but that is not yet mentioned in
+         neither $ns$ nor $cenv$.
+    - Return $cenv$
+
+    In our example with \inlhask{[Applicative]} as the starting list,
+    we would start by finding all information about
+    \inlhask{Applicative} and adding \inlhask{Functor} and
+    \inlhask{Monoid} to $ns$.[fn:4] The next step would be looking up
+    the information of, for instance, \inlhask{Monoid}. Since there
+    are no superclasses for this class then only classes mentioned in
+    the instances are added. In this case, one of the instances
+    mentions a class which is already in $cenv$, \inlhask{Monoid}, and
+    this particular class is therefore not added to $ns$ since there
+    is no need to recalculate the mapping for this name.[fn:5]
+
+    The algorithm above is the most straightforward way known to the
+    author to find all information about the type classes possibly
+    used when generating values. However, the proposed algorithm has
+    some problems when applied to, for instance, the list
+    \inlhask{[Num]}. The resulting class environment is calculated
+    very quickly but then compiling this value again in a Haskell
+    takes up to a minute on a fairly modern computer. The reason is
+    that GHC adds a lot of type classes not normally visible in a
+    normal ghci session. The text representation of the final value
+    that is spliced into the resulting file is around 700000
+    characters long \todo{recheck this value}! Compiling such a large
+    expression can take up to one minute or more even on a modern
+    computer.
+
+    In future versions of this library, the fourth step should be
+    added again. However, some care has to be taken to only include
+    classes that are relevant to the current problem. Possible ways to
+    solve this is discussed further in section \ref{fut-CE}.
 
 ** ExpGen
    The =ExpGen= module contains the core algorithm and methods to
@@ -394,6 +497,9 @@
 ** Class Environments
    \label{fut-CE}
 
+** More expressions in =defineLanguage=
+   \label{fut-defineLanguage}
+
    \newpage
 
 * Related work
@@ -420,4 +526,10 @@ themselves.
 [fn:2] For instance =lookupSubst :: Nat -> Substitution -> Maybe
 ([Variable], SType)= and \hbox{\tt (|->) :: Nat -> SType -> Substitution}
 
-[fn:3] =Seed= is simply a type alias for a natural number.
+[fn:3] =Seed= is simply a type alias for an integer.
+
+[fn:4]  \inlhask{Functor} is a superclass of \inlhask{Applicative}
+while \inlhask{Monoid} is mentioned in one of the instances.
+
+[fn:5] Further, adding \inlhask{Monoid} to $ns$ again would cause an
+infinite loop.
