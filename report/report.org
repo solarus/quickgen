@@ -28,6 +28,17 @@
 \newminted{haskell}{linenos}
 \newcommand{\inlhask}[1]{\mintinline{haskell}?#1?}
 
+% It is probably possible to do this without having a -3pt hspace.
+% There probably even exists such a library or command that does what
+% I want.
+\newenvironment{mycitation}
+  { \begin{center}\begin{minipage}{\textwidth-2cm}%
+    \em \hspace{0.5cm} "\hspace{-3pt}%
+  }
+  {\hspace{-3pt}"%
+    \end{minipage}\end{center}
+  }
+
 %%% Front page
 \thispagestyle{empty}
 \begin{center}
