@@ -374,7 +374,7 @@
     together with some Haskell type class instances:
 
     \begin{haskellcode}
-     type ClassEnv = Map Name ([Name], [TH.InstanceDec])
+    type ClassEnv = Map Name ([Name], [TH.InstanceDec])
 
     -- | Given a list of class names iteratively find new classes
     -- mentioned in either the constraints of a class name or in any of
@@ -390,7 +390,7 @@
 
     class Monoid a
 
-    instance Monoid [a]
+    instance             Monoid [a]
     instance Monoid a => Monoid (Maybe a)
     \end{haskellcode}
 
