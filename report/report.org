@@ -286,6 +286,10 @@
 
 *** Other types
 **** *Substitutions:*
+     \label{types-subst}
+
+     \todo{Elaborate on Undecided type variables.}
+
      A mapping from type identifiers, natural numbers, to simple
      types, \inlhask{SType}'s. There is a value of this type in the
      state when generating expressions. This value only contain
@@ -339,6 +343,11 @@
 
 ** Template Haskell
    \label{TH}
+
+   \begin{todo*}
+   This section is too damn long! Maybe only keep the pseudocode and
+   move parts to future work section
+   \end{todo*}
 
    The library contains a small module =TH= with one exported Template
    Haskell function =defineLanguage= that an user can use to construct
