@@ -23,7 +23,7 @@
 
 \newcommand{\quickgen}[0]{\textsc{QuickGen}\xspace}
 \newcommand{\note}[1]{{\color{blue} Note: \emph{#1}}}
-\newcommand{\todo}[1]{{\color{red} TODO: \emph{#1}}}
+\newcommand{\todo}[1]{{\color{red} \textbf{TODO:} \emph{#1}}}
 
 \newminted{haskell}{linenos}
 \newcommand{\inlhask}[1]{\mintinline{haskell}?#1?}
@@ -38,6 +38,10 @@
   {\hspace{-3pt}"%
     \end{minipage}\end{center}
   }
+
+\newenvironment{todo*}
+  {\color{red} \textbf{TODO:} \em}
+  {}
 
 %%% Front page
 \thispagestyle{empty}
