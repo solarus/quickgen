@@ -40,9 +40,7 @@ generate' (Type qs cxt (FunT (t:ts))) = do
         ts' = map (Type qs cxt) ts
         t'  = Type qs cxt t
     (ns', ret) <- localLambda ts' (generate' t')
-    case ret of
-        Nothing -> return Nothing
-        Just e  -> return (Just (LamE (reverse ns') e))
+    return (LamE (reverse ns') <$> ret)
 
 generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
   where
