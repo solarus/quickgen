@@ -92,6 +92,9 @@ randomMatching t = do
             modify (& _5 %~ maybe (error "should not happen") id . (`unionSubst` s))
             return (Just (i,c))
 
+-- | Given a type replaces all `Forall' bound variables in that type
+-- with unique type variables. Updates the EGState with the next free
+-- type variable id.
 uniqueTypes :: Type -> ExpGen Type
 uniqueTypes t@(Type vs _ _) = do
     td <- (^. _2) <$> get
