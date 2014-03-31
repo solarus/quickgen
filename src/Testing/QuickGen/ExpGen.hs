@@ -116,11 +116,10 @@ runEG seed (L _env cs) g = runState g' (0, 0, [], gen, M.empty)
 -- new depth and the number of constructors added.
 pushContext :: [Constructor] -> ExpGen (Depth, Int)
 pushContext cs = do
-    cs' <- mapM (\(n,t) -> (n,) <$> uniqueTypes t) cs
     (depth, td, ctxs, g, s) <- get
     let uses = 3 -- FIXME: arbitrarily chosen
         ctx = M.fromList [ (i, (Just uses, c))
-                         | (i, c) <- zip [depth..] cs'
+                         | (i, c) <- zip [depth..] cs
                          ] :: Context
         len = M.size ctx
         depth' = depth + len
