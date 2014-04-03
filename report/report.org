@@ -503,14 +503,76 @@
     is used when selecting random constructors when generating
     expressions. The last value, with type \inlhask{Substitution},
     contains the current guesses for all \inlhask{Undecided} type
-    variables. Section \ref{types-substitutions} contains further
-    elaboration on what a \inlhask{Substitution} and how a
-    \inlhask{Undecided} type variable is used.
+    variables. Section \ref{types-subst} contains further elaboration
+    on what a \inlhask{Substitution} and how a \inlhask{Undecided}
+    type variable is used.
 
 *** Unique types
+    Before going into details about the different parts of the
+    generation functions it is necessary to discuss the following
+    function:
+
+    \begin{haskellcode}
+    -- | Given a type replaces all `Forall' bound variables in that type
+    -- with unique type variables. The EGState is updated with the next free
+    -- type variable id.
+    uniqueTypes :: Type -> ExpGen Type
+    \end{haskellcode}
+
+    The function \inlhask{uniqueTypes} is applied to types before type
+    matching is done. It is also used one time on the starting
+    goal-type when first starting to generate expressions. The
+    uniqueness of types makes it much easier to implement type
+    matching and removes the possibility of introducing loops in the
+    substitution during the matching process.
 
 *** Match function
     \label{match}
+
+    \begin{todo*}
+    Citering om typmatchning. Kanske scrap your type applications
+    (första exemplet är hämtat därifrån).
+    \end{todo*}
+
+    Type matching is the process of finding a minimal substitution for
+    a type $t$ that makes it equal to a goal type $gt$. For instance,
+    we may have the two values \inlhask{foo :: a -> Int -> b} and
+    \inlhask{bar :: Int -> Int -> Bool}. If we try to match the type
+    of \inlhask{foo} with \inlhask{bar} then the substitution \([ a
+    \mapsto Int, b \mapsto Bool] \) will be returned. If no match is
+    found an error message is returned instead.
+
+    The function \inlhask{match} found in the \textsc{ExpGen} module
+    implements an algorithm that is close to but not exactly the same
+    as standard type matching:
+
+    \begin{haskellcode}
+    match :: Monad m => Type -> Type -> StateT Substitution m Type
+    match gt t = do
+        s <- match' gt t
+
+        let t2  = // apply the substitution s to t
+
+            t2' = // Convert all Forall quantified variables in t2 to
+                  // Undecided variables
+
+        return t2'
+
+    match' :: Monad m => Type -> Type -> StateT Substitution m Substitution
+    \end{haskellcode}
+
+    \inlhask{match} takes a goal type $gt$ and a matched against type
+    $t$ and returns a type inside a state monad. The state that being
+    kept is the current guesses for the \inlhask{Undecided} variables
+    encountered during type matching. The first function works by
+    first calculating a substitution for the second type $t$ by using
+    the function \inlhask{match'}. The substitution contained in $s$
+    on line 3 corresponds to a substitution returned by normal type
+    matching. The rest of the function is to first apply $s$ to $t$
+    followed by converting all \inlhask{Forall} quantified variables
+    to \inlhask{Undecided} variables.
+
+    \todo{Some examples describing how Undecided works}
 
 *** Selecting a random matching constructor
     \label{random}
@@ -589,3 +651,7 @@ infinite loop.
 
 [fn:6] With the appropriate types \inlhask{Int} respectively
 \inlhask{Double}.
+
+[fn:7] The other one being \inlhask{generate'}.
+
+[fn:8] Normal matching only needs to look at forall quantified type variables.
