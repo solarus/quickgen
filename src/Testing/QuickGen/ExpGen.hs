@@ -48,8 +48,9 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
         m <- randomMatching t
         case m of
             Nothing -> return Nothing
-            Just (i, (n, Type qs cxt st)) -> do
-                (_,_,ctxs,_,s) <- get
+            Just (i, (n, Type qs cxt st), s) -> do
+                (_,_,ctxs,_,s') <- get
+                modify (& _5 %~ maybe (error "should not happen") id . (`unionSubst` s))
                 decUses i
                 case st of
                     FunT (_:ts) -> do
@@ -64,14 +65,14 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
                         case success of
                             False -> do
                                 modify (& _3 .~ ctxs)
-                                modify (& _5 .~ s)
+                                modify (& _5 .~ s')
                                 return Nothing
                             True  -> do
                                 let e' = foldl AppE (ConE n) args
                                 return (Just e')
                     _ -> return (Just (ConE n))
 
-randomMatching :: Type -> ExpGen (Maybe (Id, Constructor))
+randomMatching :: Type -> ExpGen (Maybe (Id, Constructor, Substitution))
 randomMatching t = do
     s <- getSubstitution
 
@@ -85,10 +86,7 @@ randomMatching t = do
         f m@(_,_,s') = maybe False (const True) (unionSubst s' s)
     case length matches' of
         0 -> return Nothing
-        n -> do
-            (i,c,s)  <- (matches' !!) <$> getRandomR (0, n-1)
-            modify (& _5 %~ maybe (error "should not happen") id . (`unionSubst` s))
-            return (Just (i,c))
+        n -> Just . (matches' !!) <$> getRandomR (0, n-1)
 
 -- | Given a type replaces all `Forall' bound variables in that type
 -- with unique type variables. Updates the EGState with the next free
