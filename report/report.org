@@ -579,6 +579,28 @@
 *** Selecting a random matching constructor
     \label{random}
 
+    The following function gets a goal type $gt$ and returns a
+    randomly selected \inlhask{Constructor} from the current context
+    matching the supplied type:
+
+    \begin{haskellcode}
+    randomMatching :: Type -> ExpGen (Maybe (Id, Constructor, Substitution))
+    \end{haskellcode}
+
+    This function works by looking through each \inlhask{Context},
+    filters out those \inlhask{Constructor}'s with no more uses left
+    and then runs \inlhask{match} with the goal type $gt$ and the type
+    for the current \inlhask{Constructor}. If \inlhask{match} succeeds
+    it returns an updated \inlhask{Type} and a \inlhask{Substitution}
+    containing new/updated guesses for \inlhask{Undecided} variables
+    wrapped in a \inlhask{Just}. The constructor is then saved to a
+    list of constructor candidates. If instead a \inlhask{Nothing} is
+    returned then the list of candidates is unchanged.
+
+    The last step of the function is simply to randomly select and
+    return one of the \inlhask{Constructor}'s by using the
+    \inlhask{StdGen} in the \inlhask{EGState}.
+
 *** Generating expressions
 
 \newpage
