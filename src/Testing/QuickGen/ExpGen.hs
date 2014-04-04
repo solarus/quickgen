@@ -73,20 +73,27 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
                     _ -> return (Just (ConE n))
 
 randomMatching :: Type -> ExpGen (Maybe (Id, Constructor, Substitution))
-randomMatching t = do
-    s <- getSubstitution
+randomMatching goalType = do
+    subst <- getSubstitution
+    let gt = applys subst goalType
+        f i (mu, (n, t)) acc
+            -- If number of uses is a Just and less than 1 then
+            -- discard this constructor. TODO: maybe remove
+            -- constructor from the context instead when decreasing
+            -- uses?
+            | maybe False (< 1) mu = acc
+            | otherwise            = do
+                t' <- uniqueTypes (applys subst t)
+                case runStateT (match gt t') emptySubst of
+                    Just (newT, s) -> (:) <$> pure (i, (n, newT), s) <*> acc
+                    Nothing -> acc
 
-    let t' = applys s t
+    ctxs    <- getContexts
+    matches <- fmap concat . forM ctxs $ foldrContext f (return [])
 
-    -- TODO: Filter constraints either in getMatching or by retrying
-    -- the random selection until a valid constructor is found (while
-    -- keeping track of which ones was tried).
-    matches <- getMatching t'
-    let matches' = filter f matches
-        f m@(_,_,s') = maybe False (const True) (unionSubst s' s)
-    case length matches' of
-        0 -> return Nothing
-        n -> Just . (matches' !!) <$> getRandomR (0, n-1)
+    case matches of
+        [] -> return Nothing
+        _  -> Just . (matches !!) <$> getRandomR (0, length matches - 1)
 
 -- | Given a type replaces all `Forall' bound variables in that type
 -- with unique type variables. Updates the EGState with the next free
@@ -234,26 +241,6 @@ match' ta@(Type _ _ st1) tb@(Type _ _ st2) = go st1 st2
 
     noMatch :: Monad m => m a
     noMatch = fail $ "Types don't match: " ++ show ta ++ " | " ++ show tb
-
-getMatching :: Type -> ExpGen [(Id, Constructor, Substitution)]
-getMatching goalType = do
-    ctxs  <- getContexts
-    subst <- getSubstitution
-    let gt = applys subst goalType
-        f i (mu, (n, t)) acc
-            -- If number of uses is a Just and less than 1 then
-            -- discard this constructor. TODO: maybe remove
-            -- constructor from the context instead when decreasing
-            -- uses?
-            | maybe False (< 1) mu = acc
-            | otherwise            = do
-                t' <- uniqueTypes (applys subst t)
-                case runStateT (match gt t') emptySubst of
-                    Just (newT, s) -> (:) <$> pure (i, (n, newT), s) <*> acc
-                    Nothing -> acc
-
-    -- <$> should have higher precedence than p :(
-    fmap concat . forM ctxs $ foldrContext f (return [])
 
 -- TODO: Remove need for this by doing something smarter in
 -- substitution.
