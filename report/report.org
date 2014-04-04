@@ -457,15 +457,17 @@
     solve this is discussed further in section \ref{fut-CE}.
 
 ** ExpGen
+   \label{expgen}
+
    The \textsc{ExpGen} module contains the core algorithm and methods
    to generate type-safe expressions. The generation starts in the
    appropriately named function \inlhask{generate} which works by
-   finding matching \inlhask{Constructor}'s for the current goal type
-   and recursively tries to generate expressions of the argument types
-   used in the constructor. However, this is not as trivial as the
-   above description makes it sound like and the following section
-   explains the design choices and the different invariants used when
-   implementing the complete algorithm.
+   finding a random matching \inlhask{Constructor}'s for the current
+   goal type and recursively tries to generate expressions of the
+   argument types used in the constructor. However, this is not as
+   trivial as the above description makes it sound like and the
+   following section explains the design choices and the different
+   invariants used when implementing the complete algorithm.
 
 *** The ExpGen state
     The \inlhask{ExpGen} type is basically a state monad keeping track
