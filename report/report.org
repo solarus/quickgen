@@ -128,6 +128,10 @@
 
 \newpage
 
+* Algorithm
+** Generating expressions
+   \label{algo:generate}
+
 * Implementation
   In this chapter the current implementation is explained thoroughly.
   First the data types used to represent, for instance, types and
@@ -602,8 +606,27 @@
     \inlhask{StdGen} in the \inlhask{EGState}.
 
 *** Generating expressions
+    \inlhask{generate} is the only exported function in the
+    \textsc{ExpGen} module, i.e. it is the only function that will be
+    visible to the end user.
 
-\newpage
+    \begin{haskellcode}
+    generate :: Language -> Type -> Seed -> (Maybe Exp, EGState)
+    generate lang t seed = runEG seed lang $ do
+        t' <- bindForall <$> uniqueTypes t
+        generate' t'
+
+    generate' :: Type -> ExpGen (Maybe Exp)
+    \end{haskellcode}
+
+    The function \inlhask{generate} is extremely simple since its
+    basically a wrapper for the function \inlhask{generate'} where the
+    real work is done. Here the different functions presented in the
+    last section is combined into a complete algorithm that is used to
+    generate expressions. This is also the algorithm presented in
+    pseudocode in section \ref{algo:generate}.
+
+    \newpage
 
 * Limitations
   Due to time limitations the scope and complexity of the project was
