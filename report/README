@@ -3,12 +3,8 @@ To make the report run:
 $ make
 
 This requires a working emacs version >= 24 installation with org-mode
->= 8.0 installed. The latest org-mode can be installed with:
+>= 8.0 installed.
+
+The latest org-mode can be installed with:
 
 $ make org
-
-
-If the bibliography has been updated and some of the citations does
-not work this is fixed by running:
-
-$ make bib
