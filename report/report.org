@@ -3,7 +3,7 @@
 #+EMAIL:     david@tunna.org
 #+OPTIONS:   H:3 num:t toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
 #+LATEX_HEADER: \usepackage[margin=3.5cm]{geometry}
-#+LATEX_HEADER: \usepackage{lipsum, minted, xcolor, fancyhdr, xspace}
+#+LATEX_HEADER: \usepackage{lipsum, minted, xcolor, fancyhdr, xspace, algpseudocode, algorithm}
 #+LATEX_HEADER: \usepackage[style=alphabetic,citestyle=alphabetic]{biblatex}
 #+LATEX_HEADER: \addbibresource{references.bib}
 
@@ -129,8 +129,71 @@
 \newpage
 
 * Algorithm
+  \todo{Intro. Maybe rename section. Decide which subsections that should be here.}
+
+** Matching expressions
+
 ** Generating expressions
    \label{algo:generate}
+
+   Let $uses$ be some natural number, $ctx$ a context and $gs$ a list
+   of guesses for undecided type variables, then the generation
+   algorithm works as follows:
+
+   \begin{algorithmic}[1]
+   \Function{Generate}{$t$}
+     \State Bind all forall quantified variables in $t$ to some unique Data constructor types.
+     \Comment{\emph{If for instance $t = \forall~a~b.~a \rightarrow b$
+     then the resulting type might be $A1 \rightarrow B2$}}
+     \State \textbf{return} \Call{Generate'}{$t$}
+   \EndFunction
+   \end{algorithmic}
+
+   \newpage
+
+   \note{On line 18 it might be easy to miss that $t$ is the same $t$ as on line 1}
+
+   \begin{algorithmic}[1]
+   \Function{Generate'}{$t$}
+     \If{$t$ is a function type $t_1, \ldots, t_m$}
+       \State Generate unique variable names $x_1, \ldots, x_{m-1}$
+       \State Add the constructors $(uses, (x_i, t_i)),~1 \leq i < m$ to $ctx$
+       \State $v \gets$ \Call{Generate'}{$t_m, ctx$}
+       \State Remove the $x_i,~1 \leq i < m$ constructors from $ctx$
+       \If{$v$ is \texttt{Just} an expression}
+         \State \textbf{return} $(\lambda x_1 \ldots x_{m-1} \rightarrow v)$
+       \Else \Comment{$v$ is here \texttt{Nothing}}
+         \State \textbf{return} \texttt{Nothing}
+       \EndIf
+     \Else \Comment{$t$ is here a value type}
+       \State $gs' \gets gs$
+       \State $ctx' \gets ctx$
+
+       \State $c \gets$ A random matching constructor with positive uses in $ctx$
+       \Comment{\emph{This line might introduce guesses for undecided type variables}}
+
+       \If{$c$ is \texttt{Just} a constructor $c = (n, t')$}
+         \State decrease the number of uses for $c$ in $ctx$ by one
+         \If{$t' = t_1 \rightarrow \ldots \rightarrow t_m \rightarrow t$}
+           \ForAll{$1 \leq i \leq m$}
+             \State $e_i \gets$ \Call{Generate'}{$t_i, ctx$}
+           \EndFor
+           \If{$\exists~i,~e_i = $ \texttt{Nothing}}
+             \State $ctx := ctx'$
+             \State $gs := gs'$
+             \State \textbf{return} \texttt{Nothing}
+           \Else
+             \State \textbf{return} \texttt{Just} $(n~e_1~\ldots~e_m)$
+           \EndIf
+         \Else \Comment{$c$ has here a value type}
+           \State \textbf{return} \texttt{Just} the name of the constructor $c$
+         \EndIf
+       \Else \Comment{$c$ is here \texttt{Nothing}}
+         \State \textbf{return} Nothing
+       \EndIf
+     \EndIf
+   \EndFunction
+   \end{algorithmic}
 
 * Implementation
   In this chapter the current implementation is explained thoroughly.
