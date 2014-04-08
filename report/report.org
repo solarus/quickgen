@@ -22,7 +22,7 @@
 \setlength{\parindent}{0pt}
 
 \newcommand{\quickgen}[0]{\textsc{QuickGen}\xspace}
-\newcommand{\note}[1]{{\color{blue} Note: \emph{#1}}}
+\newcommand{\note}[1]{{\color{blue} \textbf{Note:} \emph{#1}}}
 \newcommand{\todo}[1]{{\color{red} \textbf{TODO:} \emph{#1}}}
 
 \newminted{haskell}{linenos}
