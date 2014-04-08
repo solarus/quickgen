@@ -2,7 +2,7 @@ pdf:
 	emacs -q --batch \
 	  --eval "(setq package-load-list '((org t)))" \
 	  --eval "(package-initialize)" \
-	  --eval "(setq org-latex-pdf-process '(\"pdflatex -interaction nonstopmode -shell-escape -output-directory %o %f\"))" \
+	  --eval "(setq org-latex-pdf-process '(\"pdflatex -interaction nonstopmode -shell-escape -output-directory %o %f\" \"pdflatex -interaction nonstopmode -shell-escape -output-directory %o %f\"))" \
 	  --visit report.org --funcall org-latex-export-to-pdf
 
 bib:
