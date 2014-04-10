@@ -136,7 +136,7 @@
 ** Generating expressions
    \label{algo:generate}
 
-   Let $uses$ be some natural number, $ctx$ a context and $gs$ a list
+   Let $uses$ be some natural number, $\Gamma$ a context and $gs$ a list
    of guesses for undecided type variables, then the generation
    algorithm works as follows:
 
@@ -156,31 +156,31 @@
 
    \begin{algorithmic}[1]
    \Function{Generate'}{$t$}
-     \If{$t$ is a function type $t_1, \ldots, t_m$}
+     \If{$t$ is a function type $t_1 \rightarrow \ldots \rightarrow t_m$}
        \State Generate unique variable names $x_1, \ldots, x_{m-1}$
-       \State Add the constructors $(uses, (x_i, t_i)),~1 \leq i < m$ to $ctx$
-       \State $v \gets$ \Call{Generate'}{$t_m, ctx$}
-       \State Remove the $x_i,~1 \leq i < m$ constructors from $ctx$
+       \State Add the constructors $(uses, (x_i, t_i)),~1 \leq i < m$ to \Gamma$
+       \State $v \gets$ \Call{Generate'}{$t_m, \Gamma$}
+       \State Remove the $x_i,~1 \leq i < m$ constructors from $\Gamma$
        \If{$v$ is \texttt{Just} an expression}
-         \State \textbf{return} $(\lambda x_1 \ldots x_{m-1} \rightarrow v)$
+         \State \textbf{return} $(\lambda x_1~x_2~\ldots~x_{m-1} \rightarrow v)$
        \Else \Comment{$v$ is here \texttt{Nothing}}
          \State \textbf{return} \texttt{Nothing}
        \EndIf
      \Else \Comment{$t$ is here a value type}
        \State $gs' \gets gs$
-       \State $ctx' \gets ctx$
+       \State $\Gamma' \gets \Gamma$
 
-       \State $c \gets$ A random matching constructor with positive uses in $ctx$
+       \State $c \gets$ A random matching constructor with positive uses in $\Gamma$
        \Comment{\emph{This line might introduce guesses for undecided type variables}}
 
        \If{$c$ is \texttt{Just} a constructor $c = (n, t')$}
-         \State decrease the number of uses for $c$ in $ctx$ by one
+         \State decrease the number of uses for $c$ in $\Gamma$ by one
          \If{$t' = t_1 \rightarrow \ldots \rightarrow t_m \rightarrow t$}
            \ForAll{$1 \leq i \leq m$}
-             \State $e_i \gets$ \Call{Generate'}{$t_i, ctx$}
+             \State $e_i \gets$ \Call{Generate'}{$t_i, \Gamma$}
            \EndFor
            \If{$\exists~i,~e_i = $ \texttt{Nothing}}
-             \State $ctx := ctx'$
+             \State $\Gamma := \Gamma'$
              \State $gs := gs'$
              \State \textbf{return} \texttt{Nothing}
            \Else
