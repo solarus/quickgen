@@ -152,6 +152,7 @@
    \newpage
 
    \note{On line 18 it might be easy to miss that $t$ is the same $t$ as on line 1}
+   \note{Consider moving to appendix}
 
    \begin{algorithmic}[1]
    \Function{Generate'}{$t$}
