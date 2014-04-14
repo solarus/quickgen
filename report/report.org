@@ -130,8 +130,66 @@
 
 * Algorithm
   \todo{Intro. Maybe rename section. Decide which subsections that should be here.}
-
 ** Matching expressions
+   \label{algo:match}
+
+   \begin{todo*}
+   Citering om typmatchning. Kanske scrap your type applications
+   (första exemplet är hämtat därifrån).
+   \end{todo*}
+
+   \todo{Använder ny notation $\Longrightarrow$ (evaluerar till). Introducera för läsaren.}
+
+   Type matching is the process of finding a minimal substitution for
+   a type $t$ that makes it equal to a goal type $gt$. For instance,
+   we may have the two values \inlhask{foo :: a -> Int -> b} and
+   \inlhask{bar :: Int -> Int -> Bool}. If we try to match the type of
+   \inlhask{foo} with \inlhask{bar} then the substitution \([ a
+   \mapsto Int, b \mapsto Bool] \) will be returned. If no match is
+   found an error might be returned instead.
+
+   The \textsc{Match} algorithm presented below is similar to regular
+   type matching in the respect that it finds a substitution for the
+   forall quantified type variables. Lets look at one example to see
+   the difference.
+
+   \[ \textsc{Match}(Int,~\forall~a~b.~a \rightarrow b) \Longrightarrow (?a \rightarrow Int) \]
+
+   A normal type matching algorithm would fail on this particular
+   input since a value type cannot be matched against a function.
+   \textsc{Match} however returns the type $(?a \rightarrow Int)$.
+
+   From the original type we can see that $b$ has been turned into
+   $Int$ which might not be all that surprising. The type variable $a$
+   however has lost its forall quantifier and been turned into the
+   cryptic looking $?a$. The \textsc{Match} function actually only
+   considers the return type of the second argument during matching.
+   Therefore, in this example, the only type variable considered
+   during matching was $b$. The rest of the forall quantified type
+   variables, in this case $a$, will be turned from into undecided
+   type variables, $?a$.
+
+   The intuition is that the type $(\forall~a~b.~a \rightarrow b)$ can
+   be used to construct a value of type $Int$ if we give it another
+   value of type $a$. Since $a$ is forall quantified then a value of
+   any type can be given to a function of this type for it to produce
+   an $Int$ value.
+
+   With this small introduction it is time to look at the algorithm
+   for the match function.
+
+   Let $\mathbb{U}$ be a set of guesses for undecided variables. Then
+   the \textsc{Match} function takes two types, $t_1$ and $t_2$, and
+   returns a specialized version of the type $t_2$, which can be used
+   in the construction of $t_1$, or returns an error if $t_2$ cannot
+   be matched with $t_1$. \textsc{Match} may also introduce guesses in
+   \mathbb{U} for undecided type variables found in $t_1$.
+
+   \begin{algorithmic}[1]
+   \Function{Match}{$t_1, t_2$}
+     \State $s \gets$ \Call{Match'}{$t_1, t_2$}
+   \EndFunction
+   \end{algorithmic}
 
 ** Generating expressions
    \label{algo:generate}
@@ -597,19 +655,6 @@
 
 *** Match function
     \label{match}
-
-    \begin{todo*}
-    Citering om typmatchning. Kanske scrap your type applications
-    (första exemplet är hämtat därifrån).
-    \end{todo*}
-
-    Type matching is the process of finding a minimal substitution for
-    a type $t$ that makes it equal to a goal type $gt$. For instance,
-    we may have the two values \inlhask{foo :: a -> Int -> b} and
-    \inlhask{bar :: Int -> Int -> Bool}. If we try to match the type
-    of \inlhask{foo} with \inlhask{bar} then the substitution \([ a
-    \mapsto Int, b \mapsto Bool] \) will be returned. If no match is
-    found an error message is returned instead.
 
     The function \inlhask{match} found in the \textsc{ExpGen} module
     implements an algorithm that is close to but not exactly the same
