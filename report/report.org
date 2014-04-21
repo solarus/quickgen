@@ -149,18 +149,13 @@
 ** Matching expressions
    \label{algo:match}
 
-   \begin{todo*}
-   Citering om typmatchning. Kanske scrap your type applications
-   (första exemplet är hämtat därifrån).
-   \end{todo*}
-
    Type matching is the process of finding a minimal substitution for
-   a type $t$ that makes it equal to a goal type $gt$. For instance,
-   we may have the two values \(foo :: a \ri Int \ri b\) and \(bar ::
-   Int \ri Int \ri Bool\). If we try to match the type of \(foo\) with
-   \(bar\) then the substitution \(\{ a \mapsto Int, b \mapsto Bool\}
-   \) will be returned. If no match is found a failure is returned
-   instead.
+   a type $t$ that makes it equal to a goal type $gt$
+   \cite[7--8]{syta}. For instance, imagine we have the following
+   variables: \(x :: a \ri Int \ri b\) and \(y :: Int \ri Int \ri
+   Bool\). If we try to match the type of \(x\) with \(y\) then the
+   substitution \(\{ a \mapsto Int, b \mapsto Bool\} \) will be
+   returned. If no match is found a failure is raised instead.
 
    The \textsc{Match} algorithm presented below is similar to regular
    type matching in the respect that it finds a substitution for the
