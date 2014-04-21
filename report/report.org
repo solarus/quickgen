@@ -48,7 +48,7 @@
 %%% algpseudocode switch statement
 \algnewcommand\algorithmicswitch{\textbf{case}}
 \algnewcommand\algorithmiccase{\textbf{case}}
-\algnewcommand\Error[1]{\textbf{error}\ #1}
+\algnewcommand\Raise[1]{\textbf{raise}\ \texttt{#1}}
 \algnewcommand{\LineComment}[1]{\State \(\triangleright\) #1}
 \algdef{Se}[CASEOF]{CaseOf}{EndCaseOf}[1]{\algorithmicswitch\ #1\ \textbf{of}}
 \algdef{Se}[CASE]{Case}{EndCase}[1]{#1\ \textbf{then}}
@@ -194,7 +194,7 @@
      $t_2$, which can be used in the construction of $t_1$. In
      addition to returning the updated type, the set of guesses might
      be updated during matching. If no match could be found then a
-     failure is returned instead.
+     failure is raised instead.
 
    \begin{algorithmic}[1]
    \Function{Match}{$t_1, t_2$}
@@ -225,9 +225,9 @@
          \State \Return{$\{b \mapsto t_1\}$}
        \EndCase
 
-       \Case{$C(y_1, \ldots, y_n)$}
-         \If{$t_1$ is not the same type constructor as $t_2$,~~$t_1 \neq C(x_1, \ldots, x_n)$ \footnote{For some types $x_1 \ldots x_n$.}}
-           \State No match found. \Return{Failure}
+       \Case{$\mathcal{C}(y_1, \ldots, y_n)$}
+         \If{$t_1$ is not the same type constructor as $t_2$,~~$t_1 \neq \mathcal{C}(x_1, \ldots, x_n)$ \footnote{For some types $x_1 \ldots x_n$.}}
+           \State \Raise{No\_Match}
          \Else
            \State \Return{$\bigcup_i~\Call{MatchAux}{x_i, y_i}$}
          \EndIf
@@ -237,7 +237,7 @@
          \If{$t_1 = t_2 = ?b$}
            \State \Return{$\emptyset$}
          \ElsIf{$?b \in t_1$}
-           \State \Return{"No match"}
+           \State \Raise{No\_Match}
          \ElsIf{$\exists~t,~\text{s.t.}~(?b \mapsto t) \in \mathbb{U}$}
            \State \Return{\Call{MatchAux}{$t_1,t$}}
          \Else
@@ -259,7 +259,7 @@
            \EndCase
 
            \CaseElse
-             \State \Return{"No match"}
+             \State \Raise{No\_Match}
            \EndCase
          \EndCaseOf
        \EndCase
@@ -271,11 +271,11 @@
 
    - Let $t_1 = [Int]$ and $t_2 = (a \ri b)\ri[a]\ri[b]$.
      \textsc{Match} will proceed by trying to find a substitution for
-     $[Int]$ and $[b]$.
-     - In \textsc{MatchAux} the second case will match with $C=[\,]$
-       and $y_1=b$. Since $t_1$ is also of this form, $C=[\,]$ and
-       $x_1=Int$, then \textsc{MatchAux}$(Int, ~b)$ will be called
-       recursively.
+     $[Int]$ and the return type of $t_2$ [fn:9], namely $[b]$.
+     - In \textsc{MatchAux} the second case will match with
+       $\mathcal{C}=[\,]$ and $y_1=b$. Since $t_1$ is also of this
+       form, $\mathcal{C}=[\,]$ and $x_1=Int$, then
+       \textsc{MatchAux}$(Int, ~b)$ will be called recursively.
      - Now since the second argument is forall quantified, the
        singleton substitution $\{b \mapsto Int\}$ is returned. This is
        also the value returned to \textsc{Match}.
@@ -905,3 +905,5 @@ infinite loop.
 [fn:7] The other one being \inlhask{generate'}.
 
 [fn:8] Normal matching only needs to look at forall quantified type variables.
+
+[fn:9] Since $t_2$ is a function type.
