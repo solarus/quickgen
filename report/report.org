@@ -3,7 +3,7 @@
 #+EMAIL:     david@tunna.org
 #+OPTIONS:   H:3 num:t toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
 #+LATEX_HEADER: \usepackage[margin=3.5cm]{geometry}
-#+LATEX_HEADER: \usepackage{lipsum, minted, xcolor, fancyhdr, xspace, algpseudocode, algorithm}
+#+LATEX_HEADER: \usepackage{lipsum, minted, xcolor, fancyhdr, xspace, algpseudocode, algorithm, mathtools}
 #+LATEX_HEADER: \usepackage[style=alphabetic,citestyle=alphabetic]{biblatex}
 #+LATEX_HEADER: \addbibresource{references.bib}
 
@@ -42,6 +42,21 @@
 \newenvironment{todo*}
   {\color{red} \textbf{TODO:} \em}
   {}
+
+\newcommand{\ri}[0]{\rightarrow}
+
+%%% algpseudocode switch statement
+\algnewcommand\algorithmicswitch{\textbf{case}}
+\algnewcommand\algorithmiccase{\textbf{case}}
+\algnewcommand\Error[1]{\textbf{error}\ #1}
+\algnewcommand{\LineComment}[1]{\State \(\triangleright\) #1}
+\algdef{Se}[CASEOF]{CaseOf}{EndCaseOf}[1]{\algorithmicswitch\ #1\ \textbf{of}}
+\algdef{Se}[CASE]{Case}{EndCase}[1]{#1\ \textbf{then}}
+\algdef{Se}[CASEELSE]{CaseElse}{EndCase}[0]{\textbf{else}}
+\algtext*{EndCaseOf}
+\algtext*{EndCase}%
+\algtext*{EndIf}
+\algtext*{EndFor}
 
 %%% Front page
 \thispagestyle{empty}
@@ -130,6 +145,7 @@
 
 * Algorithm
   \todo{Intro. Maybe rename section. Decide which subsections that should be here.}
+
 ** Matching expressions
    \label{algo:match}
 
@@ -138,26 +154,26 @@
    (första exemplet är hämtat därifrån).
    \end{todo*}
 
-   \todo{Använder ny notation $\Longrightarrow$ (evaluerar till). Introducera för läsaren.}
-
    Type matching is the process of finding a minimal substitution for
    a type $t$ that makes it equal to a goal type $gt$. For instance,
-   we may have the two values \inlhask{foo :: a -> Int -> b} and
-   \inlhask{bar :: Int -> Int -> Bool}. If we try to match the type of
-   \inlhask{foo} with \inlhask{bar} then the substitution \([ a
-   \mapsto Int, b \mapsto Bool] \) will be returned. If no match is
-   found an error might be returned instead.
+   we may have the two values \(foo :: a \ri Int \ri b\) and \(bar ::
+   Int \ri Int \ri Bool\). If we try to match the type of \(foo\) with
+   \(bar\) then the substitution \(\{ a \mapsto Int, b \mapsto Bool\}
+   \) will be returned. If no match is found a failure is returned
+   instead.
 
    The \textsc{Match} algorithm presented below is similar to regular
    type matching in the respect that it finds a substitution for the
-   forall quantified type variables. Lets look at one example to see
-   the difference.
+   forall quantified type variables. However, there are some
+   differences. Lets look at one example to see how it differs from
+   normal type matching:
 
-   \[ \textsc{Match}(Int,~\forall~a~b.~a \rightarrow b) \Longrightarrow (?a \rightarrow Int) \]
+   \[ \textsc{Match}(Int,~a \rightarrow b) \Longrightarrow (?a \rightarrow Int) \]
 
    A normal type matching algorithm would fail on this particular
-   input since a value type cannot be matched against a function.
-   \textsc{Match} however returns the type $(?a \rightarrow Int)$.
+   input since a value type normally cannot be matched against a
+   function. \textsc{Match} however returns the type $(?a \rightarrow
+   Int)$.
 
    From the original type we can see that $b$ has been turned into
    $Int$ which might not be all that surprising. The type variable $a$
@@ -169,39 +185,123 @@
    variables, in this case $a$, will be turned from into undecided
    type variables, $?a$.
 
-   The intuition is that the type $(\forall~a~b.~a \rightarrow b)$ can
-   be used to construct a value of type $Int$ if we give it another
-   value of type $a$. Since $a$ is forall quantified then a value of
-   any type can be given to a function of this type for it to produce
-   an $Int$ value.
+   The intuition is that the type $(a \rightarrow b)$ can be used to
+   construct a value of type $Int$ if we give it another value of type
+   $a$. Since $a$ is forall quantified then a value of any type can be
+   given to a function of this type for it to produce an $Int$ value.
 
    With this small introduction it is time to look at the algorithm
    for the match function.
 
-   Let $\mathbb{U}$ be a set of guesses for undecided variables. Then
-   the \textsc{Match} function takes two types, $t_1$ and $t_2$, and
-   returns a specialized version of the type $t_2$, which can be used
-   in the construction of $t_1$, or returns an error if $t_2$ cannot
-   be matched with $t_1$. \textsc{Match} may also introduce guesses in
-   \mathbb{U} for undecided type variables found in $t_1$.
+   - Let $\mathbb{U}$ be a set of guesses for undecided variables.
+     Then the \textsc{Match} function takes two types, $t_1$ and
+     $t_2$, and tries to return a specialized version of the type
+     $t_2$, which can be used in the construction of $t_1$. In
+     addition to returning the updated type, the set of guesses might
+     be updated during matching. If no match could be found then a
+     failure is returned instead.
 
    \begin{algorithmic}[1]
    \Function{Match}{$t_1, t_2$}
-     \State $s \gets$ \Call{Match'}{$t_1, t_2$}
+     \If{$t_2$ is a function type $t_2 = x_1 \ri \ldots \ri x_n$}
+       \State $s \gets \Call{MatchAux}{t_1, x_n}$
+     \Else
+       \State $s \gets \Call{MatchAux}{t_1, t_2}$
+     \EndIf
+     \\
+     \State Update $t_2$ by applying the substitution $s$ to the type
+     \State Update $t_2$ by converting all $Forall$ quantified types to $Undecided$ ones
+     \\
+     \State \Return{$t_2$}
    \EndFunction
    \end{algorithmic}
+
+   The first step is trying to find a substitution that either makes
+   $t_2$, or the return type of $t_2$, match $t_1$. If such a
+   substitution is found then it is applied to $t_2$. The last step
+   before returning $t_2$ is to make all $Forall$ quantified type
+   variables into $Undecided$ ones. The step that actually finds a
+   substitution is found in \textsc{MatchAux} function:
+
+   \begin{algorithmic}[1]
+   \Function{MatchAux}{$t_1, t_2$}
+     \CaseOf{$t_2$}
+       \Case{$\forall~b.~b$}
+         \State \Return{$\{b \mapsto t_1\}$}
+       \EndCase
+
+       \Case{$C(y_1, \ldots, y_n)$}
+         \If{$t_1$ is not the same type constructor as $t_2$,~~$t_1 \neq C(x_1, \ldots, x_n)$ \footnote{For some types $x_1 \ldots x_n$.}}
+           \State No match found. \Return{Failure}
+         \Else
+           \State \Return{$\bigcup_i~\Call{MatchAux}{x_i, y_i}$}
+         \EndIf
+       \EndCase
+
+       \Case{$?b$}
+         \If{$t_1 = t_2 = ?b$}
+           \State \Return{$\emptyset$}
+         \ElsIf{$?b \in t_1$}
+           \State \Return{"No match"}
+         \ElsIf{$\exists~t,~\text{s.t.}~(?b \mapsto t) \in \mathbb{U}$}
+           \State \Return{\Call{MatchAux}{$t_1,t$}}
+         \Else
+           \State Add the mapping $(?b \mapsto t_1)$ to $\mathbb{U}$
+           \State \Return{$\emptyset$}
+         \EndIf
+       \EndCase
+
+       \CaseElse
+         \CaseOf{$t_1$}
+           \Case{$?a$}
+             \LineComment{Similar to the case for $?b$ except in the last \textbf{else}}
+             \State{\ldots}
+             \CaseElse
+               \State Convert all $\forall$ type variables in $t_2$ to undecided
+               \State Add the mapping $(?a \mapsto t_2)$ to $\mathbb{U}$
+               \State \Return{$\emptyset$}
+             \EndCase
+           \EndCase
+
+           \CaseElse
+             \State \Return{"No match"}
+           \EndCase
+         \EndCaseOf
+       \EndCase
+     \EndCaseOf
+   \EndFunction
+   \end{algorithmic}
+
+   Lets look at an example of how the complete algorithm works:
+
+   - Let $t_1 = [Int]$ and $t_2 = (a \ri b)\ri[a]\ri[b]$.
+     \textsc{Match} will proceed by trying to find a substitution for
+     $[Int]$ and $[b]$.
+     - In \textsc{MatchAux} the second case will match with $C=[\,]$
+       and $y_1=b$. Since $t_1$ is also of this form, $C=[\,]$ and
+       $x_1=Int$, then \textsc{MatchAux}$(Int, ~b)$ will be called
+       recursively.
+     - Now since the second argument is forall quantified, the
+       singleton substitution $\{b \mapsto Int\}$ is returned. This is
+       also the value returned to \textsc{Match}.
+   - The substitution returned from \textsc{MatchAux} is applied to
+     $t_2 = ~(a \ri b) \ri [a] \ri [b]$ resulting in $(a \ri Int) \ri
+     [a] \ri [Int]$.
+   - In the last step the remaining forall quantified variable is
+     turned into an undecided one and $(?a \ri Int) \ri [?a] \ri
+     [Int]$ is returned.
 
 ** Generating expressions
    \label{algo:generate}
 
-   Let $uses$ be some natural number, $\Gamma$ a context and $gs$ a list
-   of guesses for undecided type variables, then the generation
-   algorithm works as follows:
+   Let $uses$ be some natural number, $\Gamma$ a context and
+   $\mathbb{U}$ a set of guesses for undecided type variables, then
+   the generation algorithm works as follows:
 
    \begin{algorithmic}[1]
    \Function{Generate}{$t$}
      \State Bind all forall quantified variables in $t$ to some unique Data constructor types.
-     \Comment{\emph{If for instance $t = \forall~a~b.~a \rightarrow b$
+     \Comment{\emph{If for instance $t = a \rightarrow b$
      then the resulting type might be $A1 \rightarrow B2$}}
      \State \textbf{return} \Call{Generate'}{$t$}
    \EndFunction
@@ -225,7 +325,7 @@
          \State \textbf{return} \texttt{Nothing}
        \EndIf
      \Else \Comment{$t$ is here a value type}
-       \State $gs' \gets gs$
+       \State $\mathbb{U}' \gets \mathbb{U}$
        \State $\Gamma' \gets \Gamma$
 
        \State $c \gets$ A random matching constructor with positive uses in $\Gamma$
@@ -239,7 +339,7 @@
            \EndFor
            \If{$\exists~i,~e_i = $ \texttt{Nothing}}
              \State $\Gamma := \Gamma'$
-             \State $gs := gs'$
+             \State $\mathbb{U} := \mathbb{U}'$
              \State \textbf{return} \texttt{Nothing}
            \Else
              \State \textbf{return} \texttt{Just} $(n~e_1~\ldots~e_m)$
