@@ -150,7 +150,7 @@
    \label{algo:match}
 
    Type matching is the process of finding a minimal substitution for
-   a type $t$ that makes it equal to a goal type $gt$
+   a type $t_1$ that makes it equal to a goal type $t_2$
    \cite[7--8]{syta}. For instance, imagine we have the following
    variables: \(x :: a \ri Int \ri b\) and \(y :: Int \ri Int \ri
    Bool\). If we try to match the type of \(x\) with \(y\) then the
