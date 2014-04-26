@@ -271,9 +271,7 @@
    forall quantified type variables. However, there are some
    differences. Lets look at one example to see how it differs from
    normal type matching:
-
    \[ \textsc{Match}(Int,~a \rightarrow b) \Longrightarrow (?a \rightarrow Int) \]
-
    A normal type matching algorithm would fail on this particular
    input since a value type normally cannot be matched against a
    function. \textsc{Match} however returns the type $(?a \rightarrow
@@ -824,7 +822,7 @@
     \inlhask{id} and the type to generate is
     \inlhask{Int -> Double -> Int}, then the starting context would be
     a singleton list only containing \inlhask{map} and \inlhask{id}.
-    The next step would introduce a lambda \inlhask{\x y -> ...},
+    The next step would introduce a lambda \inlhask{$\lambda$ x y -> ...},
     effectively adding one more \inlhask{Context} containing
     \inlhask{x} and \inlhask{y} [fn:6] to the list of contexts, and
     continue to generate an expression of type \inlhask{Int} at the
