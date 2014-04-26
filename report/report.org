@@ -58,6 +58,10 @@
 \algtext*{EndIf}
 \algtext*{EndFor}
 
+%%% Example stuff
+\newcounter{myexample}[section]
+\newcommand{\example}{\stepcounter{myexample}\textbf{Example} \thesection.\themyexample:\xspace}
+
 %%% Front page
 \thispagestyle{empty}
 \begin{center}
@@ -144,7 +148,112 @@
 \newpage
 
 * Algorithm
-  \todo{Intro. Maybe rename section. Decide which subsections that should be here.}
+  This section is dedicated to the formal definition of the algorithm
+  used to generate expressions from a user API. To get an intuition of
+  how this works it is easiest to look at a complete example:
+
+  \example Lets say an user wants to generate an expression of type
+  $[Integer]$ using values and functions from the following API:
+
+    #+NAME: table:api1
+    #+CAPTION: Simple API
+    |   | Constructor name | Type                        |
+    |---+------------------+-----------------------------|
+    | / |              <r> | <                           |
+    |   |            $map$ | $(a \ri b) \ri [a] \ri [b]$ |
+    |   |           $sing$ | $a \ri [a]$                 |
+    |   |            $nil$ | $[a]$                       |
+    |   |              $n$ | $Int$                       |
+    |   |              $d$ | $Double$                    |
+
+  The first step is choosing a random function or value where the
+  return type matches our current goal type. In table \ref{table:api1}
+  above, the term /constructor/ is used to refer to one of these
+  functions or values that can be used by the algorithm to generate
+  expressions[fn:10]. Just by looking at the available constructors,
+  one finds that all but the last two values has return types that
+  matches our current goal: $[Int]$. The constructors that do match
+  however needs to be slightly specialized to exactly match our goal
+  type.
+
+  Lets say that we choose $map$ as the first random matching
+  constructor. In this case, for $map$ to match our goal type of
+  $[Int]$ the for all quantified type variable $b$ has to be
+  instantiated to an $Int$. The other type variable, $a$, has nothing
+  to do with the current goal and can therefore be instantiated to
+  anything. However, it does not make sense to choose a type for $a$
+  right now since we may want to specialize it to some type discovered
+  later. For now, we say that the type variable is undecided and we
+  will introduce the special notation $?a$ to mean exactly this. In
+  the end, the final specialized type for $map$ that we arrive at is
+  $(?a \ri Int) \ri [?a] \ri [Int]$.
+
+  At this point, it might help to visualize the current expression as:
+  \[ map~e_1~e_2 \] where $e_1$ and $e_2$ are two, as of yet, non
+  generated expressions with types $(?a \ri Int)$ and $[?a]$
+  respectively. To succeed, we need to generate these two new values
+  in some order instead. For simplicty's sake, lets do it from left to
+  right starting with $e_1$:
+
+  - \emph{Generating $e_1$ with type $?a \ri Int$}:
+
+    At this point the algorithm differs slightly from the first step
+    when generating $[Int]$ since we are currently trying to generate
+    a function. In the end we want an expression on the form:
+    \[\lambda x \ri body \] where the argument $x$ can be used inside
+    $body$. To proceed all arguments are added as constructors to be
+    available when generating the body of the lambda abstraction. In
+    this case the only constructor added is $x ::\;?a$ resulting in
+    the following set of constructors:
+
+    #+NAME: table:api2
+    #+CAPTION: Extended API
+    |   | Constructor name | Type                        |
+    |---+------------------+-----------------------------|
+    | / |              <r> | <                           |
+    |   |            $map$ | $(a \ri b) \ri [a] \ri [b]$ |
+    |   |           $sing$ | $a \ri [a]$                 |
+    |   |            $nil$ | $[a]$                       |
+    |   |              $n$ | $Int$                       |
+    |   |              $d$ | $Double$                    |
+    |   |   $\color{red}x$ | $\color{red}?a$             |
+
+    From here on the algorithm is exactly the same as for $[Int]$: a
+    random matching constructor $\mathcal{C}$ is chosen and the
+    arguments of $\mathcal{C},~y_1 \ldots y_n$, is recursively
+    generated. If all arguments were successfully generated then
+    $body$ would be equal to $\mathcal{C}~y_1~\ldots~y_n$ and the
+    complete expression $e_1$ would be $(\lambda x \ri
+    \mathcal{C}~y_1~\ldots~y_n)$.
+
+    Here only the two constructors $n$ and $x$ match the current goal
+    and are therefore the only candidates for $\mathcal{C}$. If we
+    choose $\mathcal{C} = n$ then we return with $e_1 = (\lambda x \ri
+    n)$ and continue generating $e_2 ::\;[?a]$. If we choose
+    $\mathcal{C} = x$ then we return with $e_1 = (\lambda x \ri x)$
+    but instead of continuing generating $e_2 ::\;[?a]$ as before we
+    now need to generate $e_2 ::\;[Int]$, the reason being that in the
+    original types of $e_1$ and $e_2$, $(?a \ri Int)$ and $[?a]$, the
+    undecided type variable $?a$ refers to the same undecided type in
+    both expressions. If we start generating $e_1$ and decide that
+    $?a$ has to be an $Int$ then this change has to be present when we
+    start generating $e_2$. In any case lets imagine that the choice
+    for $\mathcal{C}$ was $n$ and continue generating $e_2$.
+
+  - \emph{Generating $e_2$ with type $[?a]$}:
+
+    This time no new constructors are added to the API since we are
+    not generating a function. The API at this point is therefore the
+    one found in table \ref{table:api1}. Similar to before, the first
+    three constructors is again the only ones matching the current
+    goal. Lets assume the second one, $sing$, followed by $d$ is
+    chosen, resulting in $e_2 = sign~d$. Now all sub goals have
+    actually been solved and the term generation terminates.
+
+  The final expression for this example would be $map~e_1~e_2 =
+  map~(\lambda x \ri n)~(sing~d)$. Now lets consider if it was changed
+  slighly, i.e. by assuming $(\lambda x \ri x)$ was generated instead
+  of $(\lambda x \ri n)$ when generating $e_1$.
 
 ** Matching expressions
    \label{algo:match}
@@ -907,3 +1016,6 @@ infinite loop.
 [fn:8] Normal matching only needs to look at forall quantified type variables.
 
 [fn:9] Since $t_2$ is a function type.
+
+[fn:10] This is also the term that will be used in the rest of this
+thesis.
