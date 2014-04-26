@@ -3,9 +3,12 @@
 #+EMAIL:     david@tunna.org
 #+OPTIONS:   H:3 num:t toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
 #+LATEX_HEADER: \usepackage[margin=3.5cm]{geometry}
-#+LATEX_HEADER: \usepackage{lipsum, minted, xcolor, fancyhdr, xspace, algpseudocode, algorithm, mathtools}
+#+LATEX_HEADER: \usepackage[usenames,dvipsnames]{xcolor}
+#+LATEX_HEADER: \usepackage{lipsum, minted, fancyhdr, xspace, algpseudocode, algorithm, mathtools}
+#+LATEX_HEADER: \usepackage{ifdraft}
 #+LATEX_HEADER: \usepackage[style=alphabetic,citestyle=alphabetic]{biblatex}
 #+LATEX_HEADER: \addbibresource{references.bib}
+#+LATEX_CLASS_OPTIONS: [draft]
 
 # #### Palatino font
 #+LATEX_HEADER: \usepackage[sc]{mathpazo}
@@ -26,7 +29,10 @@
 \newcommand{\todo}[1]{{\color{red} \textbf{TODO:} \emph{#1}}}
 
 \newminted{haskell}{linenos}
-\newcommand{\inlhask}[1]{\mintinline{haskell}?#1?}
+\ifdraft
+  {\newcommand{\inlhask}[1]{\mbox{\texttt{\color{purple}#1}}}}
+  {\newcommand{\inlhask}[1]{\mintinline{haskell}?#1?}}
+
 
 % It is probably possible to do this without having a -3pt hspace.
 % There probably even exists such a library or command that does what
