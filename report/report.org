@@ -243,23 +243,36 @@
     undecided type variable $?a$ refers to the same undecided type in
     both expressions. If we start generating $e_1$ and decide that
     $?a$ has to be an $Int$ then this change has to be present when we
-    start generating $e_2$. In any case lets imagine that the choice
-    for $\mathcal{C}$ was $n$ and continue generating $e_2$.
+    start generating $e_2$. To illustrate the difference both these
+    cases will be considered below:
 
-  - \emph{Generating $e_2$ with type $[?a]$}:
+  - \emph{Case $e_1 = (\lambda x \ri n)$: Generating $e_2$ with type $[?a]$}:}
 
     This time no new constructors are added to the API since we are
     not generating a function. The API at this point is therefore the
     one found in table \ref{table:api1}. Similar to before, the first
     three constructors is again the only ones matching the current
-    goal. Lets assume the second one, $sing$, followed by $d$ is
-    chosen, resulting in $e_2 = sign~d$. Now all sub goals have
-    actually been solved and the term generation terminates.
+    goal. Lets assume the second one, $sing$, is chosen. The
+    specialized type for $sing$ in this case would be $(?a \ri [?a])$
+    and a new sub goal for an $?a$ is created. Here $?a$ can be
+    matched with any constructor in the API but lets assume $d ::
+    Double$ is chosen resulting in $e_2 = sing~d$. Since this is the
+    last sub goal the term generation algorithm terminates with the
+    complete expression $map~(\lambda x \ri n)~(sing~d)$.
 
-  The final expression for this example would be $map~e_1~e_2 =
-  map~(\lambda x \ri n)~(sing~d)$. Now lets consider if it was changed
-  slighly, i.e. by assuming $(\lambda x \ri x)$ was generated instead
-  of $(\lambda x \ri n)$ when generating $e_1$.
+  - \emph{Case $e_1 = (\lambda x \ri x)$: Generating $e_2$ with type $[Int]$}:
+
+    Similar to the case for $[?a]$, no new constructors are added and
+    the API is still the same as in table \ref{table:api1}. Lets
+    assume that the first constructor chosen is the same as in the
+    last step, $sing$. Here is where the difference in choice in $e_1$
+    is visible when generating $e_2$. In the case above, all
+    constructors matched the goal of $?a$. However, in this case $?a$
+    has already been instantiated to a type, namely $Int$, when
+    generating $e_1$. This forces us to choose $n$ as our constructor
+    since no other ones match the current goal. Again, this terminates
+    the algorithm and the final expression would be $map~(\lambda x
+    \ri x)~(sing~n)$.
 
 ** Matching expressions
    \label{algo:match}
