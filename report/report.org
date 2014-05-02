@@ -280,6 +280,44 @@
     the algorithm and the final expression would be $map~(\lambda x
     \ri x)~(sing~n)$.
 
+** Undecided variables
+   \label{sec:undecided}
+
+   When generating $e_1$ in example \ref{example:1} above, two
+   different cases was considered. In the first one, the undecided
+   variable $?a$ was left untouched. The second one showed that a
+   guess or decision made for an undecided variable in one part needs
+   to be reflected in the rest of the generation process. How this
+   information about guesses for undecided variables should be handled
+   is non trivial. Lets look at an example:
+
+   \example Imagine we are generating a term of type $t$ using the
+   following constructor: \[ c :: t_1 \ri \ldots \ri t_n \ri t \]
+   Furthermore, assume the undecided variable $?a$ is somehow part of
+   $c$, i.e. $?a$ is present in at least one, and potentially all, of
+   the types $t_1, \ldots, t_n$ and $t$. If we start generating a sub
+   goal, for instance $t_1$, we might select another constructor
+   containing additional sub goals which in turn might introduce even
+   more sub goals. At any point in any of these subtrees we might
+   decide that $?a$ should have type $Int$. This information needs to
+   propagate upwards somehow. One could try updating the API by
+   exchanging every usage of $?a$ with $Int$. However, this does not
+   solve the problem that $?a$ might be present in one of the sub
+   goals at the same level or higher up. If the sub goals and
+   intermediate constructors was saved on a stack one might traverse
+   this stack updating the types for sub goals containing $?a$.
+   However, this stack, and the API, might grow to be very large
+   making it potentially hard to implement this operation efficiently.
+
+   An alternative tactic that is employed in this project is to have a
+   global set of guesses, $\mathbb{U}$, that is consulted before
+   trying to generate a sub goal containing undecided variables. It is
+   also consulted before trying to match a goal with a given
+   constructor $c$ from the API since the type of $c$ might contain
+   undecided variables. Finally, when a guess for an undecided
+   variable is performed, this guess needs to be stored in
+   $\mathbb{U}$.
+
 ** Matching expressions
    \label{algo:match}
 
@@ -328,15 +366,15 @@
 
    \note{Some info about why the undecided set is needed below? Refer to Generate code?}
 
-   - Let $\mathbb{U}$ be a set of guesses for undecided variables.
-     Then the \textsc{Match} function takes two types, $t_1$ and
-     $t_2$, and finds out if the type $t_2$ can be specialized in such
-     a way that a value of this specialized type can be used in the
-     construction of a value of type $t_1$. If $\textsc{Match}$ is
-     successful, the specialized version of $t_2$ is returned. In
-     addition to returning the specialized type, the set of guesses
-     might be updated during matching. If no match could be found then
-     a failure is raised instead.
+   - Let $\mathbb{U}$ be a set of guesses for undecided
+     variables[fn:13]. Then the \textsc{Match} function takes two
+     types, $t_1$ and $t_2$, and finds out if the type $t_2$ can be
+     specialized in such a way that a value of this specialized type
+     can be used in the construction of a value of type $t_1$. If
+     $\textsc{Match}$ is successful, the specialized version of $t_2$
+     is returned. In addition to returning the specialized type, the
+     set of guesses might be updated during matching. If no match
+     could be found then a failure is raised instead.
 
    \begin{algorithmic}[1]
    \Function{Match}{$t_1, t_2$}
@@ -1097,3 +1135,6 @@ thesis.
 
 [fn:12] This function is closer to traditional type matching compared
 to \textsc{Match}.
+
+[fn:13] A more detailed explanation about $\mathbb{U}$ is found in
+section \ref{sec:undecided}.
