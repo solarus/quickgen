@@ -66,7 +66,9 @@
 
 %%% Example stuff
 \newcounter{myexample}[section]
-\newcommand{\example}{\stepcounter{myexample}\textbf{Example} \thesection.\themyexample:\xspace}
+\numberwithin{myexample}{section}
+\newcommand{\example}{\refstepcounter{myexample}\textbf{Example} \themyexample:\xspace}
+\newcommand{\examplelabel}[1]{\example\label{#1}}
 
 %%% Front page
 \thispagestyle{empty}
@@ -158,8 +160,9 @@
   used to generate expressions from a user API. To get an intuition of
   how this works it is easiest to look at a complete example:
 
-  \example Lets say an user wants to generate an expression of type
-  $[Integer]$ using values and functions from the following API:
+  \examplelabel{example:1} Lets say an user wants to generate an
+  expression of type $[Int]$ using values and functions from the
+  following API:
 
     #+NAME: table:api1
     #+CAPTION: Simple API
@@ -187,19 +190,22 @@
   $[Int]$ the for all quantified type variable $b$ has to be
   instantiated to an $Int$. The other type variable, $a$, has nothing
   to do with the current goal and can therefore be instantiated to
-  anything. However, it does not make sense to choose a type for $a$
-  right now since we may want to specialize it to some type discovered
-  later. For now, we say that the type variable is undecided and we
-  will introduce the special notation $?a$ to mean exactly this. In
-  the end, the final specialized type for $map$ that we arrive at is
-  $(?a \ri Int) \ri [?a] \ri [Int]$.
+  anything. We might at this point generate a random type for $a$
+  based on the constructors in scope as is done in \cite{lambda}. Here
+  another tactic is employed and we say that the type variable is
+  /undecided/ instead. We will introduce the special notation $?a$ to
+  mean exactly this, that the type variable $a$ is undecided. What
+  this means is that the type of $a$ has not been specialized yet but
+  might be in a later state of the generation algorithm. In the end,
+  the final specialized type for $map$ that we arrive at is $(?a \ri
+  Int) \ri [?a] \ri [Int]$.
 
   At this point, it might help to visualize the current expression as:
   \[ map~e_1~e_2 \] where $e_1$ and $e_2$ are two, as of yet, non
   generated expressions with types $(?a \ri Int)$ and $[?a]$
-  respectively. To succeed, we need to generate these two new values
-  in some order instead. For simplicty's sake, lets do it from left to
-  right starting with $e_1$:
+  respectively. To succeed, we need to generate these two new sub
+  goals in some order instead. For simplicity's sake, lets do it from
+  left to right starting with $e_1$:
 
   - \emph{Generating $e_1$ with type $?a \ri Int$}:
 
@@ -246,7 +252,7 @@
     start generating $e_2$. To illustrate the difference both these
     cases will be considered below:
 
-  - \emph{Case $e_1 = (\lambda x \ri n)$: Generating $e_2$ with type $[?a]$}:}
+  - \emph{Case $e_1 = (\lambda x \ri n)$: Generating $e_2$ with type $[?a]$}:
 
     This time no new constructors are added to the API since we are
     not generating a function. The API at this point is therefore the
@@ -289,22 +295,26 @@
    type matching in the respect that it finds a substitution for the
    forall quantified type variables. However, there are some
    differences. Lets look at one example to see how it differs from
-   normal type matching:
-   \[ \textsc{Match}(Int,~a \rightarrow b) \Longrightarrow (?a \rightarrow Int) \]
-   A normal type matching algorithm would fail on this particular
-   input since a value type normally cannot be matched against a
-   function. \textsc{Match} however returns the type $(?a \rightarrow
-   Int)$.
+   normal type matching: \[ \textsc{Match}(Int,~a \rightarrow b)
+   \Longrightarrow (?a \rightarrow Int) \] The first difference we see
+   is that \textsc{Match} actually returns a new type instead of a
+   substitution. \textsc{Match} did find a substitution but then
+   immediately applied it to the second argument to produce a
+   specialized type. Further, a normal type matching algorithm
+   wouldn't find a substitution at all, it would fail on this
+   particular input since a value type normally cannot normally be
+   matched against a function. \textsc{Match} however returns the type
+   $(?a \rightarrow Int)$.
 
    From the original type we can see that $b$ has been turned into
    $Int$ which might not be all that surprising. The type variable $a$
-   however has lost its forall quantifier and been turned into the
-   cryptic looking $?a$. The \textsc{Match} function actually only
-   considers the return type of the second argument during matching.
-   Therefore, in this example, the only type variable considered
-   during matching was $b$. The rest of the forall quantified type
-   variables, in this case $a$, will be turned from into undecided
-   type variables, $?a$.
+   however has lost its forall quantifier and been turned into a
+   undecided type variable as explained above. Further, the
+   \textsc{Match} function only considers the return type of the
+   second argument during matching. Therefore, in this example, the
+   only type variable considered during matching was $b$. All of the
+   remaining for all quantified type variables, in this case $a$, will
+   be turned into undecided type variables, here $?a$.
 
    The intuition is that the type $(a \rightarrow b)$ can be used to
    construct a value of type $Int$ if we give it another value of type
@@ -313,6 +323,8 @@
 
    With this small introduction it is time to look at the algorithm
    for the match function.
+
+   \note{Some info about why the undecided set is needed below? Refer to Generate code?}
 
    - Let $\mathbb{U}$ be a set of guesses for undecided variables.
      Then the \textsc{Match} function takes two types, $t_1$ and
@@ -341,8 +353,8 @@
    $t_2$, or the return type of $t_2$, match $t_1$. If such a
    substitution is found then it is applied to $t_2$. The last step
    before returning $t_2$ is to make all $Forall$ quantified type
-   variables into $Undecided$ ones. The step that actually finds a
-   substitution is found in \textsc{MatchAux} function:
+   variables into $Undecided$ ones. The algorithm that actually finds
+   a substitution is found in the \textsc{MatchAux} function: [fn:12]
 
    \begin{algorithmic}[1]
    \Function{MatchAux}{$t_1, t_2$}
@@ -352,7 +364,7 @@
        \EndCase
 
        \Case{$\mathcal{C}(y_1, \ldots, y_n)$}
-         \If{$t_1$ is not the same type constructor as $t_2$,~~$t_1 \neq \mathcal{C}(x_1, \ldots, x_n)$ \footnote{For some types $x_1 \ldots x_n$.}}
+         \If{$t_1$ is not the same type constructor as $t_2$, i.e. $t_1 \neq \mathcal{C}(x_1, \ldots, x_n)$ \footnote{For some types $x_1 \ldots x_n$.}}
            \State \Raise{No\_Match}
          \Else
            \State \Return{$\bigcup_i~\Call{MatchAux}{x_i, y_i}$}
@@ -362,7 +374,7 @@
        \Case{$?b$}
          \If{$t_1 = t_2 = ?b$}
            \State \Return{$\emptyset$}
-         \ElsIf{$?b \in t_1$}
+         \ElsIf{$?b \in \Call{Vars}{t_1}$}
            \State \Raise{No\_Match}
          \ElsIf{$\exists~t,~\text{s.t.}~(?b \mapsto t) \in \mathbb{U}$}
            \State \Return{\Call{MatchAux}{$t_1,t$}}
@@ -402,8 +414,8 @@
        $\mathcal{C}=[\,]$ and $y_1=b$. Since $t_1$ is also of this
        form, $\mathcal{C}=[\,]$ and $x_1=Int$, then
        \textsc{MatchAux}$(Int, ~b)$ will be called recursively.
-     - Now since the second argument is forall quantified, the
-       singleton substitution $\{b \mapsto Int\}$ is returned. This is
+     - Now since the second argument is for all quantified, the
+       singleton substitution $\{b~\mapsto~Int\}$ is returned. This is
        also the value returned to \textsc{Match}.
    - The substitution returned from \textsc{MatchAux} is applied to
      $t_2 = ~(a \ri b) \ri [a] \ri [b]$ resulting in $(a \ri Int) \ri
@@ -411,6 +423,46 @@
    - In the last step the remaining forall quantified variable is
      turned into an undecided one and $(?a \ri Int) \ri [?a] \ri
      [Int]$ is returned.
+
+*** Unique types
+    One important property which has been left out of the discussion
+    so far is that all undecided type variables introduced in
+    \textsc{Match} is assumed to be unique. Lets look at an example to
+    explain this:
+
+    \example Imagine we are generating a value with type $[ [Int] ]$
+    using the API found in table \ref{table:api1}. Lets further
+    imagine that the final generated expression is the following: \[
+    map~(\lambda xs \ri map~(\lambda x \ri x)~xs)~[ [n] ] \] If we
+    follow the general algorithm introduced in example \ref{example:1}
+    in minute detail we would use the same undecided type variable
+    $?a$ for both uses of $map$. Then if we start generating the
+    second argument to the outer $map$ the mapping $(?a \mapsto
+    [Int])$ would be added to $\mathbb{U}$. Now since both $xs$ and
+    $x$ has type $?a$, both of these values will be specialized to
+    $[Int]$ which is not what we want! In this particular example, the
+    inner anonymous function $(\lambda x \ri x)$ would not even pass
+    the type checker.
+
+    A simple way to solve this is to exchange every for all quantified
+    type variable in a type $t$ with a natural number before supplying
+    $t$ as the second argument to \textsc{Match}. Start with $n := 0$
+    which represents the next unique natural number to be used in a
+    type. Then the general procedure is as follows:
+
+    - For some type $t$ find the set of for all quantified type
+      variables encountered in $t$: \[ \textsc{Vars}(t) = \{
+      a_1,\ldots,a_m \}\]
+    - Create the substitution $s = \{a_1 \mapsto n , \ldots, a_m
+      \mapsto n+m-1\}$
+    - Let $n := n + m$
+    - Update $t$ by applying the substitution $s$ to $t$
+
+    At this point every type variables in $t$ is unique for the entire
+    run of the algorithm since it isn't legal to have natural numbers
+    as types in standard Haskell. This makes it completely safe to
+    introduce mappings for undecided variables in $\mathbb{U}$ in
+    \textsc{MatchAux}.
 
 ** Generating expressions
    \label{algo:generate}
@@ -1036,3 +1088,8 @@ infinite loop.
 
 [fn:10] This is also the term that will be used in the rest of this
 thesis.
+
+[fn:11] This is done in \cite{lambda}.
+
+[fn:12] This function is closer to traditional type matching compared
+to \textsc{Match}.
