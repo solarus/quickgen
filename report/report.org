@@ -293,7 +293,7 @@
 
    The \textsc{Match} algorithm presented below is similar to regular
    type matching in the respect that it finds a substitution for the
-   forall quantified type variables. However, there are some
+   for all quantified type variables. However, there are some
    differences. Lets look at one example to see how it differs from
    normal type matching: \[ \textsc{Match}(Int,~a \rightarrow b)
    \Longrightarrow (?a \rightarrow Int) \] The first difference we see
@@ -308,18 +308,20 @@
 
    From the original type we can see that $b$ has been turned into
    $Int$ which might not be all that surprising. The type variable $a$
-   however has lost its forall quantifier and been turned into a
-   undecided type variable as explained above. Further, the
-   \textsc{Match} function only considers the return type of the
-   second argument during matching. Therefore, in this example, the
-   only type variable considered during matching was $b$. All of the
-   remaining for all quantified type variables, in this case $a$, will
-   be turned into undecided type variables, here $?a$.
+   however has lost its for all quantifier and been turned into an
+   undecided type variable as explained in example \ref{example:1}
+   above. Further, the \textsc{Match} function only looks at the
+   return type of the second argument during matching. Therefore, in
+   this example, the only type variable considered during matching was
+   $b$. All of the remaining for all quantified type variables, in
+   this case $a$, will be turned into undecided type variables, here
+   $?a$.
 
-   The intuition is that the type $(a \rightarrow b)$ can be used to
+   The intuition is that the type $(a \rightarrow Int)$ can be used to
    construct a value of type $Int$ if we give it another value of type
-   $a$. Since $a$ is forall quantified then a value of any type can be
-   given to a function of this type for it to produce an $Int$ value.
+   $a$. Since $a$ is for all quantified then a value of any type can
+   be given to a function of this type for it to produce an $Int$
+   value.
 
    With this small introduction it is time to look at the algorithm
    for the match function.
@@ -420,7 +422,7 @@
    - The substitution returned from \textsc{MatchAux} is applied to
      $t_2 = ~(a \ri b) \ri [a] \ri [b]$ resulting in $(a \ri Int) \ri
      [a] \ri [Int]$.
-   - In the last step the remaining forall quantified variable is
+   - In the last step the remaining for all quantified variable is
      turned into an undecided one and $(?a \ri Int) \ri [?a] \ri
      [Int]$ is returned.
 
@@ -473,7 +475,7 @@
 
    \begin{algorithmic}[1]
    \Function{Generate}{$t$}
-     \State Bind all forall quantified variables in $t$ to some unique Data constructor types.
+     \State Bind all $\forall$ quantified variables in $t$ to some unique Data constructor types.
      \Comment{\emph{If for instance $t = a \rightarrow b$
      then the resulting type might be $A1 \rightarrow B2$}}
      \State \textbf{return} \Call{Generate'}{$t$}
@@ -548,15 +550,15 @@
 *** Variables, Forall and Undecided
     \label{variables}
 
-    In Haskell a type can contain forall quantified type variables.
+    In Haskell a type can contain for all quantified type variables.
     For instance in the type for \inlhask{id :: a -> a} an implicit
-    forall for the type variable =a= is introduced resulting in the
-    final type \inlhask{id :: forall a. a -> a}. This type says that
+    for all for the type variable =a= is introduced resulting in the
+    final type \inlhask{id :: \forall a. a -> a}. This type says that
     \inlhask{id} works for *any* type =a=, be it integers, list of
-    strings or functions containing their own forall quantified type
+    strings or functions containing their own for all quantified type
     variables. \quickgen introduces another kind of quantifier,
     \inlhask{Undecided}. Basically, an undecided variable is
-    introduced during type matching when a forall quantified variable
+    introduced during type matching when a for all quantified variable
     has nothing to do with the matched type. Lets consider an example:
 
     A user wants to generate some expression of type \inlhask{[Int]}
@@ -568,7 +570,7 @@
     matched type now looks like: \inlhask{map :: (a -> Int) -> [a] -> [Int]}.
     As you can see, the type =a= does not have anything to do with the
     matched type \inlhask{[Int]} and can therefore be any type. It can
-    be a forall quantified type variable or it can be a more
+    be a for all quantified type variable or it can be a more
     specilized type, for instance \inlhask{[Double]}. In this case the
     matching algorithm will therefore return something similar to:
     \inlhask{map :: undecided a. (a -> Int) -> [a] -> [Int]}.
@@ -625,7 +627,7 @@
     constraints on these variables, in types. The second data type
     =SType= has constructors for representing functions, variables,
     constructors \ref{constructors} and lists. For instance the the
-    implicitly forall quantified type \inlhask{a -> b -> b} could be
+    implicitly for all quantified type \inlhask{a -> b -> b} could be
     represented as
 
     \begin{haskellcode}
@@ -1082,7 +1084,7 @@ infinite loop.
 
 [fn:7] The other one being \inlhask{generate'}.
 
-[fn:8] Normal matching only needs to look at forall quantified type variables.
+[fn:8] Normal matching only needs to look at for all quantified type variables.
 
 [fn:9] Since $t_2$ is a function type.
 
