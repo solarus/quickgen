@@ -330,11 +330,13 @@
 
    - Let $\mathbb{U}$ be a set of guesses for undecided variables.
      Then the \textsc{Match} function takes two types, $t_1$ and
-     $t_2$, and tries to return a specialized version of the type
-     $t_2$, which can be used in the construction of $t_1$. In
-     addition to returning the updated type, the set of guesses might
-     be updated during matching. If no match could be found then a
-     failure is raised instead.
+     $t_2$, and finds out if the type $t_2$ can be specialized in such
+     a way that a value of this specialized type can be used in the
+     construction of a value of type $t_1$. If $\textsc{Match}$ is
+     successful, the specialized version of $t_2$ is returned. In
+     addition to returning the specialized type, the set of guesses
+     might be updated during matching. If no match could be found then
+     a failure is raised instead.
 
    \begin{algorithmic}[1]
    \Function{Match}{$t_1, t_2$}
