@@ -324,6 +324,8 @@
    $\mathbb{U}$.
 
 *** Termination
+    \label{algo:termination}
+
     There is one simplification to the simple algorithm presented
     above that needs to be mentioned. The algorithm if implemented
     directly is not guaranteed to terminate. Lets look at a very
@@ -344,10 +346,56 @@
     particular example, the probability of termination is quite high
     but this might not be the case if constructors requiring several
     sub goals to be generated is introduced to the API. A solution
-    involving limiting the number of times each constructor in the API
+    involving limiting the number of times constructors with sub goals
     is used is introduced in section \ref{algo:generate}. There is
     also some discussion about alternative termination strategies in
     section \ref{fut:termination}.
+
+*** Sub goal ordering
+    After choosing $map$ as the first constructor in the original
+    algorithm in section \ref{sec:example}, we choose to generate the
+    sub goals to $map$ from left to right. With the addition of uses
+    as mentioned in section \ref{algo:termination} above, the order in
+    which sub goals are generated actually influences the final shape
+    of the finished expression. Again, lets illustrate this by looking
+    at an example where we want to generate an expression with type
+    $Int$ using the following API:
+
+    #+CAPTION: API containing constructors with a limited number of uses
+    |   | Constructor name | Uses     | Type            |
+    |---+------------------+----------+-----------------|
+    | / |              <r> |          |                 |
+    |   |          $const$ | 2        | $a \ri b \ri a$ |
+    |   |              $n$ | $\infty$ | $Int$           |
+
+    As before, the API contains the constructors available for use
+    when generating expressions. The difference this time is that a
+    limited number of uses, here two, is also imposed on the first
+    constructor. The second constructor, having no sub goals, can be
+    seen having an infinite number of uses. If we start with the
+    specialized constructor $const :: Int \ri ?b \ri Int$ we update
+    the API by saying that $const$ now has one use left. From here, we
+    can choose to generate either of the sub goals, $Int$ respectively
+    $?b$. If we choose to generate from left to right starting with
+    $Int$ and $const$ is our choice for constructor then we have
+    effectively used up all usages of $const$ available in this run of
+    the algorithm. This forces us to choose $n$ as a constructor in
+    all remaining sub goals including in the goal for $?b$. If we go
+    right to left instead, we may experience the same problem, i.e. we
+    may limit the available constructors, and thereby forcing the
+    shape of the finished expression.
+
+    In general, if there are several constructors in the API
+    containing at least one sub goal, the generated expressions are
+    biased towards the direction of the first sub goals, i.e. if we
+    start from the left, most usages of constructors will be present
+    in the leftmost sub goals.
+
+    Due to implementation details, the finished algorithm in this
+    project generates goals from right to left making the expressions
+    biased towards the right. In one of the sections in future work,
+    section \ref{fut:ordering}, some alternative tactics regarding sub
+    goal ordering is discussed.
 
 ** Matching expressions
    \label{algo:match}
@@ -1118,6 +1166,9 @@
 
 ** Termination strategy
    \label{fut:termination}
+
+** Sub goal ordering
+   \label{fut:ordering}
 
    \newpage
 
