@@ -117,9 +117,7 @@
 
 \setcounter{page}{1}
 
-* Problem background
-  \note{Flytta delar till abstract respektive intro}
-
+* Introduction
   When developing a compiler for a Domain Specific Language (DSL) one
   often want to test certain aspects of the compiler. For instance,
   testing that the result of evaluating an expression produces the
@@ -136,9 +134,9 @@
   these ASTs might have several invariants and constructing a
   generator producing only valid ASTs might be non-trivial. One
   solution to this problem is to only use smart constructors given by
-  an API to produce values of the requested type. However, combining
-  these smart constructors in a sensible way might be equally
-  non-trivial.
+  an Application Programming Interface (API) to produce values of the
+  requested type. However, combining these smart constructors in a
+  sensible way might be equally non-trivial.
 
   Aspects of the compiler other than optimizations can also be tested
   in similar ways. One example is testing that interpreting a program
@@ -147,11 +145,73 @@
   optimization tests, it requires that a program is somehow generated
   or constructed before the test in question can finish.
 
-\newpage
+** Random generation
+   Instead of creating a generator for an AST manually one might want
+   to randomly generate expressions inside the AST by using functions
+   from an API instead. This is valid since all meaningful terms in
+   the AST should be describable somehow from the API provided by the
+   DSL. What is missing is a procedure taking a number of functions,
+   used to produce values within an AST, together with an additional
+   goal type that should be the final type for the generated
+   expression. This procedure could then be called repeatedly to find
+   different random values of the goal type withing the AST. If
+   functions is added or removed from the API, these functions only
+   needs to be added respectively removed from the list of available
+   functions supplied to the procedure. Furthermore, if the AST or the
+   functions in the API is changed somehow, no changes is needed for
+   the term generation procedure.
 
-* Introduction
-** Problem description
-** Literature
+** Introducing QuickGen
+   In this report the Haskell library \quickgen is presented, usable
+   for producing higher order functional terms with polymorphic type
+   variables. A /Language/ is simply defined in Template Haskell
+   \cite{TH}, by specifying the functions and values available during
+   term generation:
+
+   \begin{haskellcode}
+   lang :: Language
+   lang = $(defineLanguage [| ( map   :: (a -> b) -> [a] -> [b]
+                              , const :: a -> b -> a
+                              , foldr :: (a -> b -> b) -> b -> [a] -> b
+                              , nil   :: [a]
+                              , cons  :: a -> [a] -> [a]
+                              , n     :: Int
+                              )
+                            |])
+   \end{haskellcode}
+
+   A specific library function is responsible for generating
+   expressions given a language:
+
+   \begin{haskellcode}
+   generate :: Language -> Type -> Seed -> Maybe Exp
+   \end{haskellcode}
+
+   A generator for terms of type \inlhask{a -> [a]} using
+   \inlhask{lang} above can then be defined with the following
+   definition:
+
+   \begin{haskellcode}
+   f :: Seed -> Maybe Exp
+   f seed = generate lang (a -> [a]) seed
+   \end{haskellcode}
+
+   Different seeds supplied to this functionthen produces different
+   random well typed expressions using the available functions and
+   values from \inlhask{lang}. The generated expressions can later be
+   turned into real Haskell terms by using, for instance, the GHC API
+   \cite{ghcapi}.
+
+   \begin{todo*}
+   Behöver testa quickgen på någonting ordentligt och skriva example
+   usage först innan jag kan avsluta denna delsektion. Här vill jag
+   skriva någonting i stil med: "Finally, \quickgen was successfully
+   used to produce terms within a selection of haskell DSLs. These
+   terms were in term used to correctly identify certain (artificially
+   introduced?) flaws in the implementation of the language.
+   \end{todo*}
+
+** Related work
 
 \newpage
 
