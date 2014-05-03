@@ -318,6 +318,32 @@
    variable is performed, this guess needs to be stored in
    $\mathbb{U}$.
 
+*** Termination
+    There is one simplification to the simple algorithm presented
+    above that needs to be mentioned. The algorithm if implemented
+    directly is not guaranteed to terminate. Lets look at a very
+    simple example:
+
+    |   | Constructor name | Type      |
+    |---+------------------+-----------|
+    | / |              <r> |           |
+    |   |             $id$ | $a \ri a$ |
+    |   |              $n$ | Int       |
+
+    Say that we want to generate a term of type $Int$. The generation
+    algorithm might choose $id$ as the first constructor. After type
+    matching and specialization we have exactly the same API and sub
+    goal as in the original problem, we need to generate an $Int$. At
+    this point there is nothing that stops the algorithm from choosing
+    $id$ indefinitely making this a non terminating process. In this
+    particular example, the probability of termination is quite high
+    but this might not be the case if constructors requiring several
+    sub goals to be generated is introduced to the API. A solution
+    involving limiting the number of times each constructor in the API
+    is used is introduced in section \ref{algo:generate}. There is
+    also some discussion about alternative termination strategies in
+    section \ref{fut:termination}.
+
 ** Matching expressions
    \label{algo:match}
 
@@ -1084,6 +1110,9 @@
 
 ** More expressions in =defineLanguage=
    \label{fut-defineLanguage}
+
+** Termination strategy
+   \label{fut:termination}
 
    \newpage
 
