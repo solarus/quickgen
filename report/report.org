@@ -672,7 +672,7 @@
     In Haskell a type can contain for all quantified type variables.
     For instance in the type for \inlhask{id :: a -> a} an implicit
     for all for the type variable =a= is introduced resulting in the
-    final type \inlhask{id :: \forall a. a -> a}. This type says that
+    final type \inlhask{id :: forall a. a -> a}. This type says that
     \inlhask{id} works for *any* type =a=, be it integers, list of
     strings or functions containing their own for all quantified type
     variables. \quickgen introduces another kind of quantifier,
