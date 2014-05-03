@@ -157,12 +157,17 @@
 
 * Algorithm
   This section is dedicated to the formal definition of the algorithm
-  used to generate expressions from a user API. To get an intuition of
-  how this works it is easiest to look at a complete example:
+  used to generate expressions from a user API. The first part
+  contains an example run of the complete algorithm followed by
+  discussion around some tricky parts. The last two subsections
+  contains more formal explanations, with pseudo code, to the
+  functions responsible for /type matching/ and /term generation/.
 
-  \examplelabel{example:1} Lets say an user wants to generate an
-  expression of type $[Int]$ using values and functions from the
-  following API:
+** A complete example
+  \label{sec:example}
+
+  Lets say an user wants to generate an expression of type $[Int]$
+  using values and functions from the following API:
 
     #+NAME: table:api1
     #+CAPTION: Simple API
@@ -283,7 +288,7 @@
 ** Undecided variables
    \label{sec:undecided}
 
-   When generating $e_1$ in example \ref{example:1} above, two
+   When generating $e_1$ in section \ref{sec:example} above, two
    different cases was considered. In the first one, the undecided
    variable $?a$ was left untouched. The second one showed that a
    guess or decision made for an undecided variable in one part needs
@@ -373,7 +378,7 @@
    From the original type we can see that $b$ has been turned into
    $Int$ which might not be all that surprising. The type variable $a$
    however has lost its for all quantifier and been turned into an
-   undecided type variable as explained in example \ref{example:1}
+   undecided type variable as explained in section \ref{sec:example}
    above. Further, the \textsc{Match} function only looks at the
    return type of the second argument during matching. Therefore, in
    this example, the only type variable considered during matching was
@@ -502,7 +507,7 @@
     using the API found in table \ref{table:api1}. Lets further
     imagine that the final generated expression is the following: \[
     map~(\lambda xs \ri map~(\lambda x \ri x)~xs)~[ [n] ] \] If we
-    follow the general algorithm introduced in example \ref{example:1}
+    follow the general algorithm introduced in section \ref{sec:example}
     in minute detail we would use the same undecided type variable
     $?a$ for both uses of $map$. Then if we start generating the
     second argument to the outer $map$ the mapping $(?a \mapsto
