@@ -345,7 +345,7 @@
     the algorithm and the final expression would be $map~(\lambda x
     \ri x)~(sing~n)$.
 
-** Undecided variables
+*** Undecided variables
    \label{sec:undecided}
 
    When generating $e_1$ in section \ref{sec:example} above, two
