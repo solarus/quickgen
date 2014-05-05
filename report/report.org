@@ -191,6 +191,13 @@
    \inlhask{lang} above can then be defined with the following
    definition:
 
+   \begin{todo*}
+   \textbf{a -> [a]} är låtsassyntax. Om tid finns fixa quasiquoter
+   (bör vara lätt finns redan TH.Type quasiquoter och kan använda
+   thTypeToType för att göra om till rätt representation) annars skriv
+   riktiga syntaxen nedan.
+   \end{todo*}
+
    \begin{haskellcode}
    f :: Seed -> Maybe Exp
    f seed = generate lang (a -> [a]) seed
