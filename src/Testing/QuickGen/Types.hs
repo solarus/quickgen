@@ -31,6 +31,7 @@ module Testing.QuickGen.Types
        , getVars
        , bindForall
        , forallToUndecided
+       , isSimple
 
        -- ClassEnv functions
        , emptyEnv
@@ -397,6 +398,18 @@ showForall n = "∀_" ++ show n
 
 showUndecided :: Nat -> String
 showUndecided n = "∃_" ++ show n
+
+-- | Returns if a type is simple, i.e. a constructor of this type
+-- won't introduce any sub goals. Using a constructor with a simple
+-- type will always terminate the current subgoal.
+isSimple :: Type -> Bool
+isSimple (Type _ _ st) = go st
+  where
+    go (FunT _) = False
+    go (VarT (_, Forall)) = True
+    go (VarT (_, Undecided)) = False
+    go (ListT t) = go t
+    go (ConT _ ts) = all go ts
 
 
 --------------------------------------------------
