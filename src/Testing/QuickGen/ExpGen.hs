@@ -4,6 +4,7 @@
 
 module Testing.QuickGen.ExpGen
        ( ExpGen
+       , EGState
        , generate
        , match
        ) where
@@ -12,7 +13,6 @@ import           Control.Applicative
 import           Control.Lens (Field2, (^.), (&), (%~), (.~), _1, _2, _3, _5, _6)
 import           Control.Monad.State
 import           Data.Char (chr, ord)
-import           Data.List ((\\))
 import qualified Data.Map as M
 import           Data.Maybe (catMaybes, listToMaybe)
 import           System.Random
@@ -220,8 +220,8 @@ match' ta@(Type _ _ st1) tb@(Type _ _ st2) = go st1 st2
             let ret = (n2 |-> t1)
             case unionSubst s ret of
                 Just s' -> put s'
-                Nothing -> fail "No match"
-            return ret
+                Nothing -> error "ExpGen.match': The impossible happened!"
+            return emptySubst
     go (VarT v@(n1, Undecided)) t2
         | v `elem` (getVars t2) = fail "No match"
         | otherwise = get >>= \s -> case lookupSubst n1 s of
@@ -231,7 +231,7 @@ match' ta@(Type _ _ st1) tb@(Type _ _ st2) = go st1 st2
 
             case unionSubst s (n1 |-> t2') of
                 Just s' -> put s'
-                Nothing -> fail "No match"
+                Nothing -> error "ExpGen.match': The impossible happened!"
             return emptySubst
 
     go (ListT t1) (ListT t2) = go t1 t2

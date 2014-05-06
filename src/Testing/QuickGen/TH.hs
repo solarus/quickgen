@@ -47,7 +47,6 @@ defineLanguage' es = do
 getClassEnv :: [Name] -> TH.Q ClassEnv
 getClassEnv = go emptyEnv . S.fromList
   where
-
     go :: ClassEnv -> Set Name -> TH.Q ClassEnv
     go acc s
         | S.null s                = return acc
