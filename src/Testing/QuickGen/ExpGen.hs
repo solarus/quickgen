@@ -29,10 +29,13 @@ type EGState = (NextLambda, NextType, [Context], StdGen, Substitution, ClassEnv)
 newtype ExpGen a = EG { unEG :: State EGState a }
   deriving (Functor, Monad, Applicative, MonadState EGState)
 
-generate :: Language -> Type -> Seed -> (Maybe Exp, EGState)
-generate ctx t seed = runEG seed ctx $ do
-    t' <- bindForall <$> uniqueTypes t
-    generate' t'
+generate :: Language -> Type -> Seed -> Maybe (Exp, Type)
+generate lang t seed = (, applys subst t) <$> e
+  where
+    (e, (_,_,_,_,subst,_)) = runEG seed lang $ do
+        t' <- bindForall <$> uniqueTypes t
+        generate' t'
+
 
 generate' :: Type -> ExpGen (Maybe Exp)
 generate' (Type qs cxt (FunT (t:ts))) = do
