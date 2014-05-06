@@ -56,7 +56,7 @@ test-suite testing
                , mtl
                , test-framework
                , test-framework-hunit
-               , test-framework-quickcheck2
+               , test-framework-quickcheck2 >= 0.3.0.2
                , HUnit
                , random
                , ghc
