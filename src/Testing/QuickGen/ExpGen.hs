@@ -121,11 +121,11 @@ runEG seed (L env cs) g = runState g' (0, 0, [], gen, M.empty, env)
 pushContext :: [Constructor] -> ExpGen (Depth, Int)
 pushContext cs = do
     (depth, td, ctxs, g, s, env) <- get
+    let uses = 20 -- FIXME: arbitrarily chosen
         getUses (_, t)
             | isSimple t = Nothing
-            | otherwise  = Just uses
+            | otherwise  = Just (max 1 (uses - numArgs t))
         ctx = M.fromList [ (i, (getUses c, c))
-                           -- (i, (Just uses, c))
                          | (i, c) <- zip [depth..] cs
                          ] :: Context
         len = M.size ctx
