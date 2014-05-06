@@ -9,7 +9,7 @@ module Testing.QuickGen.ExpGen
        ) where
 
 import           Control.Applicative
-import           Control.Lens (Field2, (^.), (&), (%~), (.~), _1, _2, _3, _5)
+import           Control.Lens (Field2, (^.), (&), (%~), (.~), _1, _2, _3, _5, _6)
 import           Control.Monad.State
 import           Data.Char (chr, ord)
 import           Data.List ((\\))
@@ -24,7 +24,7 @@ type NextType   = Nat
 
 -- TODO: Make this a data type and derive lenses instead of using i.e.
 -- _1 or pattern matching and the whole state when using get.
-type EGState = (NextLambda, NextType, [Context], StdGen, Substitution)
+type EGState = (NextLambda, NextType, [Context], StdGen, Substitution, ClassEnv)
 
 newtype ExpGen a = EG { unEG :: State EGState a }
   deriving (Functor, Monad, Applicative, MonadState EGState)
@@ -49,7 +49,7 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
         case m of
             Nothing -> return Nothing
             Just (i, (n, Type qs cxt st), s) -> do
-                (_,_,ctxs,_,s') <- get
+                (_,_,ctxs,_,s',_) <- get
                 modify (& _5 %~ maybe (error "should not happen") id . (`unionSubst` s))
                 decUses i
                 case st of
@@ -108,9 +108,7 @@ uniqueTypes t@(Type vs _ _) = do
     return (apply subst t)
 
 runEG :: Seed -> Language -> ExpGen a -> (a, EGState)
--- TODO: The environment is not used yet! Need to add this to the
--- EGState.
-runEG seed (L _env cs) g = runState g' (0, 0, [], gen, M.empty)
+runEG seed (L env cs) g = runState g' (0, 0, [], gen, M.empty, env)
   where
     g'  = unEG $ pushContext cs >> g
     gen = snd . next . mkStdGen $ seed
@@ -119,8 +117,7 @@ runEG seed (L _env cs) g = runState g' (0, 0, [], gen, M.empty)
 -- new depth and the number of constructors added.
 pushContext :: [Constructor] -> ExpGen (Depth, Int)
 pushContext cs = do
-    (depth, td, ctxs, g, s) <- get
-    let uses = 6 -- FIXME: arbitrarily chosen
+    (depth, td, ctxs, g, s, env) <- get
         getUses (_, t)
             | isSimple t = Nothing
             | otherwise  = Just uses
@@ -145,10 +142,13 @@ getContexts = (^. _3) <$> get
 getSubstitution :: ExpGen Substitution
 getSubstitution = (^. _5) <$> get
 
+getEnv :: ExpGen ClassEnv
+getEnv = (^. _6) <$> get
+
 getRandomR :: (Int, Int) -> ExpGen Int
 getRandomR p = state f
   where
-    f (d, td, cs, g, s) = let (a, g') = randomR p g in (a, (d, td, cs, g', s))
+    f (d, td, cs, g, s, e) = let (a, g') = randomR p g in (a, (d, td, cs, g', s, e))
 
 localLambda :: [Type] -> ExpGen a -> ExpGen ([Name], a)
 localLambda ts eg = do
