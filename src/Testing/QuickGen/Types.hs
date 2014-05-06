@@ -22,6 +22,9 @@ module Testing.QuickGen.Types
        , Language(..)
        , Seed
 
+       -- Language functions
+       , addTo
+
        , thTypeToType
        , thCxtToCxt
        , getClassNames
@@ -32,6 +35,7 @@ module Testing.QuickGen.Types
        , bindForall
        , forallToUndecided
        , isSimple
+       , numArgs
 
        -- ClassEnv functions
        , emptyEnv
@@ -62,10 +66,10 @@ module Testing.QuickGen.Types
 
 import           Control.Monad (foldM)
 import           Data.Char
-import           Data.List (intercalate, isInfixOf, nub, partition)
+import           Data.Function (on)
+import           Data.List (intercalate, isInfixOf, nub, partition, nubBy)
 import           Data.Map (Map)
 import qualified Data.Map as M
-import           Data.Maybe (fromJust)
 import qualified Language.Haskell.TH.Syntax as TH
 
 import           Testing.QuickGen.THInstances ()
@@ -243,6 +247,11 @@ instance TH.Lift Language where
 -- | A random seed.
 type Seed = Int
 
+-- | Add a list of constructors to a language
+addTo :: [Constructor] -> Language -> Language
+addTo cs (L e cs') = L e (nubBy ((==) `on` fst) (cs ++ cs'))
+
+
 -- | Converts a Template Haskell type into the representation used by
 -- this library. Currently does not support rank > 1 types.
 -- thTypeToType :: Nat -> TH.Type -> (Nat, Type)
@@ -410,6 +419,11 @@ isSimple (Type _ _ st) = go st
     go (VarT (_, Undecided)) = False
     go (ListT t) = go t
     go (ConT _ ts) = all go ts
+
+numArgs :: Type -> Int
+numArgs (Type _ _ st) = case st of
+    FunT ts -> length ts - 1
+    _       -> 0
 
 
 --------------------------------------------------
