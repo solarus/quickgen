@@ -259,7 +259,7 @@ thTypeToType :: TH.Type -> Type
 thTypeToType (TH.ForallT bs cs t) = Type vs cs' t'
   where
     bs'   = map parseBinder bs
-    cs'   = thCxtToCxt [] cs
+    cs'   = thCxtToCxt subst cs
     t'    = thTypeToSType subst t
     subst = zip bs' [0..]
     vs    = map ((,Forall) . snd) subst
@@ -275,7 +275,9 @@ thCxtToCxt env cs = map f cs
     f c = error $ "thTypeToType: Constraint not matched " ++ show c
 
 thTypeToSType :: [(Name, Int)] -> TH.Type -> SType
-thTypeToSType env (TH.VarT name) = VarT (fromJust (lookup name env), Forall)
+thTypeToSType env (TH.VarT name) = case lookup name env of
+    Just n  -> VarT (n, Forall)
+    Nothing -> error $ "thTypeToSType: The impossible happened!"
 thTypeToSType env t@(TH.AppT (TH.AppT TH.ArrowT _) _) = FunT (go [] t)
   where
     go acc (TH.AppT (TH.AppT TH.ArrowT t') rest) = go (thTypeToSType env t' : acc) rest
