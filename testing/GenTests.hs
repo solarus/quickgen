@@ -10,7 +10,7 @@ import GHC hiding (Type)
 import GHC.Paths (libdir)
 import System.Random
 
-import Language.Simple
+import Language.Simple as S
 
 testAll :: Seed -> Test
 testAll s = testGroup "Generation tests "
@@ -25,19 +25,22 @@ testAll s = testGroup "Generation tests "
 testGen :: Seed -> Type -> String -> Assertion
 testGen s t mt = let gen = mkStdGen s
                      ss  = take 50 (randomRs (0,1000000) gen)
-                 in mapM_ p ss
+                 in mapM_ f ss
   where
-    p s' = do
-        let (g, _) = generate lang t s'
-        putStrLn (show g)
-        case g of
-            Nothing -> return ()
-            Just g' -> do
+    f s' = do
+        let p = generate S.lang t s'
+        putStrLn (show p)
+        case p of
+            Nothing    -> return ()
+            Just (g,_) -> do
                 let exprStr = unwords [ "let genInt = 0 :: Int;"
                                       , "genDouble = 1 :: Double;"
                                       , "nil = [];"
-                                      , "cons = (:)"
-                                      , "in (" ++ show g' ++ ") :: " ++ mt
+                                      , "cons = (:);"
+                                      , "sing x = [x];"
+                                      , "app f x = f x;"
+                                      , "inc n = n + 1"
+                                      , "in (" ++ show g ++ ") :: " ++ mt
                                       ]
                     go = runGhc (Just libdir) $ do
                         _ <- getSessionDynFlags >>= setSessionDynFlags

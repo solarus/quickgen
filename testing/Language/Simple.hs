@@ -17,6 +17,15 @@ nil = []
 cons :: a -> [a] -> [a]
 cons = (:)
 
+sing :: a -> [a]
+sing x = [x]
+
+app :: (a -> b) -> a -> b
+app f x = f x
+
+inc :: Int -> Int
+inc n = n + 1
+
 lang :: Language
 lang = $(defineLanguage [| ( genInt
                            , genDouble
@@ -25,6 +34,9 @@ lang = $(defineLanguage [| ( genInt
                            , id
                            , foldr
                            , const
+                           , sing
                            , map
+                           , app
+                           , inc
                            )
                          |])
