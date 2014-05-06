@@ -2,10 +2,16 @@ module Testing.QuickGen
        ( -- Rexports
          generate
        , defineLanguage
+       , addTo
+       , mkName
+       , Constructor
        , Seed
        , Language
-       , Type
+       , Type(..)
+       , SType(..)
        , Exp
+       , Quantifier(..)
+       , EGState
        ) where
 
 import Testing.QuickGen.ExpGen
