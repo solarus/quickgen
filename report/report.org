@@ -1433,14 +1433,12 @@
 
     type CopilotSpec = ([CopilotStream], [CopilotTrigger])
 
-    genSpec :: IO CopilotSpec
-    genSpec = do
-        numStreams  <- randomRIO (2,12)
-        numTriggers <- randomRIO (1,6)
-        g <- getStdGen
-        let (l', streams, g') = genStreams numStreams g
-            triggers = genTriggers l' numTriggers (1,5) g'
-        return (streams, triggers)
+    genSpec :: StdGen -> CopilotSpec
+    genSpec g = let (numStreams, g1)  = randomR (2,12) g
+                    (numTriggers, g2) = randomR (1,6) g1
+                    (l, streams, g3)  = genStreams numStreams g2
+                    triggers          = genTriggers l numTriggers (1,5) g3
+                in (streams, triggers)
     \end{haskellcode}
 
     The implementation of \inlhask{genTriggers} function has been left
