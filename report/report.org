@@ -33,6 +33,8 @@
   {\newcommand{\inlhask}[1]{\mbox{\texttt{\color{purple}#1}}}}
   {\newcommand{\inlhask}[1]{\mintinline{haskell}?#1?}}
 
+\providecommand*{\listingautorefname}{listing}
+
 
 % It is probably possible to do this without having a -3pt hspace.
 % There probably even exists such a library or command that does what
@@ -1239,7 +1241,7 @@
    fib :: Stream Word32
    fib = [0,1] ++ (fib + drop 1 fib)
    \end{haskellcode}
-   \caption{The fibonacci sequence as defined in Copilot.}
+   \caption{The fibonacci sequence as defined in Copilot.}\label{lst:copilot-fib}
    \end{listing}
 
    External C values are accessed by using one of the functions found
@@ -1321,8 +1323,8 @@
     of having the more general function
     \inlhask{app~::~Typed~a~=>~[a]~-> Stream a -> Stream a} in the
     API, two specialized versions[fn:15], of this function was defined
-    and included instead. The complete API can be found in listing
-    \ref{lst:copilot-api} below:
+    and included instead. The complete API can be found in
+    \autoref{lst:copilot-api} below:
 
     \begin{listing}[H]
     \begin{haskellcode}
@@ -1336,23 +1338,28 @@
 
              , true             :: Stream Bool
              , false            :: Stream Bool
+             , cycleBool        :: [Bool] -> Stream Bool
+             , appBool          :: [Bool] -> Stream Bool -> Stream Bool
              , not              :: Stream Bool -> Stream Bool
-             , cycleBool        :: Stream Bool -> Stream Bool
-             , appBool          :: Stream Bool -> Stream Bool -> Stream Bool
              , and              :: Stream Bool -> Stream Bool -> Stream Bool
              , or               :: Stream Bool -> Stream Bool -> Stream Bool
 
-             , cycleWord64      :: Stream Word64 -> Stream Word64
+             , cycleWord64      :: [Word64] -> Stream Word64
+             , appWord64        :: [Word64] -> Stream Word64 -> Stream Word64
              , signumWord64     :: Stream Word64 -> Stream Word64
              , absWord64        :: Stream Word64 -> Stream Word64
              , eqWord64         :: Stream Word64 -> Stream Word64 -> Stream Bool
              , lteWord64        :: Stream Word64 -> Stream Word64 -> Stream Bool
              , gtWord64         :: Stream Word64 -> Stream Word64 -> Stream Bool
-             , appWord64        :: Stream Word64 -> Stream Word64 -> Stream Word64
              , plusWord64       :: Stream Word64 -> Stream Word64 -> Stream Word64
              , minusWord64      :: Stream Word64 -> Stream Word64 -> Stream Word64
              , timesWord64      :: Stream Word64 -> Stream Word64 -> Stream Word64
              , divWord64        :: Stream Word64 -> Stream Word64 -> Stream Word64
+
+             , externBool       :: ExtBool -> [Bool] -> Stream Bool
+             , externWord64     :: ExtWord64 -> [Word64] -> Stream Word64
+             , ext1, ext2       :: ExtBool
+             , ext3, ext4       :: ExtWord64
 
              , arbiBool         :: Bool
              , arbiListBool     :: [Bool]
@@ -1363,7 +1370,29 @@
              )
            |])
     \end{haskellcode}
-    \caption{The initial API used when generating Copilot expressions}\label{lst:copilot-api}
+    \caption{The initial API used when generating Copilot expressions.}\label{lst:copilot-api}
+    \end{listing}
+
+    This API contains a selection of the functions and values
+    available when creating specifications using the Copilot EDSL.
+    Before continuing, some things needs pointing out. First of all
+    the \inlhask{drop} function, used in listing \ref{lst:copilot-fib}
+    above, has been left out of the API because of some issues with
+    totality of this function. Secondly, the API contains functions
+    called \inlhask{cycle...} that has no counterpart in the Copilot
+    standard library. These functions are used to create infinite
+    streams from finite list in the same sense \inlhask{cycle} from
+    the Haskell standard library works.
+
+    \begin{listing}[H]
+    \begin{haskellcode}
+    cycleBool xs = let s = xs `app` s in s
+
+    -- These two streams are equivalent
+    x1 = [True,False] `app` x1
+    x2 = cycleBool [True, False]
+    \end{haskellcode}
+    \caption{The definition of the cycle function together with example usage.}
     \end{listing}
 
     To generate Copilot expressions a variant of the
@@ -1411,11 +1440,11 @@
     with all \inlhask{s\_i} values. The second and third element is
     the generated stream, and the updated standard generator value
     respectively. It should be noted that this is not exactly the same
-    tactic as employed by the Copilot generator since the
-    \inlhask{s\_i} expressions constructed by the latter generator can
-    use any of the other values \inlhask{s\_j} in the final
-    expression, including \inlhask{s\_i} itself. Since recursion in
-    streams can still be achieved using the \inlhask{cycle*}
+    tactic as employed by the Copilot generator since an expression
+    \inlhask{s\_i} constructed by the latter generator can use any of
+    the other values \inlhask{s\_j} in the final expression, including
+    \inlhask{s\_i} itself. Since recursion in streams can still be
+    achieved using the \inlhask{cycleBool} and \inlhask{cycleWord64}
     functions, it did not seem necessary to add this extra step in the
     generation process.
 
@@ -1428,22 +1457,45 @@
     -- | Generates `n' Copilot triggers using the language `lang'. Each
     -- trigger will have a random number of arguments between `low' and
     -- `high'.
-    genTriggers :: Language -> Int -> (Int, Int) -> StdGen -> [CopilotTrigger]
+    genTriggers :: Language -> Int -> (Int, Int) -> StdGen
+                -> ([CopilotTrigger], StdGen)
     genTriggers lang n (low,high) g = ...
 
     type CopilotSpec = ([CopilotStream], [CopilotTrigger])
 
-    genSpec :: StdGen -> CopilotSpec
-    genSpec g = let (numStreams, g1)  = randomR (2,12) g
-                    (numTriggers, g2) = randomR (1,6) g1
-                    (l, streams, g3)  = genStreams numStreams g2
-                    triggers          = genTriggers l numTriggers (1,5) g3
-                in (streams, triggers)
+    genSpec :: StdGen -> (CopilotSpec, StdGen)
+    genSpec g1 = let (numStreams,  g2) = randomR (2,12) g1
+                     (numTriggers, g3) = randomR (1,6) g2
+                     (l, streams,  g4) = genStreams numStreams g3
+                     (triggers,    g5) = genTriggers l numTriggers (1,5) g4
+                 in ((streams, triggers), g5)
     \end{haskellcode}
 
     The implementation of \inlhask{genTriggers} function has been left
     out since it is similar to the \inlhask{genStreams} function found
-    above.
+    above. The only function left to explain, \inlhask{genSpec}, ties
+    together the other specialized generator functions by choosing the
+    number of streams and triggers to generate and threading the
+    standard generator through the complete computation.
+
+    What remains now is converting this representation into a
+    representation understood by Copilot. In this particular case
+    study, the generated \inlhask{CopilotSpec} was transformed into an
+    expression very similar to the example structure found in
+    \autoref{lst:structure}, the difference being a call to the
+    Copilot \inlhask{prettyPrint} function before the \inlhask{do} on
+    line 11. This expression was later type checked, compiled and
+    executed using the GHC API \cite{ghcapi}. The resulting values was
+    compared to random values produced by the Copilot random generator
+    and the two generators was found, by visual inspection, to be
+    similar in operation [fn:16].
+
+    What is worth noting though is that the size of the complete
+    \quickgen generator was estimated to be about 25 to 30 percent the
+    size of the Copilot generator. This estimation was made by
+    counting significant lines of code [fn:17] for both generators.
+    The complete generator implemented using \quickgen can be found in
+    \cite{copilot-test}.
 
 ** Feldspar
 
@@ -1523,3 +1575,8 @@ not considered in the \quickgen generator either.
 
 [fn:15] Where \inlhask{a} was substituted with \inlhask{Word64} and
 \inlhask{Bool} respectively.
+
+[fn:16] Modulo the number of available types and the inclusion of
+\inlhask{drop} in the Copilot generator.
+
+[fn:17] By removing comments, import statements and empty lines.
