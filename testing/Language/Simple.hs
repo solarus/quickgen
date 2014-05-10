@@ -5,11 +5,11 @@ module Language.Simple where
 import Testing.QuickGen.TH
 import Testing.QuickGen.Types
 
-genInt :: Int
-genInt = 0
+arbiInt :: Int
+arbiInt = 0
 
-genDouble :: Double
-genDouble = 1 :: Double
+arbiDouble :: Double
+arbiDouble = 1
 
 nil :: [a]
 nil = []
@@ -27,8 +27,8 @@ inc :: Int -> Int
 inc n = n + 1
 
 lang :: Language
-lang = $(defineLanguage [| ( genInt
-                           , genDouble
+lang = $(defineLanguage [| ( arbiInt
+                           , arbiDouble
                            , nil
                            , cons
                            , id
@@ -38,5 +38,6 @@ lang = $(defineLanguage [| ( genInt
                            , map
                            , app
                            , inc
+                           , const
                            )
                          |])
