@@ -34,6 +34,8 @@
   {\newcommand{\inlhask}[1]{\mintinline{haskell}?#1?}}
 
 \providecommand*{\listingautorefname}{listing}
+\renewcommand{\subsectionautorefname}{section}
+\renewcommand{\subsubsectionautorefname}{section}
 
 
 % It is probably possible to do this without having a -3pt hspace.
@@ -1177,6 +1179,8 @@
     \inlhask{StdGen} in the \inlhask{EGState}.
 
 *** Generating expressions
+    \label{sec:generate}
+
     \inlhask{generate} is the only exported function in the
     \textsc{ExpGen} module, i.e. it is the only function that will be
     visible to the end user.
@@ -1229,6 +1233,82 @@
   testing the /Copilot/ EDSL \cite{copilot} is presented.
 
 ** Simple usage
+   Bundled with the \quickgen library there is a test suite where one
+   of the tests includes testing the complete usage of the library.
+   First an API[fn:18] is defined using the function
+   \inlhask{defineLanguage} as discussed in \autoref{TH}. This API
+   includes a selection of some common functions found in the Haskell
+   Prelude:
+
+   \begin{listing}[H]
+   \begin{haskellcode}
+   lang :: Language
+   lang = $(defineLanguage [| ( arbiInt    :: Int
+                              , arbiDouble :: Double
+                              , nil        :: [a]
+                              , cons       :: a -> [a] -> [a]
+                              , id         :: a -> a
+                              , foldr      :: (a -> b -> b) -> b -> [a] -> b
+                              , const      :: a -> b -> a
+                              , sing       :: a -> [a]
+                              , map        :: (a -> b) -> [a] -> [b]
+                              , app        :: (a -> b) -> a -> b
+                              , succInt    :: Int -> Int
+                              , succDouble :: Double -> Double
+                              )
+                            |])
+   \end{haskellcode}
+   \caption{One of the API's used by the test suite. For clarity, all types of the constructors are written out explicitly.}\label{lst:test-api}
+   \end{listing}
+
+   The value \inlhask{lang}, defined in \autoref{lst:test-api} above,
+   is used as the first argument to the function \inlhask{generate}
+   presented in \autoref{sec:generate}. In the current setup,
+   \inlhask{generate} will be called multiple times with
+   \inlhask{lang} and two different goal types, the first one being
+   \inlhask{a -> [a]} and the second one \inlhask{[Int]}.
+
+   \begin{haskellcode}
+   -- | Generates values of type `[Int]'
+   genListInt :: Seed -> Maybe (Exp, Type)
+   genListInt seed = generate lang ty seed
+     where
+       ty = Type [] [] (ListT (ConT (mkName "Int") []))
+
+   -- | Generates values of type `a -> [a]'
+   genPolyList :: Seed -> Maybe (Exp, Type)
+   genPolyList seed = generate lang ty seed
+     where
+       ty = Type [a] [] (FunT [ListT (VarT a), VarT a])
+   \end{haskellcode}
+
+   For both of these functions, a random list of seed values will be
+   generated and each seed will then be passed as an argument to its
+   respective function. The only step left in the test suite is to
+   compile the expressions using the GHC API \cite{ghcapi}. This is
+   done to ensure that the types of the generated expressions are
+   correct. For \inlhask{genListInt}, something similar to the
+   following will be executed[fn:19]:
+
+   \begin{haskellcode}
+   checkTypeListInt seed exp = do
+       let expStr = "(" ++ show exp ++ ") :: [Int]"
+       runGhc $ do
+           -- Load required modules. Specifically the Haskell Prelude
+           -- and the module containing the API shown above.
+           ...
+           compileExpr expStr
+   \end{haskellcode}
+
+   The function \inlhask{compileExpr} above takes a normal Haskell
+   string and compiles this string as an expression using the modules
+   loaded into scope. If successful, a value that can be safely cast
+   into a list of integers is returned. The compilation can fail,
+   however, with a similar error message that the =ghc= binary reports
+   for incorrect source files. If this happens, the current test case
+   will be aborted and the compilation error message will be displayed
+   for the user.
+
 ** a Do-it-yourself High-Assurance compiler
    The Copilot EDSL is designed to monitor C programs by periodically
    sampling variables, arrays and return values of side-effect free
@@ -1580,3 +1660,11 @@ not considered in the \quickgen generator either.
 \inlhask{drop} in the Copilot generator.
 
 [fn:17] By removing comments, import statements and empty lines.
+
+[fn:18] Or more correctly a value of type\inlhask{Language}, see
+\autoref{sec:other-types}.
+
+[fn:19] The complete implementation of the compilation process using
+the GHC API is beyond the scope of this thesis but the curious reader
+can find it in the =GenTest= module found here:
+https://github.com/solarus/quickgen/blob/master/testing/GenTests.hs
