@@ -23,8 +23,12 @@ sing x = [x]
 app :: (a -> b) -> a -> b
 app f x = f x
 
-inc :: Int -> Int
-inc n = n + 1
+
+succInt :: Int -> Int
+succInt = succ
+
+succDouble :: Double -> Double
+succDouble = succ
 
 lang :: Language
 lang = $(defineLanguage [| ( arbiInt
@@ -37,7 +41,7 @@ lang = $(defineLanguage [| ( arbiInt
                            , sing
                            , map
                            , app
-                           , inc
-                           , const
+                           , succInt
+                           , succDouble
                            )
                          |])
