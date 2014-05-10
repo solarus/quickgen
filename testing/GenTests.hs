@@ -29,22 +29,26 @@ testGen s t mt = let gen = mkStdGen s
   where
     f s' = do
         let p = generate S.lang t s'
-        putStrLn (show p)
+        putStrLn (show (fmap fst p))
         case p of
             Nothing    -> return ()
             Just (g,_) -> do
-                let exprStr = unwords [ "let genInt = 0 :: Int;"
-                                      , "genDouble = 1 :: Double;"
-                                      , "nil = [];"
-                                      , "cons = (:);"
-                                      , "sing x = [x];"
-                                      , "app f x = f x;"
-                                      , "inc n = n + 1"
-                                      , "in (" ++ show g ++ ") :: " ++ mt
-                                      ]
+                let exprStr = "(" ++ show g ++ ") :: " ++ mt
                     go = runGhc (Just libdir) $ do
                         _ <- getSessionDynFlags >>= setSessionDynFlags
-                        setContext [ IIDecl . simpleImportDecl . mkModuleName $ "Prelude" ]
+                        sequence_ [ addTarget =<< guessTarget t Nothing
+                                  | t <- ("testing/Language/Simple.hs" :) $
+                                         map ("src/Testing/QuickGen/"++)
+                                             [ "Types.hs"
+                                             , "THInstances.hs"
+                                             , "TH.hs"
+                                             ]
+                                  ]
+                        load LoadAllTargets
+
+                        setContext [ IIDecl . simpleImportDecl . mkModuleName $ "Prelude"
+                                   , IIDecl . simpleImportDecl . mkModuleName $ "Language.Simple"
+                                   ]
                         r <- compileExpr exprStr
                         r `seq` return (Right r)
 
