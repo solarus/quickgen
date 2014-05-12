@@ -5,7 +5,7 @@
 #+LATEX_HEADER: \usepackage[margin=3.5cm]{geometry}
 #+LATEX_HEADER: \usepackage[usenames,dvipsnames]{xcolor}
 #+LATEX_HEADER: \usepackage{lipsum, minted, fancyhdr, xspace, algpseudocode, algorithm, mathtools}
-#+LATEX_HEADER: \usepackage{ifdraft, listings}
+#+LATEX_HEADER: \usepackage{ifdraft, listings, alltt}
 #+LATEX_HEADER: \usepackage[style=alphabetic,citestyle=alphabetic]{biblatex}
 #+LATEX_HEADER: \addbibresource{references.bib}
 #+LATEX_CLASS_OPTIONS: [draft]
@@ -285,6 +285,8 @@
 
   - \emph{Generating $e_1$ with type $?a \ri Int$}:
 
+    \label{sec:example-map1}
+
     At this point the algorithm differs slightly from the first step
     when generating $[Int]$ since we are currently trying to generate
     a function. In the end we want an expression on the form:
@@ -355,6 +357,68 @@
     since no other ones match the current goal. Again, this terminates
     the algorithm and the final expression would be $map~(\lambda x
     \ri x)~(sing~n)$.
+
+*** Generating polymorphic expressions
+    \label{sec:example-poly}
+
+    One more type of expression needs to be discussed before
+    continuing, namely expressions with polymorphic types. To see how
+    this is done in this project lets first look at a problematic
+    example run:
+
+    - Imagine that we want to generate an expression with goal type $a
+      \ri a \ri [a]$. We proceed in the same way as was done when
+      generating the first argument to $map$ in
+      \autoref{sec:example-map1} above, i.e. by generating names for
+      the variables and adding the arguments with their respective
+      types to the API. The goal type at this point would be $[a]$ and
+      the API could look something like this:
+
+      |   | Constructor name | Type                        |
+      |---+------------------+-----------------------------|
+      | / |              <r> |                             |
+      |   |         $\ldots$ | $\ldots$                    |
+      |   |            $map$ | $(a \ri b) \ri [a] \ri [b]$ |
+      |   |     $succ_{Int}$ | $Int \ri Int$               |
+      |   |           $sing$ | $a \ri [a]$                 |
+      |   |            $a_1$ | $a$                         |
+      |   |            $a_2$ | $a$                         |
+
+      Further imagine that we choose $map$ as our constructor and then
+      start with generating the second argument to $map$ currently
+      with the specialized type $[?b]$. We then choose $sing$ followed
+      by $succ_{Int}$ as our next to constructors generating
+      additional sub goals and also introducing a guess for the
+      undecided type $?b \mapsto Int$ in \mathbb{U}. Our expression at
+      this point would be: \[ \lambda~a_1~a_2 \ri
+      map~e_1~(sing~(succ_{Int}~e_2)) \] The variables $e_1$ and $e_2$
+      refers to the currently unsolved sub goals. At this point, the
+      current goal type is $Int$. By looking at the types in the API
+      alone, it would be perfectly reasonable to choose $a_1$ as a
+      constructor for this goal since $a_1$ is for all quantified and
+      can be matched with anything. However, if we substitute $e_1$ by
+      $a_1$ and try to type check the resulting expression in, for
+      instance, =ghci= we get the following:
+
+      \begin{alltt}
+      \(\lambda\)> :t (\(\lambda\) a_1 a_2 -> map undefined (sing (succ_int a_1))) :: a -> a -> [a]
+
+      <interactive>:1:44:
+          Couldn't match expected type `a' with actual type `Int'
+          ...
+      \end{alltt}
+
+    The problem above is that the types of $a_1$ and $a_2$ should not
+    be $\forall~a.~a$ when introduced to the API above. A better
+    approach is to substitute every for all quantified type variable
+    with a dummy unique data type constructor. This is also the tactic
+    employed by \citeauthor{mh} in \cite{mh}. Thus, in the example
+    above, instead of starting to generate a term with type $a \ri a
+    \ri [a], one should exchange every occurrence of $a$ with, for
+    instance, $A_1$ resulting in the type $A_1 \ri A_1 \ri [A_1]$.
+    Later during matching, the type $A_1$ will be matched using the
+    same procedure used to match other data type constructors. How
+    this is done can be found in \autoref{lst:matchaux}.
 
 *** Undecided variables
    \label{sec:undecided}
@@ -548,6 +612,7 @@
    variables into $Undecided$ ones. The algorithm that actually finds
    a substitution is found in the \textsc{MatchAux} function: [fn:12]
 
+   \begin{listing}[H]
    \begin{algorithmic}[1]
    \Function{MatchAux}{$t_1, t_2$}
      \CaseOf{$t_2$}
@@ -596,6 +661,8 @@
      \EndCaseOf
    \EndFunction
    \end{algorithmic}
+   \caption{The complete matching algorithm.}\label{lst:matchaux}
+   \end{listing}
 
    Lets look at an example of how the complete algorithm works:
 
