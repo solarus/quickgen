@@ -1219,6 +1219,39 @@
 ** Type variable arguments
    \label{lim-typearg}
 
+   Currently there is no way to represent type variables with multiple
+   arguments. This functionality was unfortunately never prioritized
+   since type classes was not fully implemented in the library and
+   type classes is the only feature known to the author that requires
+   types variables with arguments. To see the limitation lets look at
+   the \inlhask{SType} data type found in the \textsc{Testing} module:
+   \begin{haskellcode}
+   data SType =
+     ...
+     | VarT Variable
+     | ConT Name [SType]
+     ...
+   \end{haskellcode}
+   This implementation makes it possible to represent, for instance, the
+   type \inlhask{Maybe Int} as \inlhask{ConT "Maybe" [ConT "Int" []]}.
+   However, it is not possible to represent \inlhask{m a} as in
+   \inlhask{return :: Monad m => a -> m a} since there are no ways to
+   give arguments to the type variable \inlhask{m}. The definition of
+   \inlhask{VarT} on line 3 above can be changed slightly, mimicking
+   the definition of \inlhask{ConT}, to allow type arguments:
+   \begin{haskellcode}
+   data SType =
+     ...
+     | VarT Variable [SType]
+     ...
+   \end{haskellcode}
+   Now it is possible to at least represent type variables with type
+   arguments. What is missing is to update the matching algorithm,
+   introduced in \autoref{algo:match}, to correctly handle type
+   variables. However, this update is highly dependent on first
+   implementing type classes correctly which is discussed in
+   \autoref{sec:fut-tc}.
+
 ** Equality constraints
 
 \newpage
@@ -1584,6 +1617,9 @@
 * Future Work
 ** Class Environments
    \label{fut-CE}
+
+** Type Classes
+   \label{sec:fut-tc}
 
 ** More expressions in =defineLanguage=
    \label{fut-defineLanguage}
