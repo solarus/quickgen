@@ -1215,6 +1215,8 @@
 
 ** Type matching
 ** Rank >1 types
+   \todo{kanske ej skriva detta. Ändå inte haskell98/2010}
+
 ** Class environments
 ** Type variable arguments
    \label{lim-typearg}
@@ -1253,6 +1255,7 @@
    \autoref{sec:fut-tc}.
 
 ** Equality constraints
+   \todo{kanske ej skriva detta. Ändå inte haskell98/2010}
 
 \newpage
 
