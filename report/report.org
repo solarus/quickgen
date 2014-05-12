@@ -459,7 +459,7 @@
    $\mathbb{U}$.
 
 *** Termination
-    \label{algo:termination}
+    \label{sec:algo-termination}
 
     There is one simplification to the simple algorithm presented
     above that needs to be mentioned. The algorithm if implemented
@@ -480,21 +480,42 @@
     $id$ indefinitely making this a non terminating process. In this
     particular example, the probability of termination is quite high
     but this might not be the case if constructors requiring several
-    sub goals to be generated is introduced to the API. A solution
-    involving limiting the number of times constructors with sub goals
-    is used is introduced in section \ref{algo:generate}. There is
-    also some discussion about alternative termination strategies in
-    section \ref{sec:fut-termination}.
+    sub goals to be generated is introduced to the API.
+
+    The solution used to solve this problem in this project is to
+    limit the number of uses for each constructor with sub goals.
+    Constructors with zero sub goals, such as $Int$, will have an
+    infinite number of uses. The notation $\textsc{Uses}(t)$ will from
+    now on be used to denote the number of uses available for a
+    constructor with type $t$.
+
+    #+BEGIN_LATEX
+    \[
+    \textsc{Uses}(t) =
+      \begin{cases}
+      10 & \text{if $t$ is a function type} \\
+      \infty & \text{otherwise}
+      \end{cases}
+    \]
+    #+END_LATEX
+
+    The number 10 here was chosen after some experimentation and seems
+    to enable complicated expressions in a reasonable big API while
+    still limiting the search space enough to make the algorithm
+    terminate if no solution could be found.
+
+    A more detailed discussion about this and other termination
+    strategies can be found in \autoref{sec:fut-termination}.
 
 *** Sub goal ordering
     After choosing $map$ as the first constructor in the original
     algorithm in section \ref{sec:example}, we choose to generate the
     sub goals to $map$ from left to right. With the addition of uses
-    as mentioned in section \ref{algo:termination} above, the order in
-    which sub goals are generated actually influences the final shape
-    of the finished expression. Again, lets illustrate this by looking
-    at an example where we want to generate an expression with type
-    $Int$ using the following API:
+    as mentioned in section \ref{sec:algo-termination} above, the
+    order in which sub goals are generated actually influences the
+    final shape of the finished expression. Again, lets illustrate
+    this by looking at an example where we want to generate an
+    expression with type $Int$ using the following API:
 
     #+CAPTION: API containing constructors with a limited number of uses
     |   | Constructor name | Uses     | Type            |
@@ -684,6 +705,8 @@
      [Int]$ is returned.
 
 *** Unique types
+    \label{sec:unique}
+
     One important property which has been left out of the discussion
     so far is that all undecided type variables introduced in
     \textsc{Match} is assumed to be unique. Lets look at an example to
@@ -726,29 +749,42 @@
 ** Generating expressions
    \label{algo:generate}
 
-   Let $uses$ be some natural number, $\Gamma$ a context and
-   $\mathbb{U}$ a set of guesses for undecided type variables, then
-   the generation algorithm works as follows:
+   Here we look at the complete term generation algorithm that was
+   informally introduced in \autoref{sec:example}. Similar to the
+   $\textsc{Match}$ algorithm, the first function we look at,
+   $\textsc{Generate}$, does some basic computations and then
+   delegates the more complicated work to an auxiliary function.
 
    \begin{algorithmic}[1]
    \Function{Generate}{$t$}
      \State Bind all $\forall$ quantified variables in $t$ to some unique Data constructor types.
      \Comment{\emph{If for instance $t = a \rightarrow b$
      then the resulting type might be $A1 \rightarrow B2$}}
+     \State Substitute the $undecided$ type variables in $t$ by some unique $undecided$ variables.
      \State \textbf{return} \Call{Generate'}{$t$}
    \EndFunction
    \end{algorithmic}
 
-   \newpage
+   On the second line of the algorithm, all for all quantified
+   variables are substituted with unique dummy data types as discussed
+   in \autoref{sec:example-poly}. A similar thing is done with the
+   undecided type variables on the third line to avoid capturing these
+   undecided variables in later stages of the generation
+   process[fn:20]. The last line calls and returns the result of the
+   auxiliary function. Before introducing this function, we need some
+   additional definitions:
 
-   \note{On line 18 it might be easy to miss that $t$ is the same $t$ as on line 1} \\
-   \note{Consider moving to appendix}
+   - Let $\textsc{Uses}(t)$ denote the number of uses for a
+     constructor of type $t$ \ref{sec:algo-termination}, $\Gamma$ a
+     context (API) and $\mathbb{U}$ a set of guesses for undecided
+     type variables, then the generation algorithm is defined as
+     follows:
 
    \begin{algorithmic}[1]
    \Function{Generate'}{$t$}
      \If{$t$ is a function type $t_1 \rightarrow \ldots \rightarrow t_m$}
        \State Generate unique variable names $x_1, \ldots, x_{m-1}$
-       \State Add the constructors $(uses, (x_i, t_i)),~1 \leq i < m$ to \Gamma$
+       \State Add the constructors $(\Call{Uses}{t_i}, (x_i, t_i)),~1 \leq i < m$ to \Gamma$
        \State $v \gets$ \Call{Generate'}{$t_m, \Gamma$}
        \State Remove the $x_i,~1 \leq i < m$ constructors from $\Gamma$
        \If{$v$ is \texttt{Just} an expression}
@@ -766,6 +802,7 @@
        \If{$c$ is \texttt{Just} a constructor $c = (n, t')$}
          \State decrease the number of uses for $c$ in $\Gamma$ by one
          \If{$t' = t_1 \rightarrow \ldots \rightarrow t_m \rightarrow t$}
+           \Comment{$t$ is here the same $t$ as on line 1}
            \ForAll{$1 \leq i \leq m$}
              \State $e_i \gets$ \Call{Generate'}{$t_i, \Gamma$}
            \EndFor
@@ -777,7 +814,7 @@
              \State \textbf{return} \texttt{Just} $(n~e_1~\ldots~e_m)$
            \EndIf
          \Else \Comment{$c$ has here a value type}
-           \State \textbf{return} \texttt{Just} the name of the constructor $c$
+           \State \textbf{return} \texttt{Just} (the name of the constructor $c$)
          \EndIf
        \Else \Comment{$c$ is here \texttt{Nothing}}
          \State \textbf{return} Nothing
@@ -1773,3 +1810,6 @@ not considered in the \quickgen generator either.
 the GHC API is beyond the scope of this thesis but the curious reader
 can find it in the =GenTest= module found here:
 https://github.com/solarus/quickgen/blob/master/testing/GenTests.hs
+
+[fn:20] The procedure used to do this is the same one introduced in
+\autoref{sec:unique}.
