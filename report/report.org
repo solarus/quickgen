@@ -775,8 +775,8 @@
    additional definitions:
 
    - Let $\textsc{Uses}(t)$ denote the number of uses for a
-     constructor of type $t$ \ref{sec:algo-termination}, $\Gamma$ a
-     context (API) and $\mathbb{U}$ a set of guesses for undecided
+     constructor of type $t$, see \ref{sec:algo-termination}, $\Gamma$
+     a context (API) and $\mathbb{U}$ a set of guesses for undecided
      type variables, then the generation algorithm is defined as
      follows:
 
@@ -1075,12 +1075,13 @@
    used to construct expressions of type \inlhask{[Int]}.
 
 *** Calculating a class environment
-    As mentioned in section \ref{types-languages}, a
-    \inlhask{Language} is isomorphic to a \inlhask{ClassEnv} paired
-    with a list of \inlhask{Constructor}'s. The easiest way to explain
-    how a class environment is calculated is probably by presenting
-    the documentation for the internal function \inlhask{getClassEnv}
-    together with some Haskell type class instances:
+    As mentioned when discussing Class Environments in
+    \autoref{sec:other-types}, a \inlhask{Language} is isomorphic to a
+    \inlhask{ClassEnv} paired with a list of \inlhask{Constructor}'s.
+    The easiest way to explain how a class environment is calculated
+    is probably by presenting the documentation for the internal
+    function \inlhask{getClassEnv} together with some Haskell type
+    class instances:
 
     \begin{haskellcode}
     type ClassEnv = Map Name ([Name], [TH.InstanceDec])
@@ -1403,7 +1404,7 @@
    type \inlhask{Stream t}.
 
    \begin{listing}
-   \begin{haskellcode}[label=foo]
+   \begin{haskellcode}
    fib :: Stream Word32
    fib = [0,1] ++ (fib + drop 1 fib)
    \end{haskellcode}
