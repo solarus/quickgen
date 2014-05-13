@@ -414,13 +414,8 @@ showUndecided n = "∃_" ++ show n
 -- won't introduce any sub goals. Using a constructor with a simple
 -- type will always terminate the current subgoal.
 isSimple :: Type -> Bool
-isSimple (Type _ _ st) = go st
-  where
-    go (FunT _) = False
-    go (VarT (_, Forall)) = True
-    go (VarT (_, Undecided)) = False
-    go (ListT t) = go t
-    go (ConT _ ts) = all go ts
+isSimple (Type _ _ (FunT _)) = False
+isSimple _                   = True
 
 numArgs :: Type -> Int
 numArgs (Type _ _ st) = case st of
