@@ -23,7 +23,6 @@ sing x = [x]
 app :: (a -> b) -> a -> b
 app f x = f x
 
-
 succInt :: Int -> Int
 succInt = succ
 
