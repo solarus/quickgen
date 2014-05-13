@@ -57,22 +57,17 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
                 decUses i
                 case st of
                     FunT (_:ts) -> do
-                        let go [] args        = return (True, args)
+                        let go []       args = return . Just $ foldl AppE (ConE n) args
                             go (t':ts') args = do
                                 ret <- generate' (Type qs cxt t')
                                 case ret of
-                                    Nothing -> return (False, args)
-                                    Just a  -> go ts' (a:args)
+                                    Nothing -> do
+                                        modify (& _3 .~ ctxs)
+                                        modify (& _5 .~ s')
+                                        return Nothing
+                                    Just a -> go ts' (a:args)
 
-                        (success, args) <- go ts []
-                        case success of
-                            False -> do
-                                modify (& _3 .~ ctxs)
-                                modify (& _5 .~ s')
-                                return Nothing
-                            True  -> do
-                                let e' = foldl AppE (ConE n) args
-                                return (Just e')
+                        go ts []
                     _ -> return (Just (ConE n))
 
 randomMatching :: Type -> ExpGen (Maybe (Id, Constructor, Substitution))
