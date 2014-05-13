@@ -24,7 +24,7 @@ testAll s = testGroup "Generation tests "
 
 testGen :: Seed -> Type -> String -> Assertion
 testGen s t mt = let gen = mkStdGen s
-                     ss  = take 50 (randomRs (0,1000000) gen)
+                     ss  = take 50 (randoms gen)
                  in mapM_ f ss
   where
     f s' = do
