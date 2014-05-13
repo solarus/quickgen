@@ -74,6 +74,13 @@
 \newcommand{\example}{\refstepcounter{myexample}\textbf{Example} \themyexample:\xspace}
 \newcommand{\examplelabel}[1]{\example\label{#1}}
 
+%%% quote environment
+\renewenvironment{quote}[1]
+  {\hfill \begin{minipage}{0.95\textwidth}\em}
+  {\\ %
+   \hspace*{5pt} \emph{-- #1}
+   \end{minipage}}
+
 %%% Front page
 \thispagestyle{empty}
 \begin{center}
