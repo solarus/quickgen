@@ -396,8 +396,8 @@
       with the specialized type $[?b]$. We then choose $sing$ followed
       by $succ_{Int}$ as our next to constructors generating
       additional sub goals and also introducing a guess for the
-      undecided type $?b \mapsto Int$ in \mathbb{U}. Our expression at
-      this point would be: \[ \lambda~a_1~a_2 \ri
+      undecided type $?b \mapsto Int$ in $\mathbb{U}$. Our expression
+      at this point would be: \[ \lambda~a_1~a_2 \ri
       map~e_1~(sing~(succ_{Int}~e_2)) \] The variables $e_1$ and $e_2$
       refers to the currently unsolved sub goals. At this point, the
       current goal type is $Int$. By looking at the types in the API
