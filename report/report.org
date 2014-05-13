@@ -293,7 +293,7 @@
   left to right starting with $e_1$:
 
   - \emph{Generating $e_1$ with type $?a \ri Int$}:
-
+    \phantomsection
     \label{sec:example-map1}
 
     At this point the algorithm differs slightly from the first step
@@ -520,6 +520,8 @@
     strategies can be found in \autoref{sec:fut-termination}.
 
 *** Sub goal ordering
+    \label{sec:algo-sgo}
+
     After choosing $map$ as the first constructor in the original
     algorithm in section \ref{sec:example}, we choose to generate the
     sub goals to $map$ from left to right. With the addition of uses
@@ -797,12 +799,12 @@
      \If{$t$ is a function type $t_1 \rightarrow \ldots \rightarrow t_m$}
        \State Generate unique variable names $x_1, \ldots, x_{m-1}$
        \State Add the constructors $(\Call{Uses}{t_i}, (x_i, t_i)),~1 \leq i < m$ to \Gamma$
-       \State $v \gets$ \Call{Generate'}{$t_m, \Gamma$}
+       \State $v \gets$ \Call{Generate'}{$t_m$}
        \State Remove the $x_i,~1 \leq i < m$ constructors from $\Gamma$
-       \If{$v$ is \texttt{Just} an expression}
+       \If{$v$ is \texttt{Just} an expression} \label{lst:generate':if}
          \State \textbf{return} $(\lambda x_1~x_2~\ldots~x_{m-1} \rightarrow v)$
        \Else \Comment{$v$ is here \texttt{Nothing}}
-         \State \textbf{return} \texttt{Nothing}
+         \State \textbf{return} \texttt{Nothing} \label{lst:generate':if2}
        \EndIf
      \Else \Comment{$t$ is here a value type}
        \State $\mathbb{U}' \gets \mathbb{U}$
@@ -815,18 +817,22 @@
          \State decrease the number of uses for $c$ in $\Gamma$ by one
          \If{$t' = t_1 \rightarrow \ldots \rightarrow t_m \rightarrow t$}
            \Comment{$t$ is here the same $t$ as on line 1}
-           \ForAll{$1 \leq i \leq m$}
-             \State $e_i \gets$ \Call{Generate'}{$t_i, \Gamma$}
+           \For{$i = m,m-1,\ldots,1$}
+             \State $me \gets$ \Call{Generate'}{$t_i$}
+             \CaseOf{$me$}
+               \Case{\texttt{Nothing}}
+                 \State $\Gamma := \Gamma'$
+                 \State $\mathbb{U} := \mathbb{U}'$
+                 \State \textbf{return} \texttt{Nothing}
+               \EndCase
+               \Case{\texttt{Just} $e$}
+                 \State $e_i = e$
+               \EndCase
+             \EndCaseOf
            \EndFor
-           \If{$\exists~i,~e_i = $ \texttt{Nothing}}
-             \State $\Gamma := \Gamma'$
-             \State $\mathbb{U} := \mathbb{U}'$
-             \State \textbf{return} \texttt{Nothing}
-           \Else
-             \State \textbf{return} \texttt{Just} $(n~e_1~\ldots~e_m)$
-           \EndIf
+           \State \textbf{return} \texttt{Just} $(n~e_1~\ldots~e_m)$
          \Else \Comment{$c$ has here a value type}
-           \State \textbf{return} \texttt{Just} (the name of the constructor $c$)
+           \State \textbf{return} \texttt{Just} $n$
          \EndIf
        \Else \Comment{$c$ is here \texttt{Nothing}}
          \State \textbf{return} Nothing
@@ -834,6 +840,39 @@
      \EndIf
    \EndFunction
    \end{algorithmic}
+
+   The first step of the \textsc{Generate'} algorithm above is to case
+   match on the current goal type $t$:
+
+   - If $t$ is a function type, a lambda abstraction is constructed as
+     in \autoref{sec:example-map1}. Then, the body of the lambda
+     abstraction is generated in a context that has been extended to
+     include the arguments of the lambda abstraction. This process may
+     fail as can be seen from the usage of the standard Haskell type
+     $Maybe$ in the if statement from line \ref{lst:generate':if} to
+     \ref{lst:generate':if2}.
+
+   - If $t$ is not a function type, we first make local copies of
+     $\mathbb{U}$ and $\Gamma$ and try to find a matching constructor.
+     Once again, this process may fail if no matching constructors is
+     found in $\Gamma$. If a constructor is found, the number of uses
+     for this constructor is decreased by one and there is once again
+     a case match on a type, this time on the type of the constructor.
+     Since the second case can be seen as a special case of the first
+     one, with $m=0$, only the first case will be considered.
+
+     For each of the argument types of the constructor $c$, $t_i$
+     where $1 \leq i \leq m$, a respective expression $e_i$ is
+     generated. In this particular algorithm, the sub goals are
+     generated from right to left as discussed in
+     \autoref{sec:algo-sgo}. If any of the expressions fails to
+     generate, i.e. if $me = \mathtt{Nothing}$, then $\Gamma$ and
+     $\mathbb{U}$ is reset and \texttt{Nothing} is returned.
+     Otherwise, all the expressions $e_i$ was set and we can return
+     the complete expression $n$ applied to the arguments
+     $e_1~\ldots~e_m$.
+
+   \todo{Förklaring av hur konstruktorer väljs? Dvs om randomMatching}
 
 * Implementation
   In this chapter the current implementation is explained thoroughly.
