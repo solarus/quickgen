@@ -1087,7 +1087,7 @@
      Currently the class environment is not used internally apart from
      being constructed in the Template Haskell module. Future work
      regarding the usage of this type is discussed in section
-     \ref{sec:fut-CE}.
+     \ref{sec:fut-matching}.
 
 **** *Languages:*
      \label{types-languages}
@@ -1140,6 +1140,8 @@
    used to construct expressions of type \inlhask{[Int]}.
 
 *** Calculating a class environment
+    \label{sec:calc-ce}
+
     As mentioned when discussing Class Environments in
     \autoref{sec:other-types}, a \inlhask{Language} is isomorphic to a
     \inlhask{ClassEnv} paired with a list of \inlhask{Constructor}'s.
@@ -1204,19 +1206,21 @@
     used when generating values. However, the proposed algorithm has
     some problems when applied to, for instance, the list
     \inlhask{[Num]}. The resulting class environment is calculated
-    very quickly but then compiling this value again in a Haskell
-    takes up to a minute on a fairly modern computer. The reason is
-    that GHC adds a lot of type classes not normally visible in a
-    normal ghci session. The text representation of the final value
-    that is spliced into the resulting file is around 700000
-    characters long \todo{recheck this value}! Compiling such a large
-    expression can take up to one minute or more even on a modern
-    computer.
+    very quickly but then compiling this value again might take
+    noticable time even on a modern computer. The reason is that the
+    class environment calculated using this algorithm grows very large
+    due to the large amount of instances available in GHC.
+    Furthermore, several type classes that does not seem to be
+    relevant for generating functions using the \inlhask{Num} type
+    class are present in the final class environment[fn:21]. The text
+    representation of the final class environment calculated from
+    \inlhask{[Num]} is around 50000 characters long. The fourth step
+    was therefore removed from the algorithm used in the library.
 
-    In future versions of this library, the fourth step should be
-    added again. However, some care has to be taken to only include
-    classes that are relevant to the current problem. Possible ways to
-    solve this is discussed further in section \ref{sec:fut-CE}.
+    In future versions, a modification to the fourth step should be
+    added again i.e. so that only classes that are relevant to the
+    current problem are added to the class environment. Possible ways
+    to solve this is discussed further in section \ref{sec:fut-CE}.
 
 ** ExpGen
    \label{expgen}
@@ -1741,10 +1745,11 @@
   about how one might extend the library to eliminate the limitation.
 
 ** Type matching
+   \label{sec:fut-matching}
+
 ** Rank >1 types
    \todo{kanske ej skriva detta. Ändå inte haskell98/2010}
 
-** Class environments
 ** Type variable arguments
    \label{sec:fut-typearg}
 
@@ -1784,8 +1789,70 @@
 ** Equality constraints
    \todo{kanske ej skriva detta. Ändå inte haskell98/2010}
 
-** Class Environments
+** Selecting a Class Environment
    \label{sec:fut-CE}
+
+   In the end of \autoref{sec:calc-ce}, there is a problem presented
+   where a very large expression is constructed, around 50000
+   characters, when calculating the complete class environment for an
+   API only containing the type class \inlhask{Num}. Furthermore, the
+   calculated class environment contained several type classes that
+   did not seem relevent for the particular API. Two different
+   approaches to handle this problem is discussed:
+
+   - Instead of automatically trying to calculate the complete class
+     environment, a user could specify exactly which instances of a
+     particular type class they are interested in at the same time
+     they are specifying an API. Only these specific instances are
+     then added to the class environment. Lets look at some of the
+     instances of the \inlhask{Monoid} type class as an example:
+
+     \begin{listing}[H]
+     \begin{haskellcode}
+     instance                                   Monoid [a]
+     instance                                   Monoid Ordering
+     instance (Monoid a, Monoid b)           => Monoid (a, b)
+     instance (Monoid a, Monoid b, Monoid c) => Monoid (a, b, c)
+     \end{haskellcode}
+     \caption{A selection of instances of the \inlhask{Monoid} type class}\label{lst:monoid-api}
+     \end{listing}
+
+     Furthermore, imagine that an user has the function
+     \inlhask{mempty :: Monoid m => m} in the API together with some
+     functions working with lists and pairs. In this particular
+     example it would probably not make sense to use the function
+     \inlhask{mempty} to produce values of type \inlhask{Ordering} or
+     \inlhask{(Monoid a, ...) => (a,b,c)} since these values cannot be
+     consumed by any of the other functions in the API. The user could
+     instead specify in the API to only include the first and third
+     instance removing the extraneous instances altogether. The
+     function \inlhask{mempty} could still in this case be used to
+     produce values of complicated types, for instance
+     \inlhask{((([],[]),[]),([],[])) :: ((([a],[b]),[c]),([d],[e])) }.
+
+   - If the user is interested in a big set of instances, specifying
+     all of them manually might be a very cumbersome task.
+     Furthermore, new constructors added to the API might require
+     additional instances to be added. Forgetting to do this last step
+     might be easy making the complete process error prone.
+
+     Instead of trying to add each instance manually, it might be
+     possible to look at the return types of the constructors
+     available in the API instead to filter out instances that are not
+     interesting. Using the same argument as above, if we only have
+     functions and values producing lists and pairs it might be enough
+     to only include the first and third instances. However, this kind
+     of filtering might be to restrictive in some cases. For instance,
+     if we add the following function to the API, \inlhask{f :: a -> b -> a},
+     it is perfectly legal to apply \inlhask{mempty :: Ordering} as a
+     second argument to this function and a specific user might even
+     be interested in expressions on this form.
+
+  None of the suggestions above completely solves the problem at hand.
+  However, it might be possible to combine them, i.e. letting a user
+  specify a set of instances that should be included and then taking
+  the union with the set of instances that somehow relates to the
+  constructors in the API.
 
 ** Type Classes
    \label{sec:fut-tc}
