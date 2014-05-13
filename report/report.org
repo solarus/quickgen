@@ -6,6 +6,7 @@
 #+LATEX_HEADER: \usepackage[usenames,dvipsnames]{xcolor}
 #+LATEX_HEADER: \usepackage{lipsum, minted, fancyhdr, xspace, algpseudocode, algorithm, mathtools}
 #+LATEX_HEADER: \usepackage{ifdraft, listings, alltt}
+#+LATEX_HEADER: \usepackage[justification=centering]{caption}
 #+LATEX_HEADER: \usepackage[style=alphabetic,citestyle=alphabetic]{biblatex}
 #+LATEX_HEADER: \addbibresource{references.bib}
 #+LATEX_CLASS_OPTIONS: [draft]
@@ -20,6 +21,7 @@
 \hyphenation{abstract}
 \hyphenation{optimizations}
 \hyphenation{successfully}
+\hyphenation{table}
 
 \setlength{\parskip}{0.2cm}
 \setlength{\parindent}{0pt}
@@ -296,7 +298,7 @@
 
     At this point the algorithm differs slightly from the first step
     when generating $[Int]$ since we are currently trying to generate
-    a function. In the end we want an expression on the form:
+    a function. In the end we want a lambda abstraction on the form:
     \[\lambda x \ri body \] where the argument $x$ can be used inside
     $body$. To proceed all arguments are added as constructors to be
     available when generating the body of the lambda abstraction. In
@@ -376,11 +378,14 @@
     - Imagine that we want to generate an expression with goal type $a
       \ri a \ri [a]$. We proceed in the same way as was done when
       generating the first argument to $map$ in
-      \autoref{sec:example-map1} above, i.e. by generating names for
-      the variables and adding the arguments with their respective
-      types to the API. The goal type at this point would be $[a]$ and
-      the API could look something like this:
+      \autoref{sec:example-map1} above, i.e. generating a lambda
+      abstraction by generating names for the variables, adding the
+      arguments with their respective types to the API and finally
+      generating the lambda body with the updated API. The goal type
+      when generating the body would be $[a]$ and the API could look
+      something like this:
 
+      #+CAPTION: The constructors marked in red are the arguments added by the latest lambda abstraction.
       |   | Constructor name | Type                        |
       |---+------------------+-----------------------------|
       | / |              <r> |                             |
@@ -388,8 +393,8 @@
       |   |            $map$ | $(a \ri b) \ri [a] \ri [b]$ |
       |   |     $succ_{Int}$ | $Int \ri Int$               |
       |   |           $sing$ | $a \ri [a]$                 |
-      |   |            $a_1$ | $a$                         |
-      |   |            $a_2$ | $a$                         |
+      |   | $\color{red}x_1$ | $\color{red}a$              |
+      |   | $\color{red}x_2$ | $\color{red}a$              |
 
       Further imagine that we choose $map$ as our constructor and then
       start with generating the second argument to $map$ currently
@@ -397,31 +402,31 @@
       by $succ_{Int}$ as our next to constructors generating
       additional sub goals and also introducing a guess for the
       undecided type $?b \mapsto Int$ in $\mathbb{U}$. Our expression
-      at this point would be: \[ \lambda~a_1~a_2 \ri
+      at this point would be: \[ \lambda~x_1~x_2 \ri
       map~e_1~(sing~(succ_{Int}~e_2)) \] The variables $e_1$ and $e_2$
       refers to the currently unsolved sub goals. At this point, the
       current goal type is $Int$. By looking at the types in the API
-      alone, it would be perfectly reasonable to choose $a_1$ as a
-      constructor for this goal since $a_1$ is for all quantified and
+      alone, it would be perfectly reasonable to choose $x_1$ as a
+      constructor for this goal since $x_1$ is for all quantified and
       can be matched with anything. However, if we substitute $e_1$ by
-      $a_1$ and try to type check the resulting expression in, for
+      $x_1$ and try to type check the resulting expression in, for
       instance, =ghci= we get the following:
 
       \begin{alltt}
-      \(\lambda\)> :t (\(\lambda\) a_1 a_2 -> map undefined (sing (succ_int a_1))) :: a -> a -> [a]
+      \(\lambda\)> :t (\(\lambda\) x_1 x_2 -> map undefined (sing (succ_int x_1))) :: a -> a -> [a]
 
       <interactive>:1:44:
           Couldn't match expected type `a' with actual type `Int'
           ...
       \end{alltt}
 
-    The problem above is that the types of $a_1$ and $a_2$ should not
+    The problem above is that the type of $x_1$ and $x_2$ should not
     be $\forall~a.~a$ when introduced to the API above. A better
     approach is to substitute every for all quantified type variable
     with a dummy unique data type constructor. This is also the tactic
     employed by \citeauthor{mh} in \cite{mh}. Thus, in the example
     above, instead of starting to generate a term with type $a \ri a
-    \ri [a], one should exchange every occurrence of $a$ with, for
+    \ri [a]$, one should exchange every occurrence of $a$ with, for
     instance, $A_1$ resulting in the type $A_1 \ri A_1 \ri [A_1]$.
     Later during matching, the type $A_1$ will be matched using the
     same procedure used to match other data type constructors. How
