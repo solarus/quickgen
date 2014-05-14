@@ -1,5 +1,6 @@
 module Testing.QuickGen.TH
        ( defineLanguage
+       , getType
        ) where
 
 import           Control.Monad ((>=>))
@@ -67,3 +68,11 @@ getClassEnv = go emptyEnv . S.fromList
         (n,s') = S.deleteFindMin s
         toNameSet :: TH.Cxt -> Set Name
         toNameSet c = S.fromList (filter (isNothing . (`lookupEnv` acc)) (map (\(TH.ClassP n' _) -> n') c))
+
+-- | Converts a type on TH form to an expression with type `Type'. Can
+-- be used in the following way:
+--
+-- > someType :: Type
+-- > someType = $(getType [t| Int -> Bool |])
+getType :: TH.TypeQ -> TH.ExpQ
+getType = fmap thTypeToType >=> lift

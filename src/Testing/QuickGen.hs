@@ -2,6 +2,7 @@ module Testing.QuickGen
        ( -- Rexports
          generate
        , defineLanguage
+       , getType
        , addTo
        , mkName
        , Constructor
