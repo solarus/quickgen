@@ -1,2 +1,10 @@
-* TODO Template haskell .bib reference
-* TODO \inlhask not working
+* DONE Template haskell .bib reference
+* DONTKNOW \inlhask not working
+* TODO THIH reference to real paper?
+  Maybe better to keep proceedings reference since this is published
+  however, the complete article is much nicer to read!
+
+* TODO Add text about Pred (Cxt)
+* TODO Check language
+** TODO Lets
+** TODO Then
