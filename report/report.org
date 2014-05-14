@@ -1943,3 +1943,7 @@ https://github.com/solarus/quickgen/blob/master/testing/GenTests.hs
 
 [fn:20] The procedure used to do this is the same one introduced in
 \autoref{sec:unique}.
+
+[fn:21] I.e. the type class \inlhask{MVector} in
+\inlhask{Data.Vector.Generic.Mutable} in the =vector= Haskell package
+can be found in the class environment.
