@@ -561,7 +561,7 @@
     start from the left, most usages of constructors will be present
     in the leftmost sub goals.
 
-    Due to implementation details, the finished algorithm in this
+    Due to implementation details, the concrete algorithm in this
     project generates goals from right to left making the expressions
     biased towards the right. In one of the sections in future work,
     section \ref{sec:fut-ordering}, some alternative tactics regarding
@@ -1998,6 +1998,28 @@
 
 ** Termination strategy
    \label{sec:fut-termination}
+
+   A method to ensure termination of the generation algorithm was
+   presented in \autoref{sec:algo-termination}. Several other
+   strategies exists that might be worth examining. For instance, in
+   \cite{lambda}, an algorithm similar to the one presented in this
+   project is discussed where each sub goal is limited in size by a
+   size parameter. This parameter is then decreased for each recursive
+   call.
+
+   Another strategy other than a number of uses for each constructor,
+   used by this library, and limiting the size of the recursion, as
+   seen above, is to instead associate each constructor with a
+   function taking the current depth as a parameter and producing a
+   weight for its particular constructor at the current depth. A
+   higher weight would then equate to a higher probability to be
+   chosen as a constructor for the current goal type. These functions
+   could then, for instance, be defined to favour constructors with
+   many sub goals at lower depths and to favour constructors with few
+   goals at deeper levels of recursion. It might even be interesting
+   to let a user partially specify how these weights are calculated
+   for certain constructors in the API since this would improve the
+   usability of the library for generating expressions.
 
    \newpage
 
