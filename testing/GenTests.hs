@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, ExplicitForAll #-}
 
 module GenTests
        (testAll
@@ -15,9 +15,9 @@ import Language.Simple as S
 testAll :: Seed -> Test
 testAll s = testGroup "Generation tests "
     [ testCase "generate expressions of type :: a -> [a]" $
-        testGen s (Type [a] [] (FunT [ListT (VarT a), VarT a])) "a -> [a]"
+        testGen s $(getType [t| forall a. a -> [a] |]) "a -> [a]"
     , testCase "generate expressions of type :: [Int]" $
-        testGen s (Type [] [] (ListT tInt)) "[Int]"
+        testGen s $(getType [t| [Int] |]) "[Int]"
     ]
   where
     a = (0, Forall)
