@@ -166,7 +166,7 @@
    DSL. What is missing is a procedure taking a number of functions,
    used to produce values within an AST, together with an additional
    goal type that should be the final type for the generated
-   expression. This procedure could then be called repeatedly to find
+   expression. This procedure could be called repeatedly to find
    different random values of the goal type withing the AST. If
    functions is added or removed from the API, these functions only
    needs to be added respectively removed from the list of available
@@ -246,7 +246,7 @@
 ** A complete example
   \label{sec:example}
 
-  Lets say an user wants to generate an expression of type $[Int]$
+  Lets say a user wants to generate an expression of type $[Int]$
   using values and functions from the following API:
 
     #+NAME: table:api1
@@ -1117,7 +1117,7 @@
    \end{todo*}
 
    The library contains a small module =TH= with one exported Template
-   Haskell function =defineLanguage= that an user can use to construct
+   Haskell function =defineLanguage= that a user can use to construct
    a =Language=. Below follows an example usage of this function:
 
    \begin{haskellcode}
@@ -1869,7 +1869,7 @@
      \caption{A selection of instances of the \inlhask{Monoid} type class}\label{lst:monoid-api}
      \end{listing}
 
-     Furthermore, imagine that an user has the function
+     Furthermore, imagine that a user has the function
      \inlhask{mempty :: Monoid m => m} in the API together with some
      functions working with lists and pairs. In this particular
      example it would probably not make sense to use the function
@@ -2137,7 +2137,7 @@ not considered in the \quickgen generator either.
 
 [fn:17] By removing comments, import statements and empty lines.
 
-[fn:18] Or more correctly a value of type\inlhask{Language}, see
+[fn:18] Or more correctly a value of type \inlhask{Language}, see
 \autoref{sec:other-types}.
 
 [fn:19] The complete implementation of the compilation process using
