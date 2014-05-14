@@ -204,19 +204,12 @@
    \inlhask{lang} above can then be defined with the following
    definition:
 
-   \begin{todo*}
-   \textbf{a -> [a]} är låtsassyntax. Om tid finns fixa quasiquoter
-   (bör vara lätt finns redan TH.Type quasiquoter och kan använda
-   thTypeToType för att göra om till rätt representation) annars skriv
-   riktiga syntaxen nedan.
-   \end{todo*}
-
    \begin{haskellcode}
    f :: Seed -> Maybe Exp
-   f seed = generate lang (a -> [a]) seed
+   f seed = generate lang $(getType [t| a -> [a] |]) seed
    \end{haskellcode}
 
-   Different seeds supplied to this functionthen produces different
+   Different seeds supplied to this function then produces different
    random well typed expressions using the available functions and
    values from \inlhask{lang}. The generated expressions can later be
    turned into real Haskell terms by using, for instance, the GHC API
@@ -1439,13 +1432,13 @@
    genListInt :: Seed -> Maybe (Exp, Type)
    genListInt seed = generate lang ty seed
      where
-       ty = Type [] [] (ListT (ConT (mkName "Int") []))
+       ty = $(getType [t| [Int] |])
 
    -- | Generates values of type `a -> [a]'
    genPolyList :: Seed -> Maybe (Exp, Type)
    genPolyList seed = generate lang ty seed
      where
-       ty = Type [a] [] (FunT [ListT (VarT a), VarT a])
+       ty = $(getType [t| a -> [a] |])
    \end{haskellcode}
 
    For both of these functions, a random list of seed values will be
