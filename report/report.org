@@ -251,6 +251,7 @@
 
     #+NAME: table:api1
     #+CAPTION: Simple API
+    #+ATTR_LATEX: :placement [H]
     |   | Constructor name | Type                        |
     |---+------------------+-----------------------------|
     | / |              <r> | <                           |
@@ -307,6 +308,7 @@
 
     #+NAME: table:api2
     #+CAPTION: Extended API
+    #+ATTR_LATEX: :placement [H]
     |   | Constructor name | Type                        |
     |---+------------------+-----------------------------|
     | / |              <r> | <                           |
@@ -386,6 +388,7 @@
       something like this:
 
       #+CAPTION: The constructors marked in red are the arguments added by the latest lambda abstraction.
+      #+ATTR_LATEX: :placement [H]
       |   | Constructor name | Type                        |
       |---+------------------+-----------------------------|
       | / |              <r> |                             |
@@ -478,6 +481,7 @@
     directly is not guaranteed to terminate. Lets look at a very
     simple example:
 
+    #+ATTR_LATEX: :placement [H]
     |   | Constructor name | Type      |
     |---+------------------+-----------|
     | / |              <r> |           |
@@ -532,6 +536,7 @@
     expression with type $Int$ using the following API:
 
     #+CAPTION: API containing constructors with a limited number of uses
+    #+ATTR_LATEX: :placement [H]
     |   | Constructor name | Uses     | Type            |
     |---+------------------+----------+-----------------|
     | / |              <r> |          |                 |
