@@ -955,6 +955,8 @@
     explained in section \ref{TH}.
 
 *** Types and simple types
+    \label{sec:impl-types}
+
     Below are the two data types in \quickgen that are used to
     represent types in Haskell:
 
@@ -1309,7 +1311,6 @@
         s <- match' gt t
 
         let t2  = // apply the substitution s to t
-
             t2' = // Convert all Forall quantified variables in t2 to
                   // Undecided variables
 
@@ -1859,6 +1860,95 @@
 ** Type Classes
    \label{sec:fut-tc}
 
+   Complete support of type classes was initially a goal of the
+   project but was never fully realized. What is missing is to
+   implement something similar to performing class /entailment/ as
+   defined in \cite{thih}. This function would have a type similar to
+   the following:
+
+   \todo{Behöver text för Pred och Pred är egentligen = ClassP Name [SType] i Types.hs!}
+
+   \begin{haskellcode}
+   data Pred = ClassP Name SType
+   type Cxt = [Pred]
+   data Type = Type [Variable] Cxt SType
+
+   entail :: ClassEnv -> Cxt -> Pred -> Bool
+   entail ce ps p = ...
+   \end{haskellcode}
+
+   The first three lines were introduced in \autoref{sec:impl-types}
+   and are repeated here just to make it clearer. The intuition is
+   that \inlhask{entail} is given a class environment, a list of
+   predicates (the initial constraints for the type) and a predicate
+   that we want to find out if it is true or not given the class
+   environment and the constraints. If $ps$ is empty and $p$ is equal
+   to, for instance, \inlhask{ClassP "Num" (VarT (a, Forall))}, this
+   will correspond to finding an instance of \inlhask{Num a} in the
+   class environment $ce$. With this functio in place one must make
+   sure that class constraints are satisfied for a specific
+   constructor given the specialized type of the constructor together
+   with the class environment and class constraints of the current
+   goal type.
+
+   For instance, consider the following example during type matching
+   with some goal type \inlhask{Cxt => gt} against the following
+   constructor \inlhask{plus :: Num a => a -> a -> a}. For these
+   particular types, since $a$ is for all quantified, the substitution
+   $\{a \mapsto gt\}$ will be produced on line three in the
+   \inlhask{match} function found in \autoref{match}. This
+   substitution will then be applied to the type \inlhask{Num a => a -> a -> a}
+   producing \inlhask{Num gt => gt -> gt -> gt}. What needs to be done
+   is to find out if $gt$ really is an instance of the \inlhask{Num}
+   type class which is exactly what \inlhask{entail} is defined to do.
+   The constraints to send to this function is simply the constraints
+   found in our goal type, \inlhask{Cxt}. The next step is to identify
+   our predicate(s) to examine, in this case it will be
+   \inlhask{ClassP "Num" st} although in general it can be several if
+   for instance the type of our constructor is \inlhask{(Num a, Num b) => (a, b)} [fn:22].
+
+   If \inlhask{entail} returns true then it successfully found an
+   instance for \inlhask{Num st} and the constructor \inlhask{plus} is
+   safe to us as a constructor for a value of the current goal type.
+
+*** Entailment and undecided variables
+    The entail function used above and defined in \cite{thih} solves
+    the problem for the definition of types used in standard Haskell,
+    however, this project introduces another type that is not present
+    in standard Haskell, namely the type of undecided type variables.
+    Imagine that our current goal type is \inlhask{?a} and that
+    \inlhask{mempty :: Monoid m => m} is the current constructor. This
+    would introduce a guess for \inlhask{?a} as \inlhask{Monoid ?a => ?a}.
+    If the type for \inlhask{?a} is never fully realized, this could
+    actually result in a compile error. To see why consider the
+    following expressions:
+    \begin{alltt}
+    \(\lambda\)> :t const (5 :: Int) mempty
+
+    <interactive>:1:18:
+        No instance for (Monoid b0) arising from a use of `mempty'
+        The type variable `b0' is ambiguous
+    \(\lambda\)> :t const (5 :: Int) (mappend [] mempty)
+    const (5 :: Int) (mappend [] mempty) :: Int
+    \end{alltt}
+    In the first example, the type of \inlhask{mempty} would still be
+    \inlhask{?a}. In the second one, the type would have been further
+    specialized to \inlhask{[?a]} giving us an unambiguous instance
+    for the type class. This problem could be solved by trying to
+    default the instances to some instance in the class environment.
+    This is done in standard haskell most notably with the
+    \inlhask{Num} type class. The \inlhask{Exp} data type, see
+    \autoref{sec:impl-exp}, would then also have to be updated, by
+    adding a way to add type annotations to constructors if needed,
+    possibly with the following definition of \inlhask{ConE}:
+    \begin{haskellcode}
+    data Exp =
+        ConE Name (Maybe Type)
+      | ... -- As before
+    \end{haskellcode}
+
+*** Simulating type classes
+
 ** More expressions in =defineLanguage=
    \label{sec:fut-defineLanguage}
 
@@ -1975,3 +2065,7 @@ https://github.com/solarus/quickgen/blob/master/testing/GenTests.hs
 [fn:21] I.e. the type class \inlhask{MVector} in
 \inlhask{Data.Vector.Generic.Mutable} in the =vector= Haskell package
 can be found in the class environment.
+
+[fn:22] If this is the case then we need to call \inlhask{entail} with
+each of the predicates as the third argument and all of the predicates
+must be satisfied.
