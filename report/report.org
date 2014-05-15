@@ -758,6 +758,45 @@
     introduce mappings for undecided variables in $\mathbb{U}$ in
     \textsc{MatchAux}.
 
+*** Matching functions
+    One simplification to the problem of type matching was made in
+    this project. A simple example illustrates how this simplification
+    affects the type matching algorithm. Suppose we want to generate
+    an expression with goal type $Int$ using the API found in
+    \autoref{tbl:foldr-api} below:
+    #+CAPTION: API containing $head$
+    #+LABEL: tbl:foldr-api
+    #+ATTR_LATEX: :placement [H]
+    |   | Constructor name | Type                                  |
+    |---+------------------+---------------------------------------|
+    | / |              <r> |                                       |
+    |   |           $head$ | $[a] \ri a$                           |
+    |   |     $succ_{Int}$ | $Int \ri Int$                         |
+    |   |              $n$ | $Int$                                 |
+    |   |           $sing$ | $a \ri [a]$                           |
+    When the matching algorithm above matches $head$ with our current
+    goal type it would immediately notice that the return type of
+    $head$ is for all quantified and produce the substitution $\{
+    \mapsto Int\}$. The specialized type returned by the algorithm
+    would be $[Int] \ri Int$. However, this is not the only valid
+    specialization of this type to produce a constructor for this
+    goal. For instance, the expression below with type $Int$ can be
+    constructed manually from the API: \[ head~(sing~succ_{Int})~n \]
+    To be able to generate this expression, another specialization of
+    the type of $head$ would have to be considered: \[ [?b \ri Int]
+    \ri ?b \ri Int \] In general, there are an infinite number of
+    valid instantiations for a for all quantified type variable when
+    matching against a goal type $t$, each on the form: $?a_1 \ri
+    \ldots \ri ?a_n \ri t$ where $n$ can be zero. \citeauthor{mh} uses
+    this tactic when enumerating expressions in \cite{mh}.
+
+    In this project, it was decided to only consider the simple case,
+    when $n = 0$. This is since instantiations where $n > 1$ does not
+    make sense in several EDSL's, for instance Feldspar
+    \cite{feldspar}.
+
+    \todo{A more specific Feldspar reference? Ask emax}
+
 ** Generating expressions
    \label{algo:generate}
 
