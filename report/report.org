@@ -1850,9 +1850,6 @@
 ** Type matching
    \label{sec:fut-matching}
 
-** Rank >1 types
-   \todo{kanske ej skriva detta. Ändå inte haskell98/2010}
-
 ** Type variable arguments
    \label{sec:fut-typearg}
 
@@ -1888,9 +1885,6 @@
    variables. However, this update is highly dependent on first
    implementing type classes correctly which is discussed in
    \autoref{sec:fut-tc}.
-
-** Equality constraints
-   \todo{kanske ej skriva detta. Ändå inte haskell98/2010}
 
 ** Selecting a Class Environment
    \label{sec:fut-CE}
