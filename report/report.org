@@ -623,8 +623,6 @@
    With this small introduction it is time to look at the algorithm
    for the match function.
 
-   \note{Some info about why the undecided set is needed below? Refer to Generate code?}
-
    - Let $\mathbb{U}$ be a set of guesses for undecided
      variables[fn:13]. Then the \textsc{Match} function takes two
      types, $t_1$ and $t_2$, and finds out if the type $t_2$ can be
