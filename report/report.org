@@ -9,6 +9,7 @@
 #+LATEX_HEADER: \usepackage[justification=centering]{caption}
 #+LATEX_HEADER: \usepackage[style=alphabetic,citestyle=alphabetic]{biblatex}
 #+LATEX_HEADER: \addbibresource{references.bib}
+#+LATEX_CLASS: myreport
 #+LATEX_CLASS_OPTIONS: [draft]
 
 # #### Palatino font

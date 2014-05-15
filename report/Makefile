@@ -2,6 +2,7 @@ pdf:
 	emacs -q --batch \
 	  --eval "(setq package-load-list '((org t)))" \
 	  --eval "(package-initialize)" \
+	  --eval "(setq org-latex-classes '((\"myreport\" \"\\\documentclass[11pt]{report}\" (\"\\\chapter{%s}\" . \"\\\chapter*{%s}\") (\"\\\section{%s}\" . \"\\\section*{%s}\") (\"\\\subsection{%s}\" . \"\\\subsection*{%s}\") (\"\\\subsubsection{%s}\" . \"\\\subsubsection*{%s}\") (\"\\\paragraph{%s}\" . \"\\\paragraph*{%s}\"))))" \
 	  --eval "(setq org-latex-pdf-process '(\"pdflatex -interaction nonstopmode -shell-escape -output-directory %o %f\" \"biber %b.bcf\" \"pdflatex -interaction nonstopmode -shell-escape -output-directory %o %f\"))" \
 	  --visit report.org --funcall org-latex-export-to-pdf
 
