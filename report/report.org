@@ -1090,8 +1090,8 @@
 
      Currently the class environment is not used internally apart from
      being constructed in the Template Haskell module. Future work
-     regarding the usage of this type is discussed in section
-     \ref{sec:fut-matching}.
+     regarding the usage of this type is discussed in
+     \autoref{sec:fut-tc}.
 
 **** *Languages:*
      \label{types-languages}
