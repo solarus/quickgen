@@ -1158,16 +1158,17 @@
 ** Template Haskell
    \label{TH}
 
-   \begin{todo*}
-   This section is too damn long! Maybe only keep the pseudocode and
-   move parts to future work section
-   \end{todo*}
+   The library contains a small module named =TH= with two exported
+   Template Haskell functions, \inlhask{defineLanguage} and
+   \inlhask{getType}, that a user can use to construct a
+   \inlhask{Language} respectively a \inlhask{Type}. Example usage of
+   these functions are shown in \autoref{lst:th-example} below:
 
-   The library contains a small module =TH= with one exported Template
-   Haskell function =defineLanguage= that a user can use to construct
-   a =Language=. Below follows an example usage of this function:
-
+   \begin{listing}[H]
    \begin{haskellcode}
+   ty :: Type
+   ty = $(getType [t| forall a b. (a -> b) -> [a] -> [b] |])
+
    genInt = 0 :: Int
    nil  = []
    cons = (:)
@@ -1177,20 +1178,35 @@
                               , id, map
                               ) |])
    \end{haskellcode}
+   \caption{Example usage of \texttt{getType} and \texttt{defineLanguage}.} \label{lst:th-example}
+   \end{listing}
 
-   As you might suspect, it is currently not possible to directly
-   include \inlhask{(:)} and \inlhask{[]}, the only thing that is
-   accepted is names of functions. How one might possibly add this
-   functionality is discussed in section \ref{sec:fut-defineLanguage}.
+   The \inlhask{getType} function simply converts a type represented
+   in a Template Haskell data type into the representation used by
+   this library. This function can be used to easily construct goal
+   types to be used together with the \inlhask{generate} function
+   introduced in \autoref{sec:generate} below.
 
-   There is also one additional form when specifying API functions:
+   The \inlhask{defineLanguage} function, also seen in the example
+   above, takes a tuple containing the constructors that should be
+   available when generating expressions. The observant reader might
+   notice the usage of \inlhask{nil} and \inlhask{cons} instead of the
+   more common \inlhask{[]} and \inlhask{(:)}. In the current version
+   of the library, it is not possible to directly include the latter
+   constructors in the API definition, the only values that are
+   accepted are variable names. How one might possibly extend the
+   definition of \inlhask{defineLanguage} to include other types of
+   expressions is discussed in section \ref{sec:fut-defineLanguage}.
 
+   One additional form when specifying a constructor in the API is
+   also allowed:
    \begin{haskellcode}
    $(defineLanguage [| (map :: (a -> Int) -> [a] -> [Int], id) |])
    \end{haskellcode}
-
-   This specializes the type of \inlhask{map} so that it can only be
-   used to construct expressions of type \inlhask{[Int]}.
+   This would specialize the type of \inlhask{map} so that it can only
+   be used to construct expressions of type \inlhask{[Int]}. The
+   constructor \inlhask{id} however, having no type annotation, would
+   still be associated with its most general type, \inlhask{a -> a}.
 
 *** Calculating a class environment
     \label{sec:calc-ce}
