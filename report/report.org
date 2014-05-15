@@ -941,6 +941,8 @@
   functions in question.
 
 ** Types and expressions
+   \todo{text here}
+
 *** Variables, Forall and Undecided
     \label{variables}
 
