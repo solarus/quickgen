@@ -177,9 +177,13 @@
 ** Introducing QuickGen
    In this report the Haskell library \quickgen is presented, usable
    for producing higher order functional terms with polymorphic type
-   variables. A /Language/ is simply defined in Template Haskell
-   \cite{TH}, by specifying the functions and values available during
-   term generation:
+   variables. This library was successfully used to define a generator
+   producing expressions similar to those produced by the hand-made
+   generator used by \citeauthor{copilot} in \cite{copilot}.
+
+   A /Language/ is simply defined in Template Haskell \cite{TH}, by
+   specifying the functions and values available during term
+   generation:
 
    \begin{haskellcode}
    lang :: Language
@@ -194,7 +198,7 @@
    \end{haskellcode}
 
    A specific library function is responsible for generating
-   expressions given a language:
+   expressions given a language, a /goal type/ and a random seed:
 
    \begin{haskellcode}
    generate :: Language -> Type -> Seed -> Maybe Exp
@@ -215,20 +219,27 @@
    turned into real Haskell terms by using, for instance, the GHC API
    \cite{ghcapi}.
 
-   \begin{todo*}
-   Behöver testa quickgen på någonting ordentligt och skriva example
-   usage först innan jag kan avsluta denna delsektion. Här vill jag
-   skriva någonting i stil med: "Finally, \quickgen was successfully
-   used to produce terms within a selection of haskell DSLs. These
-   terms were in term used to correctly identify certain (artificially
-   introduced?) flaws in the implementation of the language.
-   \end{todo*}
-
 ** Related work
 
-\newpage
+** Structure
+   This thesis starts in \autoref{chap:algo} with a formal definition
+   of the algorithms used when generating expressions. Some
+   limitations are also discussed here. After this, in
+   \autoref{chap:impl}, the implementation as it looks in the
+   programming language Haskell \cite{haskell2010} is discussed. This
+   chapter can be used as an extended documentation to the
+   implementation. Example usage of the library is presented in
+   \ref{chap:examples}. Among others, a generator mimicking the
+   behaviour of the hand-made generator used when testing the EDSL
+   Copilot is defined and discussed. The last two chapters,
+   \autoref{chap:fut} and \ref{chap:conclusions}, discusses future
+   work and the conclusions of the project respectively.
+
+   \newpage
 
 * Algorithm
+  \label{chap:algo}
+
   This section is dedicated to the formal definition of the algorithm
   used to generate expressions from a user API. The first part
   contains an example run of the complete algorithm followed by
@@ -912,7 +923,7 @@
    \todo{Förklaring av hur konstruktorer väljs? Dvs om randomMatching}
 
 * Implementation
-  \label{sec:impl}
+  \label{chap:impl}
 
   In this chapter the current implementation is explained thoroughly.
   First the data types used to represent, for instance, types and
@@ -1422,6 +1433,8 @@
     \newpage
 
 * Example usage
+  \label{chap:examples}
+
   In this section, some example usage of \quickgen is presented. The
   first example we look at is a simple language from the test suite
   included in the library. This example includes generating both
@@ -1807,7 +1820,7 @@
 ** Summary
    This section started with a demonstration of one of the test cases
    bundled with the \quickgen library. This particular example usage
-   showed how to use the functions introduced in \ref{sec:impl} to
+   showed how to use the functions introduced in \ref{chap:impl} to
    describe an API later used when generating, for instance, higher
    order functions. Fairly complicated expressions was generated quite
    quickly, averaging about 100 ms per expression, while still using
@@ -1827,6 +1840,8 @@
 \newpage
 
 * Future work
+  \label{chap:fut}
+
   Due to time limitations the scope and complexity of the project was
   reduced by limiting the implementation of the final project. This
   chapter discusses all these limitations and how they affect the
@@ -2109,11 +2124,8 @@
 
    \newpage
 
-* Related work
-
-\newpage
-
 * Conclusions
+  \label{chap:conclusions}
 
 \newpage
 
