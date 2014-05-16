@@ -998,15 +998,17 @@ reduced when compared to the previous one.
   part of the library is discussed and some examples are presented.
 
   Finally, the implementation of the code generation and matching is
-  presented thoroughly. Initially a high level description of the
-  implementation is presented together with a explanation of how the
-  different functions fit together. Later the most important functions
-  are presented in detail. This is done by reasoning about several
+  presented. Initially a high level description of the implementation
+  is presented together with a explanation of how the different
+  functions fit together. Later the most important functions are
+  presented in detail. This is done by reasoning about several
   edge-cases, invariants and the actual implementation of the
   functions in question.
 
 ** Types and expressions
-   \todo{text here}
+   This section provides an overview of the data types that were
+   defined to more easily describe the different parts of the
+   algorithm as defined in \autoref{chap:algo}.
 
 *** Variables, Forall and Undecided
     \label{variables}
