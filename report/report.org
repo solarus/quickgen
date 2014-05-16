@@ -2190,8 +2190,6 @@ reduced when compared to the previous one.
       | ... -- As before
     \end{haskellcode}
 
-*** Simulating type classes
-
 ** More expressions in =defineLanguage=
    \label{sec:fut-defineLanguage}
 
