@@ -235,6 +235,58 @@ reduced when compared to the previous one.
    \cite{ghcapi}.
 
 ** Related work
+   Generating higher-order terms and functions have been the subject
+   of some research recently. For instance, in \cite{lambda} a
+   generator very similar to the one presented in this thesis is
+   introduced. This generator was successfully used to discover bugs
+   in the Glasgow Haskell Compiler (GHC) \cite{ghc}. This project also
+   takes some inspiration from other research in related areas
+   presented below[fn:23].
+
+*** Inductive programming
+    In the field of inductive programming \cite{ip}, the interest lies
+    in generating a program from an incomplete specification. For
+    instance, in \cite{mh}, \citeauthor{mh} presents a generator that
+    searches for all expressions, in a breadth-first manner, matching
+    a goal type and at the same time satisfies a predicate.
+
+*** Efficient enumeration
+    In \cite{feat} a library for defining enumerations of arbitrary
+    algebraic data types is developed. These enumerations can also be
+    indexed efficiently. As an example the term at position $10^{100}$
+    for the very complicated =Exp= data type found in Template Haskell
+    is generated in less than a second on a normal desktop computer.
+
+*** Theorem proving
+    \citeauthor{djinn} presents a library for generating expressions
+    in Haskell given a type \cite{djinn}. These terms are constructed
+    with the help of a theorem prover for intuitionistic propositional
+    logic by encoding types as logical statements. This theorem
+    prover, and theorem provers in general, will find any, often
+    minimal, proof of the statement and is therefore not suitable for
+    generating random terms.
+
+** Problem and goal
+   The goal of this project is to implement a reusable library, in the
+   programming language Haskell, for defining generators for functions
+   and values, possibly of higher order and/or polymorphic type, to be
+   used as test data while testing an Embedded Domain Specific
+   Language (EDSL).
+
+   The problem is closely related to the goal statement in the sense
+   that no such library for easily defining specialized generators for
+   an EDSL exists, capable of generating any standard Haskell
+   expression of a given goal type while using a user specified API.
+   Here any means functions and values, possibly higher order and
+   containing polymorphic type variables. In the best case scenario,
+   this generator would also be able to construct terms using
+   constructors with types containing type classes.
+
+   The goal is considered reached when the library has been
+   successfully used to generate terms similar to those produced by an
+   existing hand-made generator for a real world EDSL or alternatively
+   to use the library to find either existing or artificially
+   introduced bugs in an EDSL without such a predefined generator.
 
 ** Structure
    This thesis starts in \autoref{chap:algo} with a formal definition
@@ -2229,3 +2281,6 @@ can be found in the class environment.
 [fn:22] If this is the case then we need to call \inlhask{entail} with
 each of the predicates as the third argument and all of the predicates
 must be satisfied.
+
+[fn:23] Indeed, the interface in the =Testing.QuickGen.TH= Haskell
+module was greatly inspired by the one used in \cite{mh}.
