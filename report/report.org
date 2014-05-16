@@ -1625,6 +1625,8 @@ reduced when compared to the previous one.
    remains low for the whole duration of the test.
 
 ** a Do-it-yourself High-Assurance compiler
+   \label{sec:copilot-example}
+
    The Copilot EDSL is designed to monitor C programs by periodically
    sampling variables, arrays and return values of side-effect free
    functions \cite{copilot}. A stream of sampled values with type
@@ -1983,10 +1985,17 @@ reduced when compared to the previous one.
    type classes not being fully implemented, the API used in the
    former generator was more restrictive than the one available in the
    Copilot counterpart. The defined generator was also noticeably
-   slower than the existing one but wass still fast enough to be
+   slower than the existing one but was still fast enough to be
    considered usable. The biggest gain was noticed when comparing code
    size. The generator defined in \quickgen was about 25 percent the
    size of its counterpart.
+
+   Finally, a generator for the EDSL Feldspar was defined. The API in
+   this example, while small, contained functions taking higher order
+   arguments with polymorphic types. However, no bugs was found in the
+   Language using the API and a goal type of \inlhask{Data WordN}. At
+   this point, a bug was artificially introduced in the language and
+   quickly discovered by the testing procedure.
 
 \newpage
 
