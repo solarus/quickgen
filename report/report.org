@@ -868,10 +868,11 @@ reduced when compared to the previous one.
 
     In this project, it was decided to only consider the simple case,
     when $n = 0$. This is since instantiations where $n > 1$ does not
-    make sense in several EDSL's, for instance Feldspar
-    \cite{feldspar}.
-
-    \todo{A more specific Feldspar reference? Ask emax}
+    make sense in several EDSL's, for instance in the Feldspar core
+    language \cite{feldspar}. Furthermore, such instantiations taking
+    extra arguments stops producing interesting terms for testing
+    after a while. In \cite{lambda}, setting $n > 1$ already did not
+    give any advantage in testing[fn:24].
 
 ** Generating expressions
    \label{algo:generate}
@@ -1931,9 +1932,6 @@ reduced when compared to the previous one.
   final product. Further, each subsection contains a short discussion
   about how one might extend the library to eliminate the limitation.
 
-** Type matching
-   \label{sec:fut-matching}
-
 ** Type variable arguments
    \label{sec:fut-typearg}
 
@@ -2284,3 +2282,8 @@ must be satisfied.
 
 [fn:23] Indeed, the interface in the =Testing.QuickGen.TH= Haskell
 module was greatly inspired by the one used in \cite{mh}.
+
+[fn:24] In any case, if this functionality is needed in the future, it
+can be implemented by redefining the \textsc{Match} procedure, see
+\ref{algo:match}, to return a list of specialized types (for each $0
+\leq i \leq n$) and letting $n$ be a user configurable parameter.
