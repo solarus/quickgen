@@ -986,8 +986,6 @@ reduced when compared to the previous one.
      the complete expression $n$ applied to the arguments
      $e_1~\ldots~e_m$.
 
-   \todo{Förklaring av hur konstruktorer väljs? Dvs om randomMatching}
-
 * Implementation
   \label{chap:impl}
 
