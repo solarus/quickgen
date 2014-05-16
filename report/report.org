@@ -117,7 +117,21 @@
 \textbf{\large{Abstract}}
 \end{center}
 
-\todo{Skriv abstract!}
+In this thesis, a reusable library for defining generators for
+well-typed expressions in standard Haskell is presented. The
+expressions are randomly constructed from a set of functions and
+values specified by a user. Both the types of these functions and the
+type of the generated expression can be polymorphic and/or higher
+order, i.e., containing functions with polymorphic types as arguments.
+The main motivation for this library is for generating test data when
+testing an Embedded Domain Specific Language (EDSL) where constructing
+a generator for the language by hand might be both tedious and
+error-prone.
+
+The library was successfully used to define a generator producing
+terms similar to those computed by such a hand-made generator. The
+code size and complexity of the final generator was significantly
+reduced when compared to the previous one.
 
 \newpage
 
