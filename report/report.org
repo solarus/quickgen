@@ -121,7 +121,7 @@ Göteborg, Sweden, \mydate\today
 The Author grants to Chalmers University of Technology and University
 of Gothenburg the non-exclusive right to publish the Work
 electronically and in a non-commercial purpose make it accessible on
-the Internet. The Author warrants that he/she is the author to the
+the Internet. The Author warrants that he is the author to the
 Work, and warrants that the Work does not contain text, pictures or
 other material that violates copyright law.
 
@@ -129,7 +129,7 @@ The Author shall, when transferring the rights of the Work to a third
 party (for example a publisher or a company), acknowledge the third
 party about this agreement. If the Author has signed a copyright
 agreement with a third party regarding the Work, the Author warrants
-hereby that he/she has obtained any necessary permission from this
+hereby that he has obtained any necessary permission from this
 third party to let Chalmers University of Technology and University of
 Gothenburg store the Work electronically and make it accessible on the
 Internet.
@@ -248,7 +248,7 @@ reduced when compared to the previous one.
    removed from the API, these functions only need to be added or
    removed from the list of available functions supplied to the
    procedure. Even better, if the AST or the functions in the API are
-   changed, no changes are needed for the term generation procedure.
+   changed, no changes are required for the term generation procedure.
 
 ** Introducing QuickGen
    In this report, the Haskell library \quickgen is presented, usable
@@ -510,7 +510,7 @@ reduced when compared to the previous one.
    \label{sec:undecided}
 
    When generating $e_1$ in section \ref{sec:example} above, two
-   different cases were considered. In the first one, the undecided
+   different cases were considered. In the first case, the undecided
    variable $?a$ was never instantiated. The second one showed that a
    guess made for an undecided variable in one part needs to be
    remembered in the rest of the generation process. How this
@@ -549,8 +549,8 @@ reduced when compared to the previous one.
    The set of guesses, $\mathbb{U}$, is also consulted before trying
    to match a goal with any constructor $c$ from the API since the
    type of $c$ might also contain undecided variables. Finally, when a
-   guess for an undecided variable is performed[fn:27], this guess
-   needs to be stored in $\mathbb{U}$.
+   guess for an undecided variable is performed[fn:27], this guess is
+   recorded in $\mathbb{U}$.
 
    \pagebreak
 
@@ -627,7 +627,7 @@ reduced when compared to the previous one.
     \label{sec:algo-termination}
 
     There is one simplification to the simple algorithm presented
-    above that needs to be mentioned. The algorithm if implemented
+    above that need to be mentioned. The algorithm if implemented
     directly is not guaranteed to terminate. To see why, consider the
     following example:
 
@@ -906,7 +906,7 @@ reduced when compared to the previous one.
     quantified type variable in a type $t$ with a natural number
     before supplying $t$ as the second argument to \textsc{Match}.
     Start with $n := 0$ which represents the next unique natural
-    number to be used in a type. Then the general procedure is defined
+    number to be used in a type. The general procedure is defined
     as follows:
 
     - For some type $t$ find the set of forall quantified type
@@ -1029,7 +1029,7 @@ reduced when compared to the previous one.
      \autoref{sec:algo-sgo}. If any of the expressions fails to
      generate, i.e. if $me = \mathtt{Nothing}$, then $\Gamma$ and
      $\mathbb{U}$ is reset and \texttt{Nothing} is returned.
-     Otherwise, all the expressions $e_i$ was set and we can return
+     Otherwise, all the expressions $e_i$ were set and we can return
      the complete expression $n$ applied to the arguments
      $e_1~\ldots~e_m$.
 
@@ -1175,8 +1175,7 @@ reduced when compared to the previous one.
     constraints on these variables, in types. The second data type,
     \inlhask{SType}, has constructors for representing functions,
     variables, constructors and lists. For instance, the implicitly
-    forall quantified type \inlhask{a -> b -> b} could be represented
-    as:
+    forall quantified type $a \ri b \ri b$ could be represented as:
 
     \begin{haskellcode}
     Type [(0, Forall), (1, Forall)] [] (FunT [ VarT (1, Forall)
@@ -1455,7 +1454,7 @@ reduced when compared to the previous one.
     used when generating values. However, the proposed algorithm has
     some problems when applied to, for instance, the list
     \inlhask{[Num]}. The resulting class environment is calculated
-    very quickly but then compiling this value again might take
+    very quickly, but then compiling this value again might take
     noticable time even on a modern computer. The reason is that the
     class environment calculated using this algorithm grows very large
     due to the large amount of instances available in GHC.
@@ -1512,7 +1511,7 @@ reduced when compared to the previous one.
     generate is \inlhask{Int -> Double -> Int}, then the starting
     stack of contexts would be a singleton list only containing
     \inlhask{map} and \inlhask{id}. The next step would introduce a
-    lambda abstraction \inlhask{\\ x y -> ...}, effectively adding one
+    lambda abstraction \inlhask{\x y -> ...}, effectively adding one
     more \inlhask{Context}, containing the values \inlhask{x} and
     \inlhask{y} [fn:6], to the stack of contexts and continue to
     generate an expression of type \inlhask{Int} at the point of the
@@ -1705,10 +1704,10 @@ reduced when compared to the previous one.
    string and compiles this string as an expression using the modules
    loaded into scope. If successful, a value that can safely be cast
    into a list of integers is returned. The compilation can fail,
-   however, with a similar error message that the GHC compiler reports
-   for incorrect source files. If this happens, the current test case
-   will be aborted, and the compilation error message will be
-   displayed for the user.
+   however, with a similar error message that GHC reports for
+   incorrect source files. If this happens, the current test case will
+   be aborted, and the compilation error message will be displayed for
+   the user.
 
    The function \inlhask{checkTypeListInt} and the respective function
    for the polymorphic test case are then called 50 times each to
@@ -1827,13 +1826,13 @@ reduced when compared to the previous one.
     functions was specialized to a selected subset of the types within
     the type class. For instance, instead of having the more general
     function \inlhask{app :: Typed a => [a] -> Stream a -> Stream a}
-    in the API, two specialized versions[fn:15] of this function was
+    in the API, two specialized versions[fn:15] of this function were
     defined and included instead. The complete API can be found in
     \autoref{lst:copilot-api}.
 
     This API contains a selection of the functions and values
     available when creating specifications using the Copilot EDSL.
-    Before continuing, some things needs pointing out. First of all,
+    Before continuing, some things need pointing out. First of all,
     the function \inlhask{drop}, used in listing \ref{lst:copilot-fib}
     above, has been left out of the API because of some issues with
     totality of this function. Secondly, the API contains functions
@@ -1915,10 +1914,10 @@ reduced when compared to the previous one.
     \caption{The initial API used when generating Copilot expressions.}\label{lst:copilot-api}
     \end{listing}
 
-    To generate the list of streams, \inlhask{s_1 ... s_n}, a
-    function that starts with \inlhask{lang} as the initial API and
-    then incrementally adds streams to the API, as they are generated,
-    was defined:
+    To generate the list of streams, \inlhask{s_1 ... s_n}, a function
+    that starts with \inlhask{lang} as the initial API and
+    incrementally adds streams to the API, as they are generated, was
+    defined:
 
     \begin{haskellcode}
     type CopilotName = String
@@ -1954,7 +1953,7 @@ reduced when compared to the previous one.
     this extra step in the generation process.
 
     Finally the \inlhask{genTriggers} and \inlhask{genSpec} functions
-    was defined to generate triggers and a complete spec respectively.
+    were defined to generate triggers and a complete spec respectively.
 
     \pagebreak
 
@@ -2021,13 +2020,13 @@ reduced when compared to the previous one.
    found in \autoref{appendix:feldspar-api}.
 
    To test that, for instance, optimizations does not change the
-   behaviour of the program, we will need two evaluation functions,
+   behaviour of the program, we will require two evaluation functions,
    one that optimizes the program and evaluates it and another one
    just performing the evaluations. We will call these evaluation
    procedures $\textsc{Eval}_{opt}$ and $\textsc{Eval}$ respectively.
    To test the optimizations done by the language, we need to generate
-   and compile an expression $e$. We then proceed by comparing the
-   output of running both $\text{Eval}_{opt}(e)$ and $\text{Eval}(e)$.
+   and compile an expression $e$. We proceed by comparing the output
+   of running both $\text{Eval}_{opt}(e)$ and $\text{Eval}(e)$.
 
    Unfortunately, Feldspar does not export an evaluation function
    matching the behaviour of $\textsc{Eval}$, there is however, a
@@ -2035,11 +2034,10 @@ reduced when compared to the previous one.
    $\textsc{Eval}_{opt}$. To continue, another evaluation function,
    having the correct behaviour, was defined and added to
    Feldspar[fn:25]. Next, a procedure was defined to repeatedly call
-   \inlhask{gen} followed by compiling the generated expressions
-   using \inlhask{compileExpr} from the GHC API. The result of
-   evaluating the compiled expressions using the two evaluation
-   functions, $\textsc{Eval}_{opt}$ and $\textsc{Eval}$, was then
-   compared.
+   \inlhask{gen} followed by compiling the generated expressions using
+   \inlhask{compileExpr} from the GHC API. The result of evaluating
+   the compiled expressions using the two evaluation functions,
+   $\textsc{Eval}_{opt}$ and $\textsc{Eval}$, were then compared.
 
    Using the API found in \autoref{appendix:feldspar-api}, no bugs
    were discovered for the particular type of expressions generated.
@@ -2071,7 +2069,7 @@ reduced when compared to the previous one.
 
    Finally, a generator for the EDSL Feldspar was defined. The API in
    this example, while small, contained functions taking higher order
-   arguments with polymorphic types. However, no bugs was found in the
+   arguments with polymorphic types. However, no bugs were found in the
    Language using the API and a goal type of \inlhask{Data WordN}. At
    this point, a bug was artificially introduced into the language.
    This bug was then quickly discovered by a simple testing procedure.
@@ -2135,8 +2133,8 @@ reduced when compared to the previous one.
    - Instead of automatically trying to calculate the complete class
      environment, a user could specify exactly which instances of a
      particular type class they are interested in at the same time an
-     API is specified. Only these specific instances are then added to
-     the class environment. Let us look at some of the instances of
+     API is specified. Thus, only those specific instances are added
+     to the class environment. Let us look at some of the instances of
      the \inlhask{Monoid} type class as an example:
 
      \begin{listing}[H]
@@ -2225,7 +2223,7 @@ reduced when compared to the previous one.
    particular types, since $a$ is forall quantified, the substitution
    $\{a \mapsto gt\}$ will be produced on line three in the
    \inlhask{match} function found in \autoref{match}. This
-   substitution will then be applied to the type \inlhask{Num a => a -> a -> a}
+   substitution is applied to the type \inlhask{Num a => a -> a -> a}
    producing \inlhask{Num gt => gt -> gt -> gt}. What needs to be done
    is to find out if $gt$ really is an instance of the \inlhask{Num}
    type class which is exactly what \inlhask{entail} is defined to do.
@@ -2235,9 +2233,9 @@ reduced when compared to the previous one.
    \inlhask{ClassP "Num" st} although in general it can be several if,
    for instance, the type of our constructor is \inlhask{(Num a, Num b) => (a, b)} [fn:22].
 
-   If \inlhask{entail} returns true then it successfully found an
-   instance for \inlhask{Num st} and the constructor \inlhask{plus} is
-   safe to use as a constructor for a value of the current goal type.
+   If \inlhask{entail} returns true, it successfully found an instance
+   for \inlhask{Num st} and the constructor \inlhask{plus} is safe to
+   use as a constructor for a value of the current goal type.
 
 *** Entailment and undecided variables
     The \inlhask{entail} function used above, as defined in
@@ -2267,9 +2265,9 @@ reduced when compared to the previous one.
     default the instances to some instance in the class environment.
     This is done in standard Haskell most notably with the
     \inlhask{Num} type class. The \inlhask{Exp} data type, see
-    \autoref{sec:impl-exp}, would then also have to be updated, by
-    adding a way to add type annotations to constructors if needed,
-    possibly with the following definition of \inlhask{ConE}:
+    \autoref{sec:impl-exp}, would also have to be updated, by adding a
+    way to add type annotations to constructors if needed, possibly
+    with the following definition of \inlhask{ConE}:
     \begin{haskellcode}
     data Exp =
         ConE Name (Maybe Type)
@@ -2339,13 +2337,13 @@ reduced when compared to the previous one.
    as a parameter and producing a weight for its particular
    constructor at the current depth. A higher weight would then equate
    to a higher probability to be chosen as a constructor for the
-   current goal type. These functions could then, for instance, be
-   defined to favour constructors with many subgoals at lower depths
-   and to favour constructors with few goals at deeper levels of
-   recursion. It might even be interesting to let a user partially
-   specify how these weights are calculated for certain constructors
-   in the API since this would improve the usability of the library
-   for generating expressions.
+   current goal type. These functions could, for instance, be defined
+   to favour constructors with many subgoals at lower depths and to
+   favour constructors with few goals at deeper levels of recursion.
+   It might even be interesting to let a user partially specify how
+   these weights are calculated for certain constructors in the API
+   since this would improve the usability of the library for
+   generating expressions.
 
 ** Compiling expressions
    Currently, one of the only ways to compile generated expressions is
@@ -2356,7 +2354,7 @@ reduced when compared to the previous one.
    depend on the GHC API. In addition, it also has to include modules
    and source code, containing the API used by the generated
    expressions, while compiling the expression. A more automated way
-   to construct real executable values from expressions is needed.
+   to construct real executable values from expressions is required.
 
    In \cite{mh}, in addition to storing the type and name of a
    constructor in the language definition, a value of the data type
@@ -2375,7 +2373,7 @@ reduced when compared to the previous one.
    type classes, this is no longer possible since the complete
    instance for a type class needs to be fully realized to be able to
    find the concrete function to be executed. The following session in
-   ghci should describe the problem:
+   =ghci= should describe the problem:
 
    \begin{alltt}
    \(\lambda\)> let hId = HV (unsafeCoerce id)
@@ -2394,7 +2392,7 @@ reduced when compared to the previous one.
   \label{chap:conclusions}
 
   In this thesis, the formal definition and implementation of the
-  Haskell library \quickgen was presented. This library was used to
+  Haskell library \quickgen were presented. This library was used to
   define a generator, producing terms similar to those generated by
   the hand-made generator already defined for the EDSL Copilot.
   Unfortunately, due to type classes not being fully implemented, the
@@ -2402,16 +2400,15 @@ reduced when compared to the previous one.
   Furthermore, because of the same limitation, it did not generate
   expressions using the full range of types available in the language.
 
-  Another generator was then defined for the EDSL Feldspar. A testing
+  Another generator was defined for the EDSL Feldspar. A testing
   procedure was also defined to discover bugs in the implementation of
-  the language. Even though no bugs was found, by artificially
-  introducing bugs these was quickly discovered by the procedure. This
-  leads us to conclude that \quickgen can be successfully used to
-  perform simple regression testing when implementing or enhancing an
-  EDSL.
+  the language. Even though no bugs were found, an artificially
+  introduced bug was quickly discovered by the procedure. This leads
+  us to conclude that \quickgen can successfully be used to perform
+  simple regression testing when implementing or enhancing an EDSL.
 
   However, additional work to make the library fully usable is
-  required. For instance, support of type classes is one of the key
+  required. For instance, support for type classes is one of the key
   features missing from the library. Furthermore, defining a generator
   is currently a bit more complex than the author initially imagined.
   Automating this task somehow would further improve the usability of
@@ -2524,7 +2521,7 @@ infinite loop.
 
 [fn:7] The other one being \inlhask{generate'}.
 
-[fn:8] Normal matching only needs to look at forall quantified type variables.
+[fn:8] Normal matching only need to look at forall quantified type variables.
 
 [fn:9] Since $t_2$ is a function type.
 
@@ -2539,7 +2536,7 @@ to \textsc{Match}.
 [fn:13] A more detailed explanation about $\mathbb{U}$ is found in
 section \ref{sec:undecided}.
 
-[fn:14] The /copilot-core/ haskell package \cite{copilot-core} also
+[fn:14] The /copilot-core/ Haskell package \cite{copilot-core} also
 defines one more mechanism in its \inlhask{Spec} data type called an
 /observer/. This mechanism is not generated by the handmade generator
 for Copilot programs included in this same package and is therefore
@@ -2568,19 +2565,19 @@ https://github.com/solarus/quickgen/blob/master/testing/GenTests.hs
 \inlhask{Data.Vector.Generic.Mutable} in the =vector= Haskell package
 can be found in the class environment.
 
-[fn:22] If this is the case then we need to call \inlhask{entail} with
-each of the predicates as the third argument and all of the predicates
-must be satisfied.
+[fn:22] If this is the case we have to call \inlhask{entail} with each
+of the predicates as the third argument and all of the predicates must
+be satisfied.
 
 [fn:23] Indeed, the interface in the =Testing.QuickGen.TH= Haskell
 module was greatly inspired by the one used in \cite{mh}.
 
-[fn:24] In any case, if this functionality is needed in the future, it
-can be implemented by redefining the \textsc{Match} procedure, see
+[fn:24] In any case, if this functionality is required in the future,
+it can be implemented by redefining the \textsc{Match} procedure, see
 \ref{algo:match}, to return a list of specialized types (for each $0
 \leq i \leq n$) and letting $n$ be a user configurable parameter.
 
-[fn:25] The needed changes can be found in
+[fn:25] The required changes can be found in
 \autoref{appendix:feldspar}.
 
 [fn:26] There is actually an infinite number of ways to instantiate
