@@ -6,11 +6,17 @@
 #+LATEX_HEADER: \usepackage[usenames,dvipsnames]{xcolor}
 #+LATEX_HEADER: \usepackage{lipsum, minted, fancyhdr, xspace, algpseudocode, algorithm, mathtools}
 #+LATEX_HEADER: \usepackage{ifdraft, listings, alltt}
+#+LATEX_HEADER: \usepackage{xcolor, hyperref}
+#+LATEX_HEADER: \hypersetup{
+#+LATEX_HEADER:   colorlinks=true,
+#+LATEX_HEADER:   linkcolor=darkgray,
+#+LATEX_HEADER:   citecolor=darkgray, urlcolor=darkgray
+#+LATEX_HEADER: }
 #+LATEX_HEADER: \usepackage[justification=centering]{caption}
 #+LATEX_HEADER: \usepackage[style=alphabetic,citestyle=alphabetic]{biblatex}
 #+LATEX_HEADER: \addbibresource{references.bib}
 #+LATEX_CLASS: myreport
-#+LATEX_CLASS_OPTIONS: [draft]
+# +LATEX_CLASS_OPTIONS: [draft]
 
 # #### Palatino font
 #+LATEX_HEADER: \usepackage[sc]{mathpazo}
@@ -72,8 +78,8 @@
 \algtext*{EndFor}
 
 %%% Example stuff
-\newcounter{myexample}[section]
-\numberwithin{myexample}{section}
+\newcounter{myexample}[chapter]
+\numberwithin{myexample}{chapter}
 \newcommand{\example}{\refstepcounter{myexample}\textbf{Example} \themyexample:\xspace}
 \newcommand{\examplelabel}[1]{\example\label{#1}}
 
@@ -87,13 +93,13 @@
 %%% Front page
 \thispagestyle{empty}
 \begin{center}
-\includegraphics{logo_gu.eps}
+\includegraphics{logo_gu2.eps}
 
 \vspace{2cm}
 
-\hrule \bigskip
+\bigskip
 {\Huge API-driven generation of well-typed terms} \bigskip
-\hrule
+\emph{\Large Masters of Science in Computer Science}
 
 \vspace{1.5cm}
 
@@ -146,59 +152,59 @@ reduced when compared to the previous one.
 \setcounter{page}{1}
 
 * Introduction
-  When developing a compiler for a Domain Specific Language (DSL) one
-  often want to test certain aspects of the compiler. For instance,
-  testing that the result of evaluating an expression produces the
-  same result both before and after certain optimizations. One way to
-  achieve this is to design unit tests that cover all developed
-  optimizations. This approach has several limitations. For instance,
-  when new optimizations are added, new unit tests have to be
-  developed. Similarly, when optimizations are modified, the
-  corresponding unit tests have to be updated.
+  When developing a compiler for an Embedded Domain Specific Language
+  (EDSL) one often want to test certain aspects of the compiler. For
+  instance, testing that the result of evaluating an expression
+  produces the same result both before and after certain
+  optimizations. One way to achieve this is to design unit tests that
+  cover all developed optimizations. This approach has several
+  limitations, for instance, when new optimizations are added, new
+  unit tests have to be developed. Similarly, when optimizations are
+  modified, the corresponding unit tests have to be updated.
 
-  Instead, when testing compilers, it might be possible to construct a
+  Instead, when testing compilers, it is possible to construct a
   generator for random Abstract Syntax Trees (AST) of the given
-  language and use this generator to test the optimizations. However,
-  these ASTs might have several invariants and constructing a
+  language and use this generator to test the optimization procedures.
+  However, these ASTs might have several invariants and constructing a
   generator producing only valid ASTs might be non-trivial. One
   solution to this problem is to only use smart constructors given by
   an Application Programming Interface (API) to produce values of the
   requested type. However, combining these smart constructors in a
-  sensible way might be equally non-trivial.
+  type-correct way might be equally non-trivial.
 
   Aspects of the compiler other than optimizations can also be tested
   in similar ways. One example is testing that interpreting a program
   versus compiling and executing it produces the same result. This
   test and several others has similar preconditions as the
   optimization tests, it requires that a program is somehow generated
-  or constructed before the test in question can finish.
+  or constructed before the test in question can be run.
 
 ** Random generation
    Instead of creating a generator for an AST manually one might want
-   to randomly generate expressions inside the AST by using functions
-   from an API instead. This is valid since all meaningful terms in
-   the AST should be describable somehow from the API provided by the
-   DSL. What is missing is a procedure taking a number of functions,
-   used to produce values within an AST, together with an additional
-   goal type that should be the final type for the generated
-   expression. This procedure could be called repeatedly to find
-   different random values of the goal type withing the AST. If
-   functions is added or removed from the API, these functions only
-   needs to be added respectively removed from the list of available
-   functions supplied to the procedure. Furthermore, if the AST or the
-   functions in the API is changed somehow, no changes is needed for
-   the term generation procedure.
+   to randomly generate values of the AST by using functions from an
+   API instead. This is reasonably since all meaningful terms in the
+   AST should be describable somehow from the API provided by the DSL.
+   What is missing is a procedure taking a number of functions, used
+   to produce values within an AST, together with a goal type that
+   should be the final type for the generated expression. This
+   procedure could be called repeatedly to find different random
+   values of the goal type within the AST. If functions are added or
+   removed from the API, these functions only need to be added or
+   removed from the list of available functions supplied to the
+   procedure. Even better, if the AST or the functions in the API are
+   changed, no changes are needed for the term generation procedure.
 
 ** Introducing QuickGen
-   In this report the Haskell library \quickgen is presented, usable
-   for producing higher order functional terms with polymorphic type
-   variables. This library was successfully used to define a generator
-   producing expressions similar to those produced by the hand-made
-   generator used by \citeauthor{copilot} in \cite{copilot}.
+   In this report, the Haskell library \quickgen is presented, usable
+   for randomly generating higher order possibly functional terms with
+   polymorphic type variables. This library was successfully used to
+   define a generator producing expressions similar to those produced
+   by the hand-made generator used by \citeauthor{copilot} in
+   \cite{copilot}.
 
-   A /Language/ is simply defined in Template Haskell \cite{TH}, by
-   specifying the functions and values available during term
-   generation:
+   A /Language/ (i.e. an API) is simply defined in Template Haskell
+   \cite{TH}, by specifying the functions and values available during
+   term generation, for example:
 
    \begin{haskellcode}
    lang :: Language
@@ -228,7 +234,9 @@ reduced when compared to the previous one.
    f seed = generate lang $(getType [t| a -> [a] |]) seed
    \end{haskellcode}
 
-   Different seeds supplied to this function then produces different
+   \pagebreak
+
+   Different seeds supplied to this function then produce different
    random well typed expressions using the available functions and
    values from \inlhask{lang}. The generated expressions can later be
    turned into real Haskell terms by using, for instance, the GHC API
@@ -239,9 +247,9 @@ reduced when compared to the previous one.
    of some research recently. For instance, in \cite{lambda} a
    generator very similar to the one presented in this thesis is
    introduced. This generator was successfully used to discover bugs
-   in the Glasgow Haskell Compiler (GHC) \cite{ghc}. This project also
-   takes some inspiration from other research in related areas
-   presented below[fn:23].
+   in the Glasgow Haskell Compiler (GHC) \cite{ghc}. The following
+   sections provide a brief overview over related research that has
+   been used as inspiration for the duration of this project[fn:23].
 
 *** Inductive programming
     In the field of inductive programming \cite{ip}, the interest lies
@@ -253,34 +261,36 @@ reduced when compared to the previous one.
 *** Efficient enumeration
     In \cite{feat} a library for defining enumerations of arbitrary
     algebraic data types is developed. These enumerations can also be
-    indexed efficiently. As an example the term at position $10^{100}$
-    for the very complicated =Exp= data type found in Template Haskell
-    is generated in less than a second on a normal desktop computer.
+    indexed efficiently. As an example, the term at position
+    $10^{100}$ for the complex =Exp= data type defined in Template
+    Haskell is generated in less than a second on a normal desktop
+    computer.
 
 *** Theorem proving
     \citeauthor{djinn} presents a library for generating expressions
     in Haskell given a type \cite{djinn}. These terms are constructed
     with the help of a theorem prover for intuitionistic propositional
-    logic by encoding types as logical statements. This theorem
-    prover, and theorem provers in general, will find any, often
-    minimal, proof of the statement and is therefore not suitable for
-    generating random terms.
+    logic by encoding types as logical statements. However, this
+    theorem prover, and theorem provers in general, will search for
+    any, often minimal, proof of a statement and is therefore not
+    suitable for generating random terms.
 
 ** Problem and goal
    The goal of this project is to implement a reusable library, in the
    programming language Haskell, for defining generators for functions
    and values, possibly of higher order and/or polymorphic type, to be
-   used as test data while testing an Embedded Domain Specific
-   Language (EDSL).
+   used as test data while testing an EDSL. Furthermore, the functions
+   and values should be valid well-typed expressions in standard
+   Haskell.
 
    The problem is closely related to the goal statement in the sense
    that no such library for easily defining specialized generators for
    an EDSL exists, capable of generating any standard Haskell
-   expression of a given goal type while using a user specified API.
-   Here any means functions and values, possibly higher order and
-   containing polymorphic type variables. In the best case scenario,
-   this generator would also be able to construct terms using
-   constructors with types containing type classes.
+   expression of a given goal type from a user specified API. Any, in
+   this context, means functions and values, possibly higher order
+   and/or containing polymorphic type variables. In the best case
+   scenario, this generator would also be able to construct terms
+   using constructors with types containing type classes.
 
    The goal is considered reached when the library has been
    successfully used to generate terms similar to those produced by an
@@ -292,33 +302,31 @@ reduced when compared to the previous one.
    This thesis starts in \autoref{chap:algo} with a formal definition
    of the algorithms used when generating expressions. Some
    limitations are also discussed here. After this, in
-   \autoref{chap:impl}, the implementation as it looks in the
-   programming language Haskell \cite{haskell2010} is discussed. This
-   chapter can be used as an extended documentation to the
-   implementation. Example usage of the library is presented in
-   \ref{chap:examples}. Among others, a generator mimicking the
-   behaviour of the hand-made generator used when testing the EDSL
-   Copilot is defined and discussed. The last two chapters,
-   \autoref{chap:fut} and \ref{chap:conclusions}, discusses future
-   work and the conclusions of the project respectively.
-
-   \newpage
+   \autoref{chap:impl}, the current implementation in the programming
+   language Haskell \cite{haskell2010} is discussed. This chapter can
+   be used as an extended documentation to the implementation. Example
+   usage of the library is presented in \autoref{chap:examples}. Among
+   others, a generator with similar behaviour to that of the hand-made
+   generator used when testing the EDSL Copilot is defined and
+   discussed. The last two chapters, chapters \ref{chap:fut} and
+   \ref{chap:conclusions}, discusses future work and conclusions of
+   the project respectively.
 
 * Algorithm
   \label{chap:algo}
 
   This section is dedicated to the formal definition of the algorithm
   used to generate expressions from a user API. The first part
-  contains an example run of the complete algorithm followed by
-  discussion around some tricky parts. The last two subsections
-  contains more formal explanations, with pseudo code, to the
-  functions responsible for /type matching/ and /term generation/.
+  contains an example run of the complete algorithm followed by a
+  discussion regarding some tricky parts. The last two subsections
+  contain more formal definitions, with pseudo code, to the functions
+  responsible for /type matching/ and /term generation/ respectively.
 
 ** A complete example
   \label{sec:example}
 
-  Lets say a user wants to generate an expression of type $[Int]$
-  using values and functions from the following API:
+  Suppose a user wants to generate an expression of type $[Int]$ using
+  values and functions from the following API:
 
     #+NAME: table:api1
     #+CAPTION: Simple API
@@ -336,46 +344,46 @@ reduced when compared to the previous one.
   return type matches our current goal type. In table \ref{table:api1}
   above, the term /constructor/ is used to refer to one of these
   functions or values that can be used by the algorithm to generate
-  expressions[fn:10]. Just by looking at the available constructors,
-  one finds that all but the last two values has return types that
-  matches our current goal: $[Int]$. The constructors that do match
-  however needs to be slightly specialized to exactly match our goal
+  expressions[fn:10]. Just from looking at the available constructors,
+  one finds that all but the last two values have return types that
+  match our current goal: $[Int]$. The constructors that do match,
+  however, need to be slightly specialized to exactly match our goal
   type.
 
-  Lets say that we choose $map$ as the first random matching
+  Assume that $map$ was the first randomly selected matching
   constructor. In this case, for $map$ to match our goal type of
-  $[Int]$ the for all quantified type variable $b$ has to be
-  instantiated to an $Int$. The other type variable, $a$, has nothing
-  to do with the current goal and can therefore be instantiated to
-  anything. We might at this point generate a random type for $a$
-  based on the constructors in scope as is done in \cite{lambda}. Here
-  another tactic is employed and we say that the type variable is
-  /undecided/ instead. We will introduce the special notation $?a$ to
-  mean exactly this, that the type variable $a$ is undecided. What
-  this means is that the type of $a$ has not been specialized yet but
-  might be in a later state of the generation algorithm. In the end,
-  the final specialized type for $map$ that we arrive at is $(?a \ri
-  Int) \ri [?a] \ri [Int]$.
-
-  At this point, it might help to visualize the current expression as:
-  \[ map~e_1~e_2 \] where $e_1$ and $e_2$ are two, as of yet, non
-  generated expressions with types $(?a \ri Int)$ and $[?a]$
-  respectively. To succeed, we need to generate these two new sub
-  goals in some order instead. For simplicity's sake, lets do it from
-  left to right starting with $e_1$:
+  $[Int]$, the forall quantified type variable $b$ has to be
+  instantiated to the type $Int$. The other type variable, $a$, having
+  nothing to do with the current goal and can therefore be
+  instantiated to anything. We might at this point generate a random
+  type for $a$ based on the constructors in scope. This is done by
+  \citeauthor{lambda} in \cite{lambda}. Here another tactic is
+  employed, and we say that the type variable is /undecided/ instead.
+  We will introduce the special notation $?a$ to mean exactly this;
+  that the type variable $a$ is undecided. What this means is that the
+  type of $a$ has not been specialized yet but might be in a later
+  stage of the generation algorithm. In the end, the final specialized
+  type for $map$ that we arrive at is $(?a \ri Int) \ri [?a] \ri
+  [Int]$. At this point, it might help to visualize the current
+  expression as: \[ map~e_1~e_2 \] where $e_1$ and $e_2$ are two
+  placeholder expressions with types $(?a \ri Int)$ and $[?a]$
+  respectively. To succeed, we need to generate these new
+  subexpressions (subgoals) in some order instead. In this example, we
+  choose to do it from left to right starting with $e_1$:
 
   - \emph{Generating $e_1$ with type $?a \ri Int$}:
     \phantomsection
     \label{sec:example-map1}
 
-    At this point the algorithm differs slightly from the first step
-    when generating $[Int]$ since we are currently trying to generate
-    a function. In the end we want a lambda abstraction on the form:
-    \[\lambda x \ri body \] where the argument $x$ can be used inside
-    $body$. To proceed all arguments are added as constructors to be
-    available when generating the body of the lambda abstraction. In
-    this case the only constructor added is $x ::\;?a$ resulting in
-    the following set of constructors:
+    At this point, the algorithm differs slightly from what was done
+    when starting to generate $[Int]$ above. The difference is that
+    this time, we are trying to generate a function. In the end we
+    want a lambda abstraction on the form: \[\lambda x \ri body \]
+    where the argument $x$ can be used inside $body$. To proceed, all
+    arguments are added as constructors available when generating the
+    body of the lambda abstraction. In this case, the only constructor
+    added is $x ::\;?a$ resulting in the following set of
+    constructors:
 
     #+NAME: table:api2
     #+CAPTION: Extended API
@@ -390,62 +398,112 @@ reduced when compared to the previous one.
     |   |              $d$ | $Double$                    |
     |   |   $\color{red}x$ | $\color{red}?a$             |
 
-    From here on the algorithm is exactly the same as for $[Int]$: a
-    random matching constructor $\mathcal{C}$ is chosen and the
-    arguments of $\mathcal{C},~y_1 \ldots y_n$, is recursively
-    generated. If all arguments were successfully generated then
-    $body$ would be equal to $\mathcal{C}~y_1~\ldots~y_n$ and the
-    complete expression $e_1$ would be $(\lambda x \ri
-    \mathcal{C}~y_1~\ldots~y_n)$.
+    From here on, the algorithm is exactly the same as for the case
+    when generating an expression of type $[Int]$ seen above: a random
+    matching constructor $\mathcal{C}$ is chosen and the arguments of
+    $\mathcal{C},~y_1 \ldots y_n$, are recursively generated. If all
+    arguments were successfully generated then $body$ would be equal
+    to $\mathcal{C}~y_1~\ldots~y_n$ and the complete expression $e_1$
+    would be $(\lambda x \ri \mathcal{C}~y_1~\ldots~y_n)$.
 
-    Here only the two constructors $n$ and $x$ match the current goal
-    and are therefore the only candidates for $\mathcal{C}$. If we
-    choose $\mathcal{C} = n$ then we return with $e_1 = (\lambda x \ri
-    n)$ and continue generating $e_2 ::\;[?a]$. If we choose
-    $\mathcal{C} = x$ then we return with $e_1 = (\lambda x \ri x)$
-    but instead of continuing generating $e_2 ::\;[?a]$ as before we
-    now need to generate $e_2 ::\;[Int]$, the reason being that in the
-    original types of $e_1$ and $e_2$, $(?a \ri Int)$ and $[?a]$, the
-    undecided type variable $?a$ refers to the same undecided type in
-    both expressions. If we start generating $e_1$ and decide that
-    $?a$ has to be an $Int$ then this change has to be present when we
-    start generating $e_2$. To illustrate the difference both these
-    cases will be considered below:
+    Here, only the two constructors $n$ and $x$ match the current
+    goal, which is $Int$, and are therefore the only candidates for
+    $\mathcal{C}$. If we choose $\mathcal{C} = n$, we return with $e_1
+    = (\lambda x \ri n)$ and continue generating $e_2 ::\;[?a]$. If we
+    choose $\mathcal{C} = x$, we return with $e_1 = (\lambda x \ri
+    x)$ [fn:26]. At this point, instead of continuing generating
+    $e_2 ::\;[?a]$ as before, we now need to generate $e_2 ::\;[Int]$,
+    the reason being that in the original types of $e_1$ and $e_2$,
+    $(?a \ri Int)$ and $[?a]$ respectively, the undecided type
+    variable $?a$ refers to the same undecided type in both
+    expressions. If we start generating $e_1$ and decide that $?a$ has
+    to be an $Int$ then this choice has to be remebered when
+    generating $e_2$. To illustrate the difference, both these cases
+    will be considered below:
 
   - \emph{Case $e_1 = (\lambda x \ri n)$: Generating $e_2$ with type $[?a]$}:
 
     This time no new constructors are added to the API since we are
     not generating a function. The API at this point is therefore the
-    one found in table \ref{table:api1}. Similar to before, the first
-    three constructors is again the only ones matching the current
-    goal. Lets assume the second one, $sing$, is chosen. The
-    specialized type for $sing$ in this case would be $(?a \ri [?a])$
-    and a new sub goal for an $?a$ is created. Here $?a$ can be
-    matched with any constructor in the API but lets assume $d ::
-    Double$ is chosen resulting in $e_2 = sing~d$. Since this is the
-    last sub goal the term generation algorithm terminates with the
-    complete expression $map~(\lambda x \ri n)~(sing~d)$.
+    one found in table \ref{table:api1}. Similar to before, when
+    choosing $map$ as a constructor, the first three constructors are
+    the only ones matching the current goal. Suppose the second one,
+    $sing$, is chosen. The specialized type for $sing$, in this case,
+    would be $(?a \ri [?a])$ and a new subgoal for an $?a$ is created.
+    Here $?a$ can be matched with any constructor in the API but let
+    us assume $d :: Double$ is chosen, resulting in $e_2 = sing~d$.
+    Since this is the last subgoal, the term generation algorithm
+    terminates with the complete expression $map~(\lambda x \ri
+    n)~(sing~d)$.
 
   - \emph{Case $e_1 = (\lambda x \ri x)$: Generating $e_2$ with type $[Int]$}:
 
     Similar to the case for $[?a]$, no new constructors are added and
-    the API is still the same as in table \ref{table:api1}. Lets
-    assume that the first constructor chosen is the same as in the
-    last step, $sing$. Here is where the difference in choice in $e_1$
-    is visible when generating $e_2$. In the case above, all
-    constructors matched the goal of $?a$. However, in this case $?a$
+    the API is still the one found in table \ref{table:api1}. Suppose
+    that the randomly selected constructor chosen is the same as in
+    the last step, $sing$. Here is where the difference in choice in
+    $e_1$ is visible when generating $e_2$. In the case above, all
+    constructors matched the goal of $?a$. However, in this case, $?a$
     has already been instantiated to a type, namely $Int$, when
     generating $e_1$. This forces us to choose $n$ as our constructor
-    since no other ones match the current goal. Again, this terminates
-    the algorithm and the final expression would be $map~(\lambda x
-    \ri x)~(sing~n)$.
+    since no other constructors match the current goal. Again, this
+    terminates the algorithm and the final expression would be
+    $map~(\lambda x \ri x)~(sing~n)$.
+
+*** Undecided variables
+   \label{sec:undecided}
+
+   When generating $e_1$ in section \ref{sec:example} above, two
+   different cases were considered. In the first one, the undecided
+   variable $?a$ was never instantiated. The second one showed that a
+   guess made for an undecided variable in one part needs to be
+   remembered in the rest of the generation process. How this
+   information about guesses for undecided variables should be handled
+   is non-trivial. Let us look at an example:
+
+   \example Imagine we are generating a term of type $t$ using the
+   following constructor: \[ c :: t_1 \ri \ldots \ri t_n \ri t \]
+   Furthermore, assume the undecided variable $?a$ is part of the type
+   of $c$, i.e., $?a$ is present in at least one, and potentially all,
+   of the types $t_1, \ldots, t_n$ and $t$. If we start generating a
+   subgoal, for instance $t_1$, we might select another constructor
+   containing additional subgoals which in turn might introduce even
+   more subgoals. At any point in these subtrees we might decide that
+   $?a$ should have type $Int$. It is critical that this information
+   is shared between all subgoals. One could try updating the API by
+   exchanging every usage of $?a$ with $Int$. However, this does not
+   solve the problem that $?a$ might be present in one of the subgoals
+   at the same level or higher up. If the subgoals and intermediate
+   constructors were saved on a stack one might traverse this stack
+   updating the types for subgoals containing $?a$. However, this
+   stack, and the API, might grow to be very large making it
+   inefficient to traverse the stack every time an undecided variable
+   is updated.
+
+   An alternative tactic, that is employed in this project, is to have
+   a global set of guesses for undecided variables, henceforth
+   referred to as $\mathbb{U}$, that is consulted before trying to
+   generate a subgoal containing undecided variables. Suppose that we
+   have a goal type $t$ containing the undecided variable $?a$.
+   Further assume that $\mathbb{U}$ contains the following guess for
+   $?a$ saying that $?a$ should be substituted by $Int$: $?a \mapsto
+   Int$. To continue, we substitute each occurence of $?a$ with $Int$
+   within the type $t$.
+
+   The set of guesses, $\mathbb{U}$, is also consulted before trying
+   to match a goal with any constructor $c$ from the API since the
+   type of $c$ might also contain undecided variables. Finally, when a
+   guess for an undecided variable is performed[fn:27], this guess
+   needs to be stored in $\mathbb{U}$.
+
+   \pagebreak
 
 *** Generating polymorphic expressions
     \label{sec:example-poly}
 
     One more type of expression needs to be discussed before
     continuing, namely expressions with polymorphic types. To see how
-    this is done in this project lets first look at a problematic
+    this is done in this project let us first look at a problematic
     example run:
 
     - Imagine that we want to generate an expression with goal type $a
@@ -455,36 +513,38 @@ reduced when compared to the previous one.
       abstraction by generating names for the variables, adding the
       arguments with their respective types to the API and finally
       generating the lambda body with the updated API. The goal type
-      when generating the body would be $[a]$ and the API could look
-      something like this:
+      when generating the body would be $[a]$. Furthermore, let us
+      assume the API is the following:
 
-      #+CAPTION: The constructors marked in red are the arguments added by the latest lambda abstraction.
+      #+CAPTION: The constructors marked in red were added by the algorithm when generating the lambda abstraction.
       #+ATTR_LATEX: :placement [H]
       |   | Constructor name | Type                        |
       |---+------------------+-----------------------------|
       | / |              <r> |                             |
-      |   |         $\ldots$ | $\ldots$                    |
       |   |            $map$ | $(a \ri b) \ri [a] \ri [b]$ |
       |   |     $succ_{Int}$ | $Int \ri Int$               |
       |   |           $sing$ | $a \ri [a]$                 |
       |   | $\color{red}x_1$ | $\color{red}a$              |
       |   | $\color{red}x_2$ | $\color{red}a$              |
 
-      Further imagine that we choose $map$ as our constructor and then
-      start with generating the second argument to $map$ currently
-      with the specialized type $[?b]$. We then choose $sing$ followed
-      by $succ_{Int}$ as our next to constructors generating
-      additional sub goals and also introducing a guess for the
-      undecided type $?b \mapsto Int$ in $\mathbb{U}$. Our expression
-      at this point would be: \[ \lambda~x_1~x_2 \ri
-      map~e_1~(sing~(succ_{Int}~e_2)) \] The variables $e_1$ and $e_2$
-      refers to the currently unsolved sub goals. At this point, the
-      current goal type is $Int$. By looking at the types in the API
-      alone, it would be perfectly reasonable to choose $x_1$ as a
-      constructor for this goal since $x_1$ is for all quantified and
-      can be matched with anything. However, if we substitute $e_1$ by
-      $x_1$ and try to type check the resulting expression in, for
-      instance, =ghci= we get the following:
+      Further imagine that $map$ was randomly chosen as our
+      constructor, introducing two subgoals $e_1 :: (?b \ri a)$ and
+      $e_2 :: [?b]$. Suppose we start with the second subgoal, with
+      goal type $[?b]$, and randomly select $sing$ followed by
+      $succ_{Int}$ as our next constructors. Our expression at this
+      point would be: \[ \lambda~x_1~x_2 \ri
+      map~e_1~(sing~(succ_{Int}~e_3)) \] Note that selecting
+      $succ_{Int}$ above also introduced the guess $?b \mapsto Int$ in
+      $\mathbb{U}$. The variables $e_1$ and $e_3$ refers to the
+      currently unsolved subgoals. At this point, the current goal
+      type is $Int$. By looking at the types in the API alone, it
+      would be perfectly reasonable to choose $x_1$ as a constructor
+      for this goal since $x_1$ is forall quantified and can be
+      matched with anything. However, if we substitute $e_1$ by $x_1$
+      and try to type check the resulting expression in, for instance,
+      =ghci= we get the following:
+
+      \pagebreak
 
       \begin{alltt}
       \(\lambda\)> :t (\(\lambda\) x_1 x_2 -> map undefined (sing (succ_int x_1))) :: a -> a -> [a]
@@ -496,61 +556,24 @@ reduced when compared to the previous one.
 
     The problem above is that the type of $x_1$ and $x_2$ should not
     be $\forall~a.~a$ when introduced to the API above. A better
-    approach is to substitute every for all quantified type variable
-    with a dummy unique data type constructor. This is also the tactic
+    approach is to substitute every forall quantified type variable
+    with a dummy unique data type constructor. This is the tactic
     employed by \citeauthor{mh} in \cite{mh}. Thus, in the example
-    above, instead of starting to generate a term with type $a \ri a
-    \ri [a]$, one should exchange every occurrence of $a$ with, for
-    instance, $A_1$ resulting in the type $A_1 \ri A_1 \ri [A_1]$.
-    Later during matching, the type $A_1$ will be matched using the
-    same procedure used to match other data type constructors. How
-    this is done can be found in \autoref{lst:matchaux}.
-
-*** Undecided variables
-   \label{sec:undecided}
-
-   When generating $e_1$ in section \ref{sec:example} above, two
-   different cases was considered. In the first one, the undecided
-   variable $?a$ was left untouched. The second one showed that a
-   guess or decision made for an undecided variable in one part needs
-   to be reflected in the rest of the generation process. How this
-   information about guesses for undecided variables should be handled
-   is non trivial. Lets look at an example:
-
-   \example Imagine we are generating a term of type $t$ using the
-   following constructor: \[ c :: t_1 \ri \ldots \ri t_n \ri t \]
-   Furthermore, assume the undecided variable $?a$ is somehow part of
-   $c$, i.e. $?a$ is present in at least one, and potentially all, of
-   the types $t_1, \ldots, t_n$ and $t$. If we start generating a sub
-   goal, for instance $t_1$, we might select another constructor
-   containing additional sub goals which in turn might introduce even
-   more sub goals. At any point in any of these subtrees we might
-   decide that $?a$ should have type $Int$. This information needs to
-   propagate upwards somehow. One could try updating the API by
-   exchanging every usage of $?a$ with $Int$. However, this does not
-   solve the problem that $?a$ might be present in one of the sub
-   goals at the same level or higher up. If the sub goals and
-   intermediate constructors was saved on a stack one might traverse
-   this stack updating the types for sub goals containing $?a$.
-   However, this stack, and the API, might grow to be very large
-   making it potentially hard to implement this operation efficiently.
-
-   An alternative tactic that is employed in this project is to have a
-   global set of guesses, $\mathbb{U}$, that is consulted before
-   trying to generate a sub goal containing undecided variables. It is
-   also consulted before trying to match a goal with a given
-   constructor $c$ from the API since the type of $c$ might contain
-   undecided variables. Finally, when a guess for an undecided
-   variable is performed, this guess needs to be stored in
-   $\mathbb{U}$.
+    above, before starting the generation process, each occurrence of
+    the type variable $a$ in $a \ri a \ri [a]$ should be exchanged by
+    an unique data type constructor, for instance $A_1$, resulting in
+    the type $A_1 \ri A_1 \ri [A_1]$. Later during matching, the type
+    $A_1$ will be matched using the same procedure used to match other
+    type constructors. The exact procedure for matching type
+    constructors can be found in \autoref{lst:matchaux}.
 
 *** Termination
     \label{sec:algo-termination}
 
     There is one simplification to the simple algorithm presented
     above that needs to be mentioned. The algorithm if implemented
-    directly is not guaranteed to terminate. Lets look at a very
-    simple example:
+    directly is not guaranteed to terminate. To see why, consider the
+    following example:
 
     #+ATTR_LATEX: :placement [H]
     |   | Constructor name | Type      |
@@ -561,20 +584,21 @@ reduced when compared to the previous one.
 
     Say that we want to generate a term of type $Int$. The generation
     algorithm might choose $id$ as the first constructor. After type
-    matching and specialization we have exactly the same API and sub
-    goal as in the original problem, we need to generate an $Int$. At
-    this point there is nothing that stops the algorithm from choosing
-    $id$ indefinitely making this a non terminating process. In this
-    particular example, the probability of termination is quite high
-    but this might not be the case if constructors requiring several
-    sub goals to be generated is introduced to the API.
+    matching and specialization we have exactly the same API and
+    subgoal as in the original problem, we need to generate an $Int$.
+    At this point there is nothing that stops the algorithm from
+    choosing $id$ indefinitely making this a non terminating process.
+    In this particular example, the probability of termination is
+    quite high but this might not be the case if constructors,
+    requiring several subgoals to be generated, are introduced to the
+    API.
 
     The solution used to solve this problem in this project is to
-    limit the number of uses for each constructor with sub goals.
-    Constructors with zero sub goals, such as $Int$, will have an
-    infinite number of uses. The notation $\textsc{Uses}(t)$ will from
-    now on be used to denote the number of uses available for a
-    constructor with type $t$.
+    limit the number of uses for each constructor of functional type,
+    i.e. constructors requiring subgoals. Constructors with zero
+    subgoals, such as $Int$, will have an infinite number of uses. The
+    notation $\textsc{Uses}(t)$ will henceforth be used to denote the
+    number of uses available for a constructor with type $t$.
 
     #+BEGIN_LATEX
     \[
@@ -589,20 +613,20 @@ reduced when compared to the previous one.
     The number 10 here was chosen after some experimentation and seems
     to enable complicated expressions in a reasonable big API while
     still limiting the search space enough to make the algorithm
-    terminate if no solution could be found.
+    terminate if no solution can be found.
 
     A more detailed discussion about this and other termination
     strategies can be found in \autoref{sec:fut-termination}.
 
-*** Sub goal ordering
+*** Subgoal ordering
     \label{sec:algo-sgo}
 
     After choosing $map$ as the first constructor in the original
     algorithm in section \ref{sec:example}, we choose to generate the
-    sub goals to $map$ from left to right. With the addition of uses
+    subgoals to $map$ from left to right. With the addition of uses
     as mentioned in section \ref{sec:algo-termination} above, the
-    order in which sub goals are generated actually influences the
-    final shape of the finished expression. Again, lets illustrate
+    order in which subgoals are generated actually influences the
+    final shape of the finished expression. Again, let us illustrate
     this by looking at an example where we want to generate an
     expression with type $Int$ using the following API:
 
@@ -617,31 +641,32 @@ reduced when compared to the previous one.
     As before, the API contains the constructors available for use
     when generating expressions. The difference this time is that a
     limited number of uses, here two, is also imposed on the first
-    constructor. The second constructor, having no sub goals, can be
-    seen having an infinite number of uses. If we start with the
-    specialized constructor $const :: Int \ri ?b \ri Int$ we update
-    the API by saying that $const$ now has one use left. From here, we
-    can choose to generate either of the sub goals, $Int$ respectively
-    $?b$. If we choose to generate from left to right starting with
-    $Int$ and $const$ is our choice for constructor then we have
-    effectively used up all usages of $const$ available in this run of
-    the algorithm. This forces us to choose $n$ as a constructor in
-    all remaining sub goals including in the goal for $?b$. If we go
-    right to left instead, we may experience the same problem, i.e. we
-    may limit the available constructors, and thereby forcing the
-    shape of the finished expression.
+    constructor. The second constructor, having no subgoals, can be
+    seen having an infinite number of uses. Suppose $const$, with the
+    specialized type $Int \ri ?b \ri Int$, is our first randomly
+    chosen constructor. After choosing $const$, we must also update
+    the API decreasing the number of uses for $const$ by one. From
+    here, we can choose to generate either of the subgoals, $Int$
+    respectively $?b$. If we choose to generate from left to right
+    starting with $Int$, and $const$ is our next random choice of
+    constructor then we have effectively used up all usages of $const$
+    available in this run of the algorithm. This forces us to choose
+    $n$ as a constructor in all remaining subgoals including in the
+    goal for $?b$. If we go right to left instead, we may experience
+    the same problem, i.e. we may limit the available constructors,
+    and thereby forcing the shape of the finished expression.
 
     In general, if there are several constructors in the API
-    containing at least one sub goal, the generated expressions are
-    biased towards the direction of the first sub goals, i.e. if we
+    containing at least one subgoal, the generated expressions are
+    biased towards the direction of the first subgoals, i.e. if we
     start from the left, most usages of constructors will be present
-    in the leftmost sub goals.
+    in the leftmost subgoals.
 
     Due to implementation details, the concrete algorithm in this
     project generates goals from right to left making the expressions
     biased towards the right. In one of the sections in future work,
-    section \ref{sec:fut-ordering}, some alternative tactics regarding
-    sub goal ordering is discussed.
+    \autoref{sec:fut-ordering}, some alternative tactics regarding
+    subgoal ordering are discussed.
 
 ** Matching expressions
    \label{algo:match}
@@ -656,8 +681,8 @@ reduced when compared to the previous one.
 
    The \textsc{Match} algorithm presented below is similar to regular
    type matching in the respect that it finds a substitution for the
-   for all quantified type variables. However, there are some
-   differences. Lets look at one example to see how it differs from
+   forall quantified type variables. However, there are some
+   differences. Let us look at one example to see how it differs from
    normal type matching: \[ \textsc{Match}(Int,~a \rightarrow b)
    \Longrightarrow (?a \rightarrow Int) \] The first difference we see
    is that \textsc{Match} actually returns a new type instead of a
@@ -665,29 +690,30 @@ reduced when compared to the previous one.
    immediately applied it to the second argument to produce a
    specialized type. Further, a normal type matching algorithm
    wouldn't find a substitution at all, it would fail on this
-   particular input since a value type normally cannot normally be
-   matched against a function. \textsc{Match} however returns the type
-   $(?a \rightarrow Int)$.
+   particular input since a value type normally cannot be matched
+   against a function. \textsc{Match} however returns the type $(?a
+   \rightarrow Int)$.
 
    From the original type we can see that $b$ has been turned into
    $Int$ which might not be all that surprising. The type variable $a$
-   however has lost its for all quantifier and been turned into an
+   however has lost its forall quantifier and been turned into an
    undecided type variable as explained in section \ref{sec:example}
    above. Further, the \textsc{Match} function only looks at the
    return type of the second argument during matching. Therefore, in
    this example, the only type variable considered during matching was
-   $b$. All of the remaining for all quantified type variables, in
-   this case $a$, will be turned into undecided type variables, here
+   $b$. All of the remaining forall quantified type variables, in
+   this case, $a$, will be turned into undecided type variables, here
    $?a$.
 
-   The intuition is that the type $(a \rightarrow Int)$ can be used to
-   construct a value of type $Int$ if we give it another value of type
-   $a$. Since $a$ is for all quantified then a value of any type can
-   be given to a function of this type for it to produce an $Int$
-   value.
+   The intuition is that a function $f$ of type $(a \rightarrow Int)$
+   can be used to construct a value of type $Int$ if we give it
+   another value of type $a$. Since $a$ is forall quantified then a
+   value of any type can be given to $f$ for it to produce an $Int$.
 
    With this small introduction it is time to look at the algorithm
    for the match function.
+
+   \pagebreak
 
    - Let $\mathbb{U}$ be a set of guesses for undecided
      variables[fn:13]. Then the \textsc{Match} function takes two
@@ -696,8 +722,8 @@ reduced when compared to the previous one.
      can be used in the construction of a value of type $t_1$. If
      $\textsc{Match}$ is successful, the specialized version of $t_2$
      is returned. In addition to returning the specialized type, the
-     set of guesses might be updated during matching. If no match
-     could be found then a failure is raised instead.
+     set of guesses might be updated during matching. If no match is
+     found then a failure is raised instead.
 
    \begin{algorithmic}[1]
    \Function{Match}{$t_1, t_2$}
@@ -718,8 +744,26 @@ reduced when compared to the previous one.
    $t_2$, or the return type of $t_2$, match $t_1$. If such a
    substitution is found then it is applied to $t_2$. The last step
    before returning $t_2$ is to make all $Forall$ quantified type
-   variables into $Undecided$ ones. The algorithm that actually finds
-   a substitution is found in the \textsc{MatchAux} function: [fn:12]
+   variables into $Undecided$ ones. The algorithm that finds a
+   substitution is found in \autoref{lst:matchaux} [fn:12]. Let us
+   look at an example of how the complete algorithm works:
+
+   - Let $t_1 = [Int]$ and $t_2 = (a \ri b)\ri[a]\ri[b]$.
+     \textsc{Match} will proceed by trying to find a substitution for
+     $[Int]$ and the return type of $t_2$ [fn:9], namely $[b]$.
+     - In \textsc{MatchAux} the second case will match with
+       $\mathcal{C}=[\,]$ and $y_1=b$. Since $t_1$ is also of this
+       form, $\mathcal{C}=[\,]$ and $x_1=Int$, then
+       \textsc{MatchAux}$(Int, ~b)$ will be called recursively.
+     - Now since the second argument is forall quantified, the
+       singleton substitution $\{b~\mapsto~Int\}$ is returned. This is
+       also the value returned to \textsc{Match}.
+   - The substitution returned from \textsc{MatchAux} is applied to
+     $t_2 = ~(a \ri b) \ri [a] \ri [b]$ resulting in $(a \ri Int) \ri
+     [a] \ri [Int]$.
+   - In the last step the remaining forall quantified variable is
+     turned into an undecided one and $(?a \ri Int) \ri [?a] \ri
+     [Int]$ is returned.
 
    \begin{listing}[H]
    \begin{algorithmic}[1]
@@ -773,54 +817,43 @@ reduced when compared to the previous one.
    \caption{The complete matching algorithm.}\label{lst:matchaux}
    \end{listing}
 
-   Lets look at an example of how the complete algorithm works:
-
-   - Let $t_1 = [Int]$ and $t_2 = (a \ri b)\ri[a]\ri[b]$.
-     \textsc{Match} will proceed by trying to find a substitution for
-     $[Int]$ and the return type of $t_2$ [fn:9], namely $[b]$.
-     - In \textsc{MatchAux} the second case will match with
-       $\mathcal{C}=[\,]$ and $y_1=b$. Since $t_1$ is also of this
-       form, $\mathcal{C}=[\,]$ and $x_1=Int$, then
-       \textsc{MatchAux}$(Int, ~b)$ will be called recursively.
-     - Now since the second argument is for all quantified, the
-       singleton substitution $\{b~\mapsto~Int\}$ is returned. This is
-       also the value returned to \textsc{Match}.
-   - The substitution returned from \textsc{MatchAux} is applied to
-     $t_2 = ~(a \ri b) \ri [a] \ri [b]$ resulting in $(a \ri Int) \ri
-     [a] \ri [Int]$.
-   - In the last step the remaining for all quantified variable is
-     turned into an undecided one and $(?a \ri Int) \ri [?a] \ri
-     [Int]$ is returned.
-
 *** Unique types
     \label{sec:unique}
 
     One important property which has been left out of the discussion
     so far is that all undecided type variables introduced in
-    \textsc{Match} is assumed to be unique. Lets look at an example to
-    explain this:
+    \textsc{Match} are assumed to be unique. Let us look at an example
+    to explain this:
+
+    \pagebreak
 
     \example Imagine we are generating a value with type $[ [Int] ]$
-    using the API found in table \ref{table:api1}. Lets further
-    imagine that the final generated expression is the following: \[
-    map~(\lambda xs \ri map~(\lambda x \ri x)~xs)~[ [n] ] \] If we
-    follow the general algorithm introduced in section \ref{sec:example}
-    in minute detail we would use the same undecided type variable
-    $?a$ for both uses of $map$. Then if we start generating the
-    second argument to the outer $map$ the mapping $(?a \mapsto
-    [Int])$ would be added to $\mathbb{U}$. Now since both $xs$ and
-    $x$ has type $?a$, both of these values will be specialized to
-    $[Int]$ which is not what we want! In this particular example, the
-    inner anonymous function $(\lambda x \ri x)$ would not even pass
-    the type checker.
+    using the API found in table \ref{table:api1}. Further suppose
+    that the final, well-typed, expression we want to generate is the
+    following: \[ map~(\lambda xs \ri map~(\lambda x \ri x)~xs)~[ [n]
+    ] \] If we follow the general algorithm introduced in section
+    \ref{sec:example} in minute detail we would use the same undecided
+    type variable $?a$ for both uses of $map$. If we start generating
+    the second argument to the outer $map$ the guess $(?a \mapsto
+    [Int])$ would be added to $\mathbb{U}$. Next, we would generate
+    the lambda $\lambda xs \ri e_3$ introducing $xs$, now with type
+    $[Int]$, in the API. The placeholder $e_3$, also with type
+    $[Int]$, would be the next subgoal and we choose $map$ with the
+    specialized type $(?a \ri Int) \ri [?a] \ri [Int]$. This time,
+    since we already have a guess for the undecided variable $?a$ in
+    $\mathbb{U}$, the subgoals for the inner $map$ would be updated to
+    $([Int] \ri Int)$ and $[ [Int] ]$ respectively. However, these
+    types does not permit us to choose, for instance, $xs$ as a second
+    argument for the inner $map$ which is incorrect.
 
-    A simple way to solve this is to exchange every for all quantified
-    type variable in a type $t$ with a natural number before supplying
-    $t$ as the second argument to \textsc{Match}. Start with $n := 0$
-    which represents the next unique natural number to be used in a
-    type. Then the general procedure is as follows:
+    A simple way to solve this problem is to exchange every forall
+    quantified type variable in a type $t$ with a natural number
+    before supplying $t$ as the second argument to \textsc{Match}.
+    Start with $n := 0$ which represents the next unique natural
+    number to be used in a type. Then the general procedure is defined
+    as follows:
 
-    - For some type $t$ find the set of for all quantified type
+    - For some type $t$ find the set of forall quantified type
       variables encountered in $t$: \[ \textsc{Vars}(t) = \{
       a_1,\ldots,a_m \}\]
     - Create the substitution $s = \{a_1 \mapsto n , \ldots, a_m
@@ -835,6 +868,8 @@ reduced when compared to the previous one.
     \textsc{MatchAux}.
 
 *** Matching functions
+    \label{sec:match-poly}
+
     One simplification to the problem of type matching was made in
     this project. A simple example illustrates how this simplification
     affects the type matching algorithm. Suppose we want to generate
@@ -850,29 +885,30 @@ reduced when compared to the previous one.
     |   |     $succ_{Int}$ | $Int \ri Int$                         |
     |   |              $n$ | $Int$                                 |
     |   |           $sing$ | $a \ri [a]$                           |
-    When the matching algorithm above matches $head$ with our current
-    goal type it would immediately notice that the return type of
-    $head$ is for all quantified and produce the substitution $\{
-    \mapsto Int\}$. The specialized type returned by the algorithm
-    would be $[Int] \ri Int$. However, this is not the only valid
-    specialization of this type to produce a constructor for this
-    goal. For instance, the expression below with type $Int$ can be
-    constructed manually from the API: \[ head~(sing~succ_{Int})~n \]
-    To be able to generate this expression, another specialization of
-    the type of $head$ would have to be considered: \[ [?b \ri Int]
-    \ri ?b \ri Int \] In general, there are an infinite number of
-    valid instantiations for a for all quantified type variable when
-    matching against a goal type $t$, each on the form: $?a_1 \ri
-    \ldots \ri ?a_n \ri t$ where $n$ can be zero. \citeauthor{mh} uses
-    this tactic when enumerating expressions in \cite{mh}.
+    When the matching algorithm in \autoref{algo:match} above matches
+    $head$ with our current goal type it would immediately notice that
+    the return type of $head$ is forall quantified and produce the
+    substitution $\{a \mapsto Int\}$. The specialized type returned by
+    the algorithm would be $[Int] \ri Int$. However, this is not the
+    only valid specialization of this type to produce a constructor
+    for this goal. For instance, the expression below with type $Int$
+    can be constructed manually from the API: \[
+    head~(sing~succ_{Int})~n \] To be able to generate this
+    expression, another specialization of the type of $head$ would
+    have to be considered: \[ [?b \ri Int] \ri ?b \ri Int \] In
+    general, there are an infinite number of valid instantiations for
+    a forall quantified type variable when matching against a goal
+    type $t$, each on the form: $?a_1 \ri \ldots \ri ?a_n \ri t$ where
+    $n$ can be zero. \citeauthor{mh} uses this tactic when enumerating
+    expressions in \cite{mh}.
 
     In this project, it was decided to only consider the simple case,
     when $n = 0$. This is since instantiations where $n > 1$ does not
     make sense in several EDSL's, for instance in the Feldspar core
     language \cite{feldspar}. Furthermore, such instantiations taking
-    extra arguments stops producing interesting terms for testing
-    after a while. In \cite{lambda}, setting $n > 1$ already did not
-    give any advantage in testing[fn:24].
+    extra arguments are not interesting for testing most of the time.
+    In \cite{lambda}, setting $n > 1$ already did not give any
+    advantage in testing[fn:24].
 
 ** Generating expressions
    \label{algo:generate}
@@ -883,42 +919,76 @@ reduced when compared to the previous one.
    $\textsc{Generate}$, does some basic computations and then
    delegates the more complicated work to an auxiliary function.
 
+   \pagebreak
+
    \begin{algorithmic}[1]
    \Function{Generate}{$t$}
      \State Bind all $\forall$ quantified variables in $t$ to some unique Data constructor types.
      \Comment{\emph{If for instance $t = a \rightarrow b$
      then the resulting type might be $A1 \rightarrow B2$}}
      \State Substitute the $undecided$ type variables in $t$ by some unique $undecided$ variables.
-     \State \textbf{return} \Call{Generate'}{$t$}
+     \State \textbf{return} \Call{GenerateAux}{$t$}
    \EndFunction
    \end{algorithmic}
 
-   On the second line of the algorithm, all for all quantified
+   On the second line of the algorithm, all forall quantified
    variables are substituted with unique dummy data types as discussed
-   in \autoref{sec:example-poly}. A similar thing is done with the
-   undecided type variables on the third line to avoid capturing these
-   undecided variables in later stages of the generation
-   process[fn:20]. The last line calls and returns the result of the
-   auxiliary function. Before introducing this function, we need some
-   additional definitions:
+   in \autoref{sec:example-poly}. A similar transformation is done
+   with the undecided type variables on the third line to avoid
+   capturing these undecided variables in later stages of the
+   generation process[fn:20]. The last line calls and returns the
+   result of the auxiliary function. Before introducing this function,
+   we need some additional definitions:
 
    - Let $\textsc{Uses}(t)$ denote the number of uses for a
      constructor of type $t$, see \ref{sec:algo-termination}, $\Gamma$
      a context (API) and $\mathbb{U}$ a set of guesses for undecided
-     type variables, then the generation algorithm is defined as
-     follows:
+     type variables, the rest of the generation algorithm can be found
+     in \autoref{lst:generateaux}.
 
+   The following literal interpretation of the algorithm is also
+   included for clarity. The first step of the \textsc{GenerateAux}
+   algorithm above is to case match on the current goal type $t$:
+
+   - If $t$ is a function type, a lambda abstraction is constructed
+     and the body of the lambda abstraction is generated in a context
+     that has been extended to include the arguments of the lambda
+     abstraction. This process may fail as can be seen from the usage
+     of the standard Haskell type $Maybe$ in the if statement from
+     line \ref{lst:generateaux:if} to \ref{lst:generateaux:if2}.
+
+   - If $t$ is not a function type, we first make local copies of
+     $\mathbb{U}$ and $\Gamma$ and try to find a matching constructor.
+     Once again, this process may fail if no matching constructors are
+     found in $\Gamma$. If a constructor is found, the number of uses
+     for this constructor is decreased by one and there is once again
+     a case match on a type, this time on the type of the constructor.
+     Since the second case can be seen as a special case of the first
+     one, with $m=0$, only the first case will be considered.
+
+     For each of the argument types of the constructor $c$, $t_i$
+     where $1 \leq i \leq m$, a respective expression $e_i$ is
+     generated. In this particular algorithm, the subgoals are
+     generated from right to left as discussed in
+     \autoref{sec:algo-sgo}. If any of the expressions fails to
+     generate, i.e. if $me = \mathtt{Nothing}$, then $\Gamma$ and
+     $\mathbb{U}$ is reset and \texttt{Nothing} is returned.
+     Otherwise, all the expressions $e_i$ was set and we can return
+     the complete expression $n$ applied to the arguments
+     $e_1~\ldots~e_m$.
+
+   \begin{listing}[H]
    \begin{algorithmic}[1]
-   \Function{Generate'}{$t$}
+   \Function{GenerateAux}{$t$}
      \If{$t$ is a function type $t_1 \rightarrow \ldots \rightarrow t_m$}
        \State Generate unique variable names $x_1, \ldots, x_{m-1}$
        \State Add the constructors $(\Call{Uses}{t_i}, (x_i, t_i)),~1 \leq i < m$ to \Gamma$
-       \State $v \gets$ \Call{Generate'}{$t_m$}
+       \State $v \gets$ \Call{GenerateAux}{$t_m$}
        \State Remove the $x_i,~1 \leq i < m$ constructors from $\Gamma$
-       \If{$v$ is \texttt{Just} an expression} \label{lst:generate':if}
+       \If{$v$ is \texttt{Just} an expression} \label{lst:generateaux:if}
          \State \textbf{return} $(\lambda x_1~x_2~\ldots~x_{m-1} \rightarrow v)$
        \Else \Comment{$v$ is here \texttt{Nothing}}
-         \State \textbf{return} \texttt{Nothing} \label{lst:generate':if2}
+         \State \textbf{return} \texttt{Nothing} \label{lst:generateaux:if2}
        \EndIf
      \Else \Comment{$t$ is here a value type}
        \State $\mathbb{U}' \gets \mathbb{U}$
@@ -932,7 +1002,7 @@ reduced when compared to the previous one.
          \If{$t' = t_1 \rightarrow \ldots \rightarrow t_m \rightarrow t$}
            \Comment{$t$ is here the same $t$ as on line 1}
            \For{$i = m,m-1,\ldots,1$}
-             \State $me \gets$ \Call{Generate'}{$t_i$}
+             \State $me \gets$ \Call{GenerateAux}{$t_i$}
              \CaseOf{$me$}
                \Case{\texttt{Nothing}}
                  \State $\Gamma := \Gamma'$
@@ -954,56 +1024,22 @@ reduced when compared to the previous one.
      \EndIf
    \EndFunction
    \end{algorithmic}
-
-   The first step of the \textsc{Generate'} algorithm above is to case
-   match on the current goal type $t$:
-
-   - If $t$ is a function type, a lambda abstraction is constructed as
-     in \autoref{sec:example-map1}. Then, the body of the lambda
-     abstraction is generated in a context that has been extended to
-     include the arguments of the lambda abstraction. This process may
-     fail as can be seen from the usage of the standard Haskell type
-     $Maybe$ in the if statement from line \ref{lst:generate':if} to
-     \ref{lst:generate':if2}.
-
-   - If $t$ is not a function type, we first make local copies of
-     $\mathbb{U}$ and $\Gamma$ and try to find a matching constructor.
-     Once again, this process may fail if no matching constructors is
-     found in $\Gamma$. If a constructor is found, the number of uses
-     for this constructor is decreased by one and there is once again
-     a case match on a type, this time on the type of the constructor.
-     Since the second case can be seen as a special case of the first
-     one, with $m=0$, only the first case will be considered.
-
-     For each of the argument types of the constructor $c$, $t_i$
-     where $1 \leq i \leq m$, a respective expression $e_i$ is
-     generated. In this particular algorithm, the sub goals are
-     generated from right to left as discussed in
-     \autoref{sec:algo-sgo}. If any of the expressions fails to
-     generate, i.e. if $me = \mathtt{Nothing}$, then $\Gamma$ and
-     $\mathbb{U}$ is reset and \texttt{Nothing} is returned.
-     Otherwise, all the expressions $e_i$ was set and we can return
-     the complete expression $n$ applied to the arguments
-     $e_1~\ldots~e_m$.
+   \caption{The auxiliary generate function}\label{lst:generateaux}
+   \end{listing}
 
 * Implementation
   \label{chap:impl}
 
-  In this chapter the current implementation is explained thoroughly.
-  First the data types used to represent, for instance, types and
-  values is presented together with the functions used to work with
-  the respective data types. Some of the limitations imposed by the
-  specific representation scheme for the types presented is also
-  discussed. After this a brief presentation of the template haskell
-  part of the library is discussed and some examples are presented.
-
-  Finally, the implementation of the code generation and matching is
-  presented. Initially a high level description of the implementation
-  is presented together with a explanation of how the different
-  functions fit together. Later the most important functions are
-  presented in detail. This is done by reasoning about several
-  edge-cases, invariants and the actual implementation of the
-  functions in question.
+  In this chapter the current implementation of the algorithm as
+  defined in \autoref{chap:algo} is discussed. First, the data types
+  used to represent types and values is presented together with the
+  functions used to work with the respective data types. Some of the
+  limitations imposed by the specific representation scheme for the
+  types presented is also discussed. After this, the Template Haskell
+  module, and its functions, found in the library is introduced. Some
+  usage examples of these functions are also presented. Finally, the
+  current implementations of the \textsc{Match} and \textsc{Generate}
+  algorithms are presented.
 
 ** Types and expressions
    This section provides an overview of the data types that were
@@ -1013,33 +1049,18 @@ reduced when compared to the previous one.
 *** Variables, Forall and Undecided
     \label{variables}
 
-    In Haskell a type can contain for all quantified type variables.
+    In Haskell a type can contain forall quantified type variables.
     For instance in the type for \inlhask{id :: a -> a} an implicit
-    for all for the type variable =a= is introduced resulting in the
+    forall for the type variable =a= is introduced resulting in the
     final type \inlhask{id :: forall a. a -> a}. This type says that
     \inlhask{id} works for *any* type =a=, be it integers, list of
-    strings or functions containing their own for all quantified type
+    strings or functions containing their own forall quantified type
     variables. \quickgen introduces another kind of quantifier,
-    \inlhask{Undecided}. Basically, an undecided variable is
-    introduced during type matching when a for all quantified variable
-    has nothing to do with the matched type. Lets consider an example:
+    \inlhask{Undecided}, as first introduced in \autoref{sec:example}.
+    Internally, the types used for representing variables are the
+    following:
 
-    A user wants to generate some expression of type \inlhask{[Int]}
-    and \inlhask{map :: (a -> b) -> [a] -> [b]} is one of the
-    available functions in the user API. When these types reach the
-    matching function the matching proceeds by only considering the
-    return type of \inlhask{map}, \inlhask{[b]}. The matching succeeds
-    and a substitution from \inlhask{Int} to =b= and the current
-    matched type now looks like: \inlhask{map :: (a -> Int) -> [a] -> [Int]}.
-    As you can see, the type =a= does not have anything to do with the
-    matched type \inlhask{[Int]} and can therefore be any type. It can
-    be a for all quantified type variable or it can be a more
-    specilized type, for instance \inlhask{[Double]}. In this case the
-    matching algorithm will therefore return something similar to:
-    \inlhask{map :: undecided a. (a -> Int) -> [a] -> [Int]}.
-
-    With these explanations we can now look at how \quickgen encodes
-    type variables internally:
+    \pagebreak
 
     \begin{haskellcode}
     data Quantifier = Forall | Undecided
@@ -1047,19 +1068,23 @@ reduced when compared to the previous one.
     type Variable = (Nat, Quantifier)
     \end{haskellcode}
 
-    Simply put, instead of storing the name of a type variable as a
-    string, a natural number is used instead. This is done for
-    performance reasons and is explained more in section \ref{match}.
-    Finally, the quantifier for the variable is also included in the
-    \inlhask{Variable} type alias.
+    Simply put, a \inlhask{Variable} in \quickgen is a natural number
+    paired together with a value of type \inlhask{Quantifier}. A
+    natural number is used instead of, for instance, a string since
+    comparing two natural numbers are far more efficient than
+    comparing two strings.
 
 *** Constructors
     \label{constructors}
 
-    A constructor is the term used for the haskell functions found in
-    the specified user API. The intuition is that one of these terms
-    can be used to construct parts of an haskell expression. The
-    internal representation of a constructor is very simple:
+    A constructor is the term used for the Haskell functions and
+    values found in a user specified API. The intuition is that one of
+    these terms can be used to construct parts of, or a complete,
+    Haskell expression. \inlhask{Constructor}'s are also returned by
+    the function \inlhask{randomMatching} discussed in
+    \autoref{random}.
+
+    The internal representation of a constructor is very simple:
 
     \begin{haskellcode}
     type Name = TH.Name
@@ -1069,8 +1094,8 @@ reduced when compared to the previous one.
     A \inlhask{Name} is simply a type alias for names in Template
     Haskell \cite{TH}. A \inlhask{Type} corresponds to the, possibly
     specialized, type of the constructor. Types are discussed in the
-    next section and how to a specialize a type for a constructor is
-    explained in section \ref{TH}.
+    next section. How to a specialize a type for a constructor when
+    defined in an API is explained in \autoref{TH}.
 
 *** Types and simple types
     \label{sec:impl-types}
@@ -1088,12 +1113,14 @@ reduced when compared to the previous one.
       | ListT SType
     \end{haskellcode}
 
+    \pagebreak
+
     The first data type is used to introduce variables, and
-    constraints on these variables, in types. The second data type
-    =SType= has constructors for representing functions, variables,
-    constructors \ref{constructors} and lists. For instance the the
-    implicitly for all quantified type \inlhask{a -> b -> b} could be
-    represented as
+    constraints on these variables, in types. The second data type,
+    \inlhask{SType}, has constructors for representing functions,
+    variables, constructors and lists. For instance, the implicitly
+    forall quantified type \inlhask{a -> b -> b} could be represented
+    as:
 
     \begin{haskellcode}
     Type [(0, Forall), (1, Forall)] [] (FunT [ VarT (1, Forall)
@@ -1102,16 +1129,17 @@ reduced when compared to the previous one.
                                              ])
     \end{haskellcode}
 
-    The name of a type variable are turned into a natural number and a
-    quantifier (here Forall) as explained in \ref{variables} . The
+    Each name of a type variable is turned into natural a number and a
+    quantifier (here Forall), as explained in \ref{variables} . The
     type variable =a= is here turned into \inlhask{(0, Forall)} and
     =b= is turned into \inlhask{(1, Forall)}. A not so obvious
     transformation is done for the inner =SType=. The order of the
     type variables in the function type is reversed if you compare to
     the original type. The reason this is done is to make the
-    implementation of the type matching more efficient. This is
-    discussed in section \ref{match}. For now, it is enough to
-    remember that function types are reversed.
+    implementation of the type matching more efficient since only the
+    return type of functions are considered during matching, see
+    \autoref{algo:match}. For now, it is enough to remember that
+    function types are reversed.
 
     The rest of the constructors, \inlhask{VarT, ConT} and
     \inlhask{ListT} represents type variables, type constructors and
@@ -1126,6 +1154,23 @@ reduced when compared to the previous one.
     just a convenience which make the implementation simpler, it also
     follows the representation for types used in Template Haskell
     \cite{TH}.
+
+    The last type to mention here is that of constraints in types:
+
+    \begin{haskellcode}
+    data Pred = ClassP Name SType
+    type Cxt = [Pred]
+    \end{haskellcode}
+
+    A constraint is simply a list of predicates. I.e. the constraints
+    in the Haskell type \inlhask{(Monoid a, Monoid b) => Monoid (a,b)}
+    would be:
+
+    \begin{haskellcode}
+    [ ClassP "Monoid" (VarT (0, Forall))
+    , ClassP "Monoid" (VarT (1, Forall))
+    ]
+    \end{haskellcode}
 
 *** Expressions
     \label{sec:impl-exp}
@@ -1152,8 +1197,8 @@ reduced when compared to the previous one.
     are the only visible parts outwards in an EDSL. Furthermore, if
     for instance a user wants a case match for a specific data type to
     be generated, a function directly corresponding to this case match
-    can be added to the API. The example below shows how such a
-    function would look like for the \inlhask{Maybe a} Haskell data
+    can be added to the API. Below is an example showing how such a
+    function would be defined for the \inlhask{Maybe a} Haskell data
     type.
 
     \begin{haskellcode}
@@ -1170,16 +1215,20 @@ reduced when compared to the previous one.
 
 **** *Substitutions:*
      \label{types-subst}
+     A mapping from type identifiers (natural numbers) to simple types
+     and a list of variables contained in the simple type.
 
-     \todo{Elaborate on Undecided type variables.}
+     \begin{haskellcode}
+     type Substitution = Map Nat ([Variable], SType)
+     \end{haskellcode}
 
-     A mapping from type identifiers, natural numbers, to simple
-     types, \inlhask{SType}'s. There is a value of this type in the
-     state when generating expressions. This value only contain
-     mappings for \inlhask{Undecided} variables since the
-     \inlhask{Forall} quantified variables has already been bound. The
-     \inlhask{Types} module contains several functions [fn:2] for
-     transforming and getting information from
+     There is a value of type \inlhask{Substitution} in the
+     \inlhask{EGState}, see \autoref{sec:impl-egstate}, when
+     generating expressions. This value only contains mappings for
+     \inlhask{Undecided} variables and represents the set of guesses,
+     $\mathbb{U}$, first introduced in \autoref{sec:undecided}. The
+     =Testing.QuickGen.Types= module contains several
+     functions [fn:2], for transforming and getting information from
      \inlhask{Substitution}'s.
 
 **** *Contexts* and *Uses*:
@@ -1194,9 +1243,7 @@ reduced when compared to the previous one.
 
      The number of uses can either be \inlhask{Just} a natural number
      or \inlhask{Nothing}, the latter indicating that this particular
-     constructor can be used an unlimited number of times. Further
-     discussion relating to \inlhask{Uses} can be found in section
-     \ref{random}.
+     constructor can be used an unlimited number of times.
 
 **** *Class environments:*
      A mapping from names of Haskell type classes to a list of super
@@ -1213,25 +1260,31 @@ reduced when compared to the previous one.
 
 **** *Languages:*
      \label{types-languages}
-
      Basically a \inlhask{ClassEnv} paired together with a list of
-     \inlhask{Constructor}'s. A \inlhask{Language}'s is one of the
-     arguments for the library function \inlhask{generate}, the other
-     two being a \inlhask{Type} and a \inlhask{Seed} [fn:3]. The
-     \inlhask{generate} function together with a value of these three
-     types are the only thing a user needs to generate well-typed
-     terms using this library. Currently the only way for an end user
-     to construct a value of this type is via the Template Haskell
-     function \inlhask{defineLanguage}.
+     \inlhask{Constructor}'s.
+
+     \begin{haskellcode}
+     data Language = L ClassEnv [Constructor]
+     \end{haskellcode}
+
+     A \inlhask{Language} is one of the arguments for the library
+     function \inlhask{generate}, the other two being a \inlhask{Type}
+     and a \inlhask{Seed} [fn:3]. The \inlhask{generate} function
+     together with a value of these three types are the only thing a
+     user needs to generate well-typed terms using this library.
+     Currently the only way for an end user to construct a value of
+     this type is via the Template Haskell function
+     \inlhask{defineLanguage}.
 
 ** Template Haskell
    \label{TH}
 
-   The library contains a small module named =TH= with two exported
-   Template Haskell functions, \inlhask{defineLanguage} and
-   \inlhask{getType}, that a user can use to construct a
-   \inlhask{Language} respectively a \inlhask{Type}. Example usage of
-   these functions are shown in \autoref{lst:th-example} below:
+   The library contains a small module named =Testing.QuickGen.TH=
+   with two exported Template Haskell functions,
+   \inlhask{defineLanguage} and \inlhask{getType}, that a user can use
+   to construct a \inlhask{Language} or a \inlhask{Type} respectively.
+   Example usage of these functions are shown in
+   \autoref{lst:th-example} below:
 
    \begin{listing}[H]
    \begin{haskellcode}
@@ -1309,11 +1362,11 @@ reduced when compared to the previous one.
     instance Monoid a => Monoid (Maybe a)
     \end{haskellcode}
 
-    For instance, lets say that a user includes the function
+    For instance, suppose a user includes the function
     \inlhask{pure :: Applicative f => a -> f a} as a constructor in
     the language. If this is the only function in the language
-    containing a type class constraint the initial list of names $ns$
-    will be \inlhask{[Applicative]}. The algorithm proceeds as
+    containing a type class constraint the initial list of names,
+    $ns$, will be \inlhask{[Applicative]}. The algorithm proceeds as
     follows:
 
     - Initialize a class environment $cenv$ to the empty set.
@@ -1328,12 +1381,14 @@ reduced when compared to the previous one.
          neither $ns$ nor $cenv$.
     - Return $cenv$
 
+    \pagebreak
+
     In our example with \inlhask{[Applicative]} as the starting list,
     we would start by finding all information about
     \inlhask{Applicative} and adding \inlhask{Functor} and
     \inlhask{Monoid} to $ns$.[fn:4] The next step would be looking up
     the information of, for instance, \inlhask{Monoid}. Since there
-    are no superclasses for this class then only classes mentioned in
+    are no superclasses for this class, only the classes mentioned in
     the instances are added. In this case, one of the instances
     mentions a class which is already in $cenv$, \inlhask{Monoid}, and
     this particular class is therefore not added to $ns$ since there
@@ -1356,9 +1411,9 @@ reduced when compared to the previous one.
     was therefore removed from the algorithm used in the library.
 
     In future versions, a modification to the fourth step should be
-    added again i.e. so that only classes that are relevant to the
+    added again, i.e. so that only classes that are relevant to the
     current problem are added to the class environment. Possible ways
-    to solve this is discussed further in section \ref{sec:fut-CE}.
+    to solve this are discussed further in section \ref{sec:fut-CE}.
 
 ** ExpGen
    \label{expgen}
@@ -1368,12 +1423,13 @@ reduced when compared to the previous one.
    appropriately named function \inlhask{generate} which works by
    finding a random matching \inlhask{Constructor}'s for the current
    goal type and recursively tries to generate expressions of the
-   argument types used in the constructor. However, this is not as
-   trivial as the above description makes it sound like and the
-   following section explains the design choices and the different
-   invariants used when implementing the complete algorithm.
+   argument types of the constructor.
+
+   \pagebreak
 
 *** The ExpGen state
+    \label{sec:impl-egstate}
+
     The \inlhask{ExpGen} type is basically a state monad keeping track
     of and updating relevant information when generating expressions.
 
@@ -1392,52 +1448,39 @@ reduced when compared to the previous one.
     The type \inlhask{EGState} is a tuple with several elements. The
     first two elements, \inlhask{NextLambda} and \inlhask{NextType},
     is used to generate unique identifiers for lambda variables and
-    type variables respectively. The list of \inlhask{Context}'s
-    contains all \inlhask{Constructor}'s introduced in either the
-    language definition or in any lambda generated by the algorithm.
-    If, for instance, the starting language contains \inlhask{map} and
-    \inlhask{id} and the type to generate is
-    \inlhask{Int -> Double -> Int}, then the starting context would be
-    a singleton list only containing \inlhask{map} and \inlhask{id}.
-    The next step would introduce a lambda \inlhask{$\lambda$ x y -> ...},
-    effectively adding one more \inlhask{Context} containing
-    \inlhask{x} and \inlhask{y} [fn:6] to the list of contexts, and
-    continue to generate an expression of type \inlhask{Int} at the
-    point of the ellipsis.
+    type variables respectively. The list (stack) of
+    \inlhask{Context}'s contain all \inlhask{Constructor}'s introduced
+    in either the language definition or in a lambda abstraction
+    generated by the algorithm. If, for instance, the starting
+    language contains \inlhask{map} and \inlhask{id} and the type to
+    generate is \inlhask{Int -> Double -> Int}, then the starting
+    stack of contexts would be a singleton list only containing
+    \inlhask{map} and \inlhask{id}. The next step would introduce a
+    lambda abstraction \inlhask{\\ x y -> ...}, effectively adding one
+    more \inlhask{Context}, containing the values \inlhask{x} and
+    \inlhask{y} [fn:6], to the stack of contexts and continue to
+    generate an expression of type \inlhask{Int} at the point of the
+    ellipsis. If the expression finishes successfully, the top-most
+    context on the stack is popped off and the algorithm returns the
+    generated expression.
 
     The \inlhask{StdGen} is from the \textsc{System.Random} module and
     is used when selecting random constructors when generating
     expressions. The last value, with type \inlhask{Substitution},
     contains the current guesses for all \inlhask{Undecided} type
-    variables. Section \ref{types-subst} contains further elaboration
-    on what a \inlhask{Substitution} and how a \inlhask{Undecided}
-    type variable is used.
-
-*** Unique types
-    Before going into details about the different parts of the
-    generation functions it is necessary to discuss the following
-    function:
-
-    \begin{haskellcode}
-    -- | Given a type replaces all `Forall' bound variables in that type
-    -- with unique type variables. The EGState is updated with the next free
-    -- type variable id.
-    uniqueTypes :: Type -> ExpGen Type
-    \end{haskellcode}
-
-    The function \inlhask{uniqueTypes} is applied to types before type
-    matching is done. It is also used one time on the starting
-    goal-type when first starting to generate expressions. The
-    uniqueness of types makes it much easier to implement type
-    matching and removes the possibility of introducing loops in the
-    substitution during the matching process.
+    variables, i.e. representing the set $\mathbb{U}$.
 
 *** Match function
     \label{match}
 
     The function \inlhask{match} found in the \textsc{ExpGen} module
-    implements an algorithm that is close to but not exactly the same
-    as standard type matching:
+    implements the algorithm discussed in \autoref{algo:match}. The
+    observant reader might notice that this function does not pattern
+    match on the type of $t$, as is done in the pseudo code for
+    \textsc{Match}. Instead, this is done in the \inlhask{match'}
+    function. However, the complete algorithm is still the same.
+
+    \pagebreak
 
     \begin{haskellcode}
     match :: Monad m => Type -> Type -> StateT Substitution m Type
@@ -1454,49 +1497,55 @@ reduced when compared to the previous one.
     \end{haskellcode}
 
     \inlhask{match} takes a goal type $gt$ and a matched against type
-    $t$ and returns a type inside a state monad. The state that being
-    kept is the current guesses for the \inlhask{Undecided} variables
-    encountered during type matching. The first function works by
-    first calculating a substitution for the second type $t$ by using
-    the function \inlhask{match'}. The substitution contained in $s$
-    on line 3 corresponds to a substitution returned by normal type
-    matching. The rest of the function is to first apply $s$ to $t$
-    followed by converting all \inlhask{Forall} quantified variables
-    to \inlhask{Undecided} variables.
-
-    \todo{Some examples describing how Undecided works}
+    $t$ and returns a type inside a state monad. The state being kept,
+    if called with an initial empty state, is the current guesses for
+    the \inlhask{Undecided} variables encountered during this
+    particular run for the function. This is correct if the current
+    set of guesses, represented as a substitution, is fully applied to
+    both arguments, =gt= and =t=, before being sent as arguments to
+    this function. The only undecided variables found in either =gt=
+    or =t= are therefore variables without any previous guesses, i.e.
+    these variables are not present in $\mathbb{U}$. This function,
+    when called in this manner, can therefore only introduce guesses
+    for variables not present in the current set of guesses.
 
 *** Selecting a random matching constructor
     \label{random}
 
-    The following function gets a goal type $gt$ and returns a
+    The following function gets a goal type $gt$ and selects a
     randomly selected \inlhask{Constructor} from the current context
     matching the supplied type:
 
     \begin{haskellcode}
     randomMatching :: Type -> ExpGen (Maybe (Id, Constructor, Substitution))
+    randomMatching gt = ...
     \end{haskellcode}
 
     This function works by looking through each \inlhask{Context},
-    filters out those \inlhask{Constructor}'s with no more uses left
-    and then runs \inlhask{match} with the goal type $gt$ and the type
-    for the current \inlhask{Constructor}. If \inlhask{match} succeeds
-    it returns an updated \inlhask{Type} and a \inlhask{Substitution}
-    containing new/updated guesses for \inlhask{Undecided} variables
-    wrapped in a \inlhask{Just}. The constructor is then saved to a
-    list of constructor candidates. If instead a \inlhask{Nothing} is
-    returned then the list of candidates is unchanged.
+    filters out those \inlhask{Constructor}'s having no uses left and
+    then runs \inlhask{match} with the goal type =gt= and the type =t=
+    of each of the remaining \inlhask{Constructor}'s. As discussed
+    above, the initial state for \inlhask{match} will be the empty
+    set. Further, the substitution containing the current set of
+    guesses, $\mathbb{U}$, will be fully applied to both =gt= and =t=.
+    If \inlhask{match} succeeds (gives back a Just), it returns a,
+    possibly specialized, value for =t= and a \inlhask{Substitution}
+    containing new guesses for \inlhask{Undecided} variables. The
+    constructor is then saved to a list of constructor candidates. If
+    instead \inlhask{match} fails and returns a \inlhask{Nothing}, the
+    list of candidates is unchanged.
 
     The last step of the function is simply to randomly select and
-    return one of the \inlhask{Constructor}'s by using the
-    \inlhask{StdGen} in the \inlhask{EGState}.
+    return one of the candidate \inlhask{Constructor}'s by using the
+    \inlhask{StdGen} from the \inlhask{EGState}.
 
 *** Generating expressions
     \label{sec:generate}
 
-    \inlhask{generate} is the only exported function in the
-    \textsc{ExpGen} module, i.e. it is the only function that will be
-    visible to the end user.
+    \inlhask{generate} will be the only exported function in the
+    \textsc{ExpGen} module, i.e. in future versions of this library,
+    it is the only function from this module that will be visible to
+    the end user.
 
     \begin{haskellcode}
     generate :: Language -> Type -> Seed -> (Maybe Exp, EGState)
@@ -1523,17 +1572,18 @@ reduced when compared to the previous one.
   first example we look at is a simple language from the test suite
   included in the library. This example includes generating both
   polymorphic and monomorphic functions from a simple API. After this,
-  a real world example is presented. More specifically, a generator
-  designed to mimic the behaviour of the handmade generator used when
-  testing the /Copilot/ EDSL \cite{copilot} is presented.
+  two real world examples are presented. More specifically, a
+  generator designed to mimic the behaviour of the handmade generator,
+  used when testing the /Copilot/ EDSL \cite{copilot}, is presented
+  followed by a simple generator used to discover an artificially
+  introduced bug in Feldspar \cite{feldspar}.
 
 ** Simple usage
-   Bundled with the \quickgen library there is a test suite where one
-   of the tests includes testing the complete usage of the library.
-   First an API[fn:18] is defined using the function
-   \inlhask{defineLanguage} as discussed in \autoref{TH}. This API
-   includes a selection of some common functions found in the Haskell
-   Prelude:
+   Bundled with the \quickgen library is a test suite where one of the
+   tests include testing the complete usage of the library. First an
+   API[fn:18] is defined using the function \inlhask{defineLanguage}
+   as discussed in \autoref{TH}. This API includes a selection of some
+   common functions found in the Haskell Prelude:
 
    \begin{listing}[H]
    \begin{haskellcode}
@@ -1561,7 +1611,7 @@ reduced when compared to the previous one.
    presented in \autoref{sec:generate}. In the current setup,
    \inlhask{generate} will be called multiple times with
    \inlhask{lang} and two different goal types, the first one being
-   \inlhask{a -> [a]} and the second one \inlhask{[Int]}.
+   $a \ri [a]$ and the second one $[Int]$.
 
    \begin{haskellcode}
    -- | Generates values of type `[Int]'
@@ -1597,16 +1647,16 @@ reduced when compared to the previous one.
 
    The function \inlhask{compileExpr} above takes a normal Haskell
    string and compiles this string as an expression using the modules
-   loaded into scope. If successful, a value that can be safely cast
+   loaded into scope. If successful, a value that can safely be cast
    into a list of integers is returned. The compilation can fail,
-   however, with a similar error message that the =ghc= compiler
-   reports for incorrect source files. If this happens, the current
-   test case will be aborted and the compilation error message will be
+   however, with a similar error message that the GHC compiler reports
+   for incorrect source files. If this happens, the current test case
+   will be aborted, and the compilation error message will be
    displayed for the user.
 
    The function \inlhask{checkTypeListInt} and the respective function
-   for the polymorphic test case are then called 50 times each to try
-   to ensure that only well-typed expressions are generated by the
+   for the polymorphic test case are then called 50 times each to
+   check that only well-typed expressions are generated by the
    library. Listing \ref{lst:gen-output} below shows a sample from the
    polymorphic function generator:
    \begin{listing}[H]
@@ -1624,9 +1674,9 @@ reduced when compared to the previous one.
    The running time for the complete test case, randomly generating
    followed by type checking 100 expressions, takes around 10 seconds
    to complete on a modern laptop. Furthermore, the memory usage
-   remains low for the whole duration of the test.
+   remains low for the complete duration of the test.
 
-** a Do-it-yourself High-Assurance compiler
+** a DIY High-Assurance compiler
    \label{sec:copilot-example}
 
    The Copilot EDSL is designed to monitor C programs by periodically
@@ -1644,7 +1694,7 @@ reduced when compared to the previous one.
    \end{listing}
 
    External C values are accessed by using one of the functions found
-   in the \textsc{Extern} Copilot haskell module, for instance:
+   in the =Copilot.Extern= Haskell module, for instance:
    \inlhask{extern :: Typed a => String -> Maybe [a] -> Stream a}. In
    addition to \inlhask{Streams}, a mechanism called /triggers/ are
    also discussed by \citeauthor{copilot} in \cite{copilot}. A trigger
@@ -1693,37 +1743,74 @@ reduced when compared to the previous one.
    types for the streams given in listing \ref{lst:structure} above is
    just a selection of the available types for Copilot streams, a
    complete list of instances can be found in \cite{copilot-core}.
-   Furthermore, it is not required that, for instance, \inlhask{s\_n}
+   Furthermore, it is not required that, for instance, \inlhask{s_n}
    on line 9 to have type \inlhask{Stream Int32}. Instead, any type
    \inlhask{t} with an instance of the \inlhask{Typed} type class can
    be chosen. -- \em
 
    As can be seen in listing \ref{lst:structure}, for each of the
-   values \inlhask{s\_i} above, a stream with a matching type will be
-   generated in the location of the comment. It is possible for each
-   of these stream expressions to use any of the values \inlhask{s\_i}
-   in the final expression. For the triggers the generation is
-   slightly more complicated. First we generate an expression of type
-   \inlhask{Stream Bool}. This is followed by a non-empty list of
-   expressions always starting with a call to \inlhask{arg} and ending
-   with an expression of type \inlhask{Typed a => Stream a}. Similar
-   to before, any of the streams \inlhask{s\_i} can be used while
-   generating the random guards and arguments for the triggers.
+   variables \inlhask{s_i} above, a stream with a matching type will
+   be generated in the location of the comment. It is possible for
+   each of these stream expressions to use any of the streams
+   \inlhask{s_i} in the final expression. For the triggers the
+   generation is slightly more complicated. First we generate an
+   expression of type \inlhask{Stream Bool}. This is followed by a
+   non-empty list of expressions always starting with a call to
+   \inlhask{arg} and ending with an expression of type
+   \inlhask{Typed a => Stream a}. Similar to before, any of the
+   streams \inlhask{s_i} can be used while generating random guards
+   and arguments for the triggers.
 
 *** A Copilot generator in \quickgen
     A generator using \quickgen was constructed with the goal to mimic
-    the behaviour of the generator provided by Copilot as much as
-    possible. Unfortunately, since type classes was not fully
-    implemented at the time of the experiment, some restrictions had
-    to be made to the constructors available in the API. Specifically,
-    since functions and values with type class constraints wont
-    function properly, these functions was specialized to a selected
-    subset of the types within the type class. For instance, instead
-    of having the more general function
-    \inlhask{app~::~Typed~a~=>~[a]~-> Stream a -> Stream a} in the
-    API, two specialized versions[fn:15], of this function was defined
-    and included instead. The complete API can be found in
-    \autoref{lst:copilot-api} below:
+    the behaviour of the generator provided by Copilot. Unfortunately,
+    since type classes were not fully implemented at the time of the
+    experiment, some restrictions had to be made to the constructors
+    available in the API. Specifically, since functions and values
+    with type class constraints wont function properly, these
+    functions was specialized to a selected subset of the types within
+    the type class. For instance, instead of having the more general
+    function \inlhask{app :: Typed a => [a] -> Stream a -> Stream a}
+    in the API, two specialized versions[fn:15] of this function was
+    defined and included instead. The complete API can be found in
+    \autoref{lst:copilot-api}.
+
+    This API contains a selection of the functions and values
+    available when creating specifications using the Copilot EDSL.
+    Before continuing, some things needs pointing out. First of all,
+    the function \inlhask{drop}, used in listing \ref{lst:copilot-fib}
+    above, has been left out of the API because of some issues with
+    totality of this function. Secondly, the API contains functions
+    called \inlhask{cycle...} that has no counterpart in the Copilot
+    standard library. These functions are used to create infinite
+    streams from finite list in the same sense \inlhask{cycle} from
+    the Haskell standard library works.
+
+    \begin{listing}[H]
+    \begin{haskellcode}
+    cycleBool xs = let s = xs `app` s in s
+
+    -- These two streams are equivalent
+    x1 = [True,False] `app` x1
+    x2 = cycleBool [True, False]
+    \end{haskellcode}
+    \caption{The definition of the cycle function together with example usage.}
+    \end{listing}
+
+    To generate Copilot expressions a variant of the
+    \inlhask{generate} function was defined that reruns the generation
+    process with new random seeds until it succeeds.
+
+    \begin{haskellcode}
+    -- | A Copilot expression is represented using a Quickgen Exp and Type
+    type CopilotExpr = (Exp, Type)
+
+    genExpr :: Language -> Type -> StdGen -> (CopilotExpr, StdGen)
+    genExpr l t g = case generate l t seed of
+        Nothing -> genExpr l t g'
+        Just r  -> (r, g')
+      where (seed, g') = next g
+    \end{haskellcode}
 
     \begin{listing}[H]
     \begin{haskellcode}
@@ -1772,46 +1859,9 @@ reduced when compared to the previous one.
     \caption{The initial API used when generating Copilot expressions.}\label{lst:copilot-api}
     \end{listing}
 
-    This API contains a selection of the functions and values
-    available when creating specifications using the Copilot EDSL.
-    Before continuing, some things needs pointing out. First of all
-    the \inlhask{drop} function, used in listing \ref{lst:copilot-fib}
-    above, has been left out of the API because of some issues with
-    totality of this function. Secondly, the API contains functions
-    called \inlhask{cycle...} that has no counterpart in the Copilot
-    standard library. These functions are used to create infinite
-    streams from finite list in the same sense \inlhask{cycle} from
-    the Haskell standard library works.
-
-    \begin{listing}[H]
-    \begin{haskellcode}
-    cycleBool xs = let s = xs `app` s in s
-
-    -- These two streams are equivalent
-    x1 = [True,False] `app` x1
-    x2 = cycleBool [True, False]
-    \end{haskellcode}
-    \caption{The definition of the cycle function together with example usage.}
-    \end{listing}
-
-    To generate Copilot expressions a variant of the
-    \inlhask{generate} function was defined that reruns the generation
-    process with new random seeds until it succeeds.
-
-    \begin{haskellcode}
-    -- | A Copilot expression is represented using a Quickgen Exp and Type
-    type CopilotExpr = (Exp, Type)
-
-    genExpr :: Language -> Type -> StdGen -> (CopilotExpr, StdGen)
-    genExpr l t g = case generate l t seed of
-        Nothing -> genExpr l t g'
-        Just r  -> (r, g')
-      where (seed, g') = next g
-    \end{haskellcode}
-
-    To generate the list of streams, \inlhask{s\_1 ... s\_n}, a
+    To generate the list of streams, \inlhask{s_1 ... s_n}, a
     function that starts with \inlhask{lang} as the initial API and
-    then incrementally adds streams to the API as they are generated
+    then incrementally adds streams to the API, as they are generated,
     was defined:
 
     \begin{haskellcode}
@@ -1836,26 +1886,27 @@ reduced when compared to the previous one.
 
     The first element in the return value of \inlhask{genStreams} is
     the final language value, containing the complete API together
-    with all \inlhask{s\_i} values. The second and third element is
-    the generated stream, and the updated standard generator value
+    with all \inlhask{s_i} variables. The second and third elements
+    are the generated streams and the updated standard generator value
     respectively. It should be noted that this is not exactly the same
     tactic as employed by the Copilot generator since an expression
-    \inlhask{s\_i} constructed by the latter generator can use any of
-    the other values \inlhask{s\_j} in the final expression, including
-    \inlhask{s\_i} itself. Since recursion in streams can still be
-    achieved using the \inlhask{cycleBool} and \inlhask{cycleWord64}
-    functions, it did not seem necessary to add this extra step in the
-    generation process.
+    \inlhask{s_i}, constructed by the latter generator, can use any
+    of the other streams, \inlhask{s_j}, in the final expression,
+    including \inlhask{s_i} itself. Since, at least, some recursion
+    in streams can be achieved using the \inlhask{cycleBool} and
+    \inlhask{cycleWord64} functions, it did not seem necessary to add
+    this extra step in the generation process.
 
     Finally the \inlhask{genTriggers} and \inlhask{genSpec} functions
     was defined to generate triggers and a complete spec respectively.
 
+    \pagebreak
+
     \begin{haskellcode}
     type CopilotTrigger = (CopilotName, Exp, [CopilotExpr])
 
-    -- | Generates `n' Copilot triggers using the language `lang'. Each
-    -- trigger will have a random number of arguments between `low' and
-    -- `high'.
+    -- | Generates `n' Copilot triggers using the language `lang'. The
+    -- number of arguments for each trigger will be between low and high
     genTriggers :: Language -> Int -> (Int, Int) -> StdGen
                 -> ([CopilotTrigger], StdGen)
     genTriggers lang n (low,high) g = ...
@@ -1873,8 +1924,8 @@ reduced when compared to the previous one.
     The implementation of \inlhask{genTriggers} function has been left
     out since it is similar to the \inlhask{genStreams} function found
     above. The only function left to explain, \inlhask{genSpec}, ties
-    together the other specialized generator functions by choosing the
-    number of streams and triggers to generate and threading the
+    together the other specialized generator functions, by choosing
+    the number of streams and triggers to generate, and threads the
     standard generator through the complete computation.
 
     What remains now is converting this representation into a
@@ -1887,61 +1938,31 @@ reduced when compared to the previous one.
     executed using the GHC API \cite{ghcapi}. The resulting values was
     compared to random values produced by the Copilot random generator
     and the two generators was found, by visual inspection, to be
-    similar in operation [fn:16]. However, the running time of the
+    similar in operation[fn:16]. However, the running time of the
     \quickgen generator was significantly higher than that of the
     corresponding generator in Copilot. On a modern laptop, the former
     generator requires around one second to generate a complete
-    specification while the latter in many cases finish seemingly
-    instantly. Still, it is the authors understanding that one second
-    in this case is short enough to render the \quickgen generator
+    specification, the latter, in many cases, is perceived to finish
+    instantly. Still, it is the authors understanding that one second,
+    in this case, is short enough to render the \quickgen generator
     usable as a source for random test data.
 
     What is worth noting is that the size of the complete \quickgen
     generator was estimated to be about 25 to 30 percent the size of
     the Copilot generator. This estimation was made by counting
-    significant lines of code [fn:17] for both generators. The
-    complete generator implemented using \quickgen can be found in
+    significant lines of code for both generators[fn:17]. The complete
+    generator implemented using \quickgen can be found in
     \cite{copilot-test}.
 
 ** Feldspar
    Since one of the motivations for this project was to implement a
    random generator for the EDSL Feldspar, see \cite{feldspar}, it
-   seemed natural that also one of the use case examples was to test
-   this language. As in \autoref{sec:copilot-example}, a language and
-   a generator was defined. The resulting definitions can be found in
-   \autoref{tbl:feldspar-api}.
-
-   \begin{listing}[H]
-   \begin{haskellcode}
-   type DWord = Data WordN
-
-   lang :: Language
-   lang = $(defineLanguage [| ( plus'    :: DWord -> DWord -> DWord
-                              , times'   :: DWord -> DWord -> DWord
-                              , div'     :: DWord -> DWord -> DWord
-                              , sum'     :: Vector DWord -> DWord
-                              , zipWith' :: (DWord -> DWord -> DWord)
-                                         -> Vector DWord
-                                         -> Vector DWord
-                                         -> Vector DWord
-                              , map      :: (a -> b) -> Vector a -> Vector b
-                              , range    :: DWord -> DWord -> Vector DWord
-                              , id       :: a -> a
-                              , const    :: a -> b -> a
-                              , wordN0   :: DWord
-                              , wordN1   :: DWord
-                              , wordN2   :: DWord
-                              , wordN3   :: DWord
-                              )
-                            |])
-
-   gen :: Seed -> Maybe (Exp, Q.Type)
-   gen seed  = generate lang ty seed
-     where
-       ty = $(getType [t| Data WordN |])
-   \end{haskellcode}
-   \caption{API and generator used when testing Feldspar. The \texttt{range} function is a similar to the Haskell function \texttt{enumFromTo}.} \label{tbl:feldspar-api}
-   \end{listing}
+   seemed natural that one of the use case examples was to test this
+   language. As in \autoref{sec:copilot-example}, a language,
+   \inlhask{lang}, and a generator, \inlhask{gen}, were defined. Since
+   these definitions are very similar to those in the previous
+   examples, the specification of the language and generator can be
+   found in \autoref{appendix:feldspar-api}.
 
    To test that, for instance, optimizations does not change the
    behaviour of the program, we will need two evaluation functions,
@@ -1955,31 +1976,31 @@ reduced when compared to the previous one.
    Unfortunately, Feldspar does not export an evaluation function
    matching the behaviour of $\textsc{Eval}$, there is however, a
    function named \inlhask{eval} that behaves like
-   $\textsc{Eval}_{opt}$. What was done was to define yet another
-   evaluation function, \inlhask{eval'}, that behaved in the way that
-   was required [fn:25]. Next, a procedure was defined to repeatedly
-   call \inlhask{gen} above followed by compiling the generated
-   expressions using \inlhask{compileExpr} from the GHC API. The
-   result of evaluating the compiled expressions using the two
-   evaluation functions, $\textsc{Eval}_{opt}$ and $\textsc{Eval}$,
-   was then compared.
+   $\textsc{Eval}_{opt}$. To continue, another evaluation function,
+   having the correct behaviour, was defined and added to
+   Feldspar[fn:25]. Next, a procedure was defined to repeatedly call
+   \inlhask{gen} followed by compiling the generated expressions
+   using \inlhask{compileExpr} from the GHC API. The result of
+   evaluating the compiled expressions using the two evaluation
+   functions, $\textsc{Eval}_{opt}$ and $\textsc{Eval}$, was then
+   compared.
 
-   Using the API found in \autoref{tbl:feldspar-api} above, no bugs
-   was discovered for the particular type of expressions that was
-   generated. To proceed, a bug was artificially introducing in the
+   Using the API found in \autoref{appendix:feldspar-api}, no bugs
+   were discovered for the particular type of expressions generated.
+   To proceed, a bug was artificially introduced into the
    =Feldspar.Core.Constructs.Num= module, incorrectly optimizing an
    expression similar to $1+n$ by replacing it with the value $n$.
-   Indeed, this bug was quickly discovered by the procedure above
-   producing several counterexamples.
+   Indeed, this bug was quickly discovered by the procedure and
+   several counterexamples were produced.
 
 ** Summary
    This section started with a demonstration of one of the test cases
-   bundled with the \quickgen library. This particular example usage
-   showed how to use the functions introduced in \ref{chap:impl} to
+   bundled with the \quickgen library. This particular example use
+   showed how to use the functions introduced in \ref{chap:impl}, to
    describe an API later used when generating, for instance, higher
-   order functions. Fairly complicated expressions was generated quite
-   quickly, averaging about 100 ms per expression, while still using
-   low amounts of memory on the host computer.
+   order functions. Fairly complicated expressions were generated
+   reasonably quickly, averaging about 100 ms per expression, while
+   still using low amounts of memory on the host computer.
 
    In the second example, a more refined generator was defined
    producing random expressions with form similar to those generated
@@ -1988,16 +2009,16 @@ reduced when compared to the previous one.
    former generator was more restrictive than the one available in the
    Copilot counterpart. The defined generator was also noticeably
    slower than the existing one but was still fast enough to be
-   considered usable. The biggest gain was noticed when comparing code
-   size. The generator defined in \quickgen was about 25 percent the
-   size of its counterpart.
+   considered usable by the author. The biggest gain was noticed when
+   comparing code size, where the generator defined in \quickgen was
+   about 25 percent the size of its counterpart.
 
    Finally, a generator for the EDSL Feldspar was defined. The API in
    this example, while small, contained functions taking higher order
    arguments with polymorphic types. However, no bugs was found in the
    Language using the API and a goal type of \inlhask{Data WordN}. At
-   this point, a bug was artificially introduced in the language and
-   quickly discovered by the testing procedure.
+   this point, a bug was artificially introduced into the language.
+   This bug was then quickly discovered by a simple testing procedure.
 
 \newpage
 
@@ -2006,19 +2027,17 @@ reduced when compared to the previous one.
 
   Due to time limitations the scope and complexity of the project was
   reduced by limiting the implementation of the final project. This
-  chapter discusses all these limitations and how they affect the
-  final product. Further, each subsection contains a short discussion
-  about how one might extend the library to eliminate the limitation.
+  chapter discusses some of these limitations and how they affect the
+  final product.
 
 ** Type variable arguments
    \label{sec:fut-typearg}
 
    Currently there is no way to represent type variables with multiple
-   arguments. This functionality was unfortunately never prioritized
-   since type classes was not fully implemented in the library and
-   type classes is the only feature known to the author that requires
-   types variables with arguments. To see the limitation lets look at
-   the \inlhask{SType} data type found in the \textsc{Testing} module:
+   arguments. This functionality was never prioritized since type
+   classes were not fully implemented in the library. To see the
+   limitation let us look at the \inlhask{SType} data type found in
+   the =Testing.QuickGen.Types= module:
    \begin{haskellcode}
    data SType =
      ...
@@ -2050,7 +2069,7 @@ reduced when compared to the previous one.
    \label{sec:fut-CE}
 
    In the end of \autoref{sec:calc-ce}, there is a problem presented
-   where a very large expression is constructed, around 50000
+   where a large expression is constructed, consisting of around 50000
    characters, when calculating the complete class environment for an
    API only containing the type class \inlhask{Num}. Furthermore, the
    calculated class environment contained several type classes that
@@ -2059,10 +2078,10 @@ reduced when compared to the previous one.
 
    - Instead of automatically trying to calculate the complete class
      environment, a user could specify exactly which instances of a
-     particular type class they are interested in at the same time
-     they are specifying an API. Only these specific instances are
-     then added to the class environment. Lets look at some of the
-     instances of the \inlhask{Monoid} type class as an example:
+     particular type class they are interested in at the same time an
+     API is specified. Only these specific instances are then added to
+     the class environment. Let us look at some of the instances of
+     the \inlhask{Monoid} type class as an example:
 
      \begin{listing}[H]
      \begin{haskellcode}
@@ -2083,7 +2102,7 @@ reduced when compared to the previous one.
      consumed by any of the other functions in the API. The user could
      instead specify in the API to only include the first and third
      instance removing the extraneous instances altogether. The
-     function \inlhask{mempty} could still in this case be used to
+     function \inlhask{mempty} could still be used, in this case, to
      produce values of complicated types, for instance
      \inlhask{((([],[]),[]),([],[])) :: ((([a],[b]),[c]),([d],[e])) }.
 
@@ -2091,19 +2110,20 @@ reduced when compared to the previous one.
      all of them manually might be a very cumbersome task.
      Furthermore, new constructors added to the API might require
      additional instances to be added. Forgetting to do this last step
-     might be easy making the complete process error prone.
+     might be easy, making the complete process error-prone.
 
-     Instead of trying to add each instance manually, it might be
-     possible to look at the return types of the constructors
-     available in the API instead to filter out instances that are not
-     interesting. Using the same argument as above, if we only have
-     functions and values producing lists and pairs it might be enough
-     to only include the first and third instances. However, this kind
-     of filtering might be to restrictive in some cases. For instance,
-     if we add the following function to the API, \inlhask{f :: a -> b -> a},
-     it is perfectly legal to apply \inlhask{mempty :: Ordering} as a
-     second argument to this function and a specific user might even
-     be interested in expressions on this form.
+     Instead of trying to add every instance manually, it might be
+     possible to look at the return types of the constructors,
+     available in the API, to filter out instances that are not
+     interesting. Using the same argument as in the suggestion above,
+     if we only have functions and values producing lists and pairs it
+     might be enough to only include the first and third instances.
+     However, this kind of filtering might be to restrictive in some
+     cases. For instance, if we add the following function to the API,
+     \inlhask{f :: a -> b -> a}, it is perfectly legal to apply
+     \inlhask{mempty :: Ordering} as a second argument to this
+     function and a specific user might even be interested in
+     expressions on this form.
 
   None of the suggestions above completely solves the problem at hand.
   However, it might be possible to combine them, i.e. letting a user
@@ -2117,10 +2137,8 @@ reduced when compared to the previous one.
    Complete support of type classes was initially a goal of the
    project but was never fully realized. What is missing is to
    implement something similar to performing class /entailment/ as
-   defined in \cite{thih}. This function would have a type similar to
+   defined in \cite{thih2}. This function would have a type similar to
    the following:
-
-   \todo{Behöver text för Pred och Pred är egentligen = ClassP Name [SType] i Types.hs!}
 
    \begin{haskellcode}
    data Pred = ClassP Name SType
@@ -2138,9 +2156,9 @@ reduced when compared to the previous one.
    that we want to find out if it is true or not given the class
    environment and the constraints. If $ps$ is empty and $p$ is equal
    to, for instance, \inlhask{ClassP "Num" (VarT (a, Forall))}, this
-   will correspond to finding an instance of \inlhask{Num a} in the
-   class environment $ce$. With this functio in place one must make
-   sure that class constraints are satisfied for a specific
+   corresponds to finding an instance of \inlhask{Num a} in the class
+   environment $ce$ \cite{thih2}. With this function in place one must
+   make sure that all class constraints are satisfied for a specific
    constructor given the specialized type of the constructor together
    with the class environment and class constraints of the current
    goal type.
@@ -2148,7 +2166,7 @@ reduced when compared to the previous one.
    For instance, consider the following example during type matching
    with some goal type \inlhask{Cxt => gt} against the following
    constructor \inlhask{plus :: Num a => a -> a -> a}. For these
-   particular types, since $a$ is for all quantified, the substitution
+   particular types, since $a$ is forall quantified, the substitution
    $\{a \mapsto gt\}$ will be produced on line three in the
    \inlhask{match} function found in \autoref{match}. This
    substitution will then be applied to the type \inlhask{Num a => a -> a -> a}
@@ -2157,25 +2175,26 @@ reduced when compared to the previous one.
    type class which is exactly what \inlhask{entail} is defined to do.
    The constraints to send to this function is simply the constraints
    found in our goal type, \inlhask{Cxt}. The next step is to identify
-   our predicate(s) to examine, in this case it will be
-   \inlhask{ClassP "Num" st} although in general it can be several if
-   for instance the type of our constructor is \inlhask{(Num a, Num b) => (a, b)} [fn:22].
+   our predicate(s) to examine. In this case, it will be
+   \inlhask{ClassP "Num" st} although in general it can be several if,
+   for instance, the type of our constructor is \inlhask{(Num a, Num b) => (a, b)} [fn:22].
 
    If \inlhask{entail} returns true then it successfully found an
    instance for \inlhask{Num st} and the constructor \inlhask{plus} is
-   safe to us as a constructor for a value of the current goal type.
+   safe to use as a constructor for a value of the current goal type.
 
 *** Entailment and undecided variables
-    The entail function used above and defined in \cite{thih} solves
-    the problem for the definition of types used in standard Haskell,
-    however, this project introduces another type that is not present
-    in standard Haskell, namely the type of undecided type variables.
-    Imagine that our current goal type is \inlhask{?a} and that
-    \inlhask{mempty :: Monoid m => m} is the current constructor. This
-    would introduce a guess for \inlhask{?a} as \inlhask{Monoid ?a => ?a}.
-    If the type for \inlhask{?a} is never fully realized, this could
-    actually result in a compile error. To see why consider the
-    following expressions:
+    The \inlhask{entail} function used above, as defined in
+    \cite{thih2} and \cite{thih}, solves the problem for the
+    definition of types used in standard Haskell, however, this
+    project introduces another type that is not present in standard
+    Haskell, namely the type of undecided type variables. Imagine that
+    our current goal type is \inlhask{?a} and that
+    \inlhask{mempty :: Monoid m => m} is the chosen constructor. This
+    would introduce a guess for \inlhask{?a} as
+    \inlhask{Monoid ?a => ?a}. If the type for \inlhask{?a} is never
+    fully realized, this could actually result in a compile error. To
+    see why consider the following expressions:
     \begin{alltt}
     \(\lambda\)> :t const (5 :: Int) mempty
 
@@ -2190,7 +2209,7 @@ reduced when compared to the previous one.
     specialized to \inlhask{[?a]} giving us an unambiguous instance
     for the type class. This problem could be solved by trying to
     default the instances to some instance in the class environment.
-    This is done in standard haskell most notably with the
+    This is done in standard Haskell most notably with the
     \inlhask{Num} type class. The \inlhask{Exp} data type, see
     \autoref{sec:impl-exp}, would then also have to be updated, by
     adding a way to add type annotations to constructors if needed,
@@ -2201,7 +2220,7 @@ reduced when compared to the previous one.
       | ... -- As before
     \end{haskellcode}
 
-** More expressions in =defineLanguage=
+** Supporting more expressions
    \label{sec:fut-defineLanguage}
 
    Several types of expressions that are available in the Template
@@ -2211,7 +2230,7 @@ reduced when compared to the previous one.
    directly specify \inlhask{(:) :: a -> [a] -> [a]} and
    \inlhask{[] :: [a]} to be available as constructors. This feature
    was never a priority since it has little effect on the type of
-   expressions that can be generated by the library. I.e., in several
+   expressions that can be generated by the library. I.e. in several
    examples throughout this thesis, a constructor named \inlhask{cons}
    was used instead of \inlhask{(:)}. The definition of this
    constructor would simply be \inlhask{cons = (:)} in these examples
@@ -2224,28 +2243,28 @@ reduced when compared to the previous one.
    also add respective type constructors to the \inlhask{Exp} data
    type as defined in \autoref{sec:impl-exp}. An alternative would be
    to redefine the Template Haskell function \inlhask{defineLanguage}
-   to generate the kind of definitions seen above. I.e., if
+   to generate the kind of definitions seen above. I.e. if
    \inlhask{(:)} is used as a constructor in the API,
    \inlhask{defineLanguage} would generate a definition similar to
    \inlhask{c1 = (:)} and then substitute \inlhask{(:)} with
    \inlhask{c1} in the language definition.
 
-** Sub goal ordering
+** Subgoal ordering
    \label{sec:fut-ordering}
 
    In the current implementation of the \inlhask{generate} function
-   found in \autoref{sec:generate}, sub goals for constructors of
-   function types are generated from right to left due to an
+   found in \autoref{sec:generate}, subgoals for constructors with
+   functional types are generated from right to left due to an
    implementation detail. This has the effect that expressions
    generated by the current algorithm tends to be biased towards the
    right, i.e. the deepest nesting of constructors are more probable
    to be found on the rightmost arguments to functions. By instead
-   generating the sub goals in a random order, one should be able to
-   generate expressions with deep nesting in arbitrary sub goals. This
+   generating the subgoals in a random order, one should be able to
+   generate expressions with deep nesting in arbitrary subgoals. This
    makes the distribution of expressions more evenly spread out in the
    complete domain of the problem. However, this would most probably
-   not effect the probability of balanced expressions, i.e., these
-   kind of expressions would still be underrepresented in the final
+   not effect the probability of balanced expressions, i.e. these kind
+   of expressions might still be underrepresented in the final
    distribution.
 
 ** Termination strategy
@@ -2255,23 +2274,63 @@ reduced when compared to the previous one.
    presented in \autoref{sec:algo-termination}. Several other
    strategies exists that might be worth examining. For instance, in
    \cite{lambda}, an algorithm similar to the one presented in this
-   project is discussed where each sub goal is limited in size by a
-   size parameter. This parameter is then decreased for each recursive
+   project is discussed where each subgoal is limited by a size
+   parameter. This parameter is then decreased for each recursive
    call.
 
-   Another strategy other than a number of uses for each constructor,
-   used by this library, and limiting the size of the recursion, as
-   seen above, is to instead associate each constructor with a
-   function taking the current depth as a parameter and producing a
-   weight for its particular constructor at the current depth. A
-   higher weight would then equate to a higher probability to be
-   chosen as a constructor for the current goal type. These functions
-   could then, for instance, be defined to favour constructors with
-   many sub goals at lower depths and to favour constructors with few
-   goals at deeper levels of recursion. It might even be interesting
-   to let a user partially specify how these weights are calculated
-   for certain constructors in the API since this would improve the
-   usability of the library for generating expressions.
+   Another strategy which seems reasonably to examine, is to instead
+   associate each constructor with a function taking the current depth
+   as a parameter and producing a weight for its particular
+   constructor at the current depth. A higher weight would then equate
+   to a higher probability to be chosen as a constructor for the
+   current goal type. These functions could then, for instance, be
+   defined to favour constructors with many subgoals at lower depths
+   and to favour constructors with few goals at deeper levels of
+   recursion. It might even be interesting to let a user partially
+   specify how these weights are calculated for certain constructors
+   in the API since this would improve the usability of the library
+   for generating expressions.
+
+** Compiling expressions
+   Currently, one of the only ways to compile generated expressions is
+   to pretty print them followed by compiling the pretty printed value
+   using the function \inlhask{compileExpr} from the GHC API. This is
+   also the way that was presented in \autoref{chap:examples}. A
+   complete generator suffers from this limitation in that it has to
+   depend on the GHC API. In addition, it also has to include modules
+   and source code, containing the API used by the generated
+   expressions, while compiling the expression. A more automated way
+   to construct real executable values from expressions is needed.
+
+   In \cite{mh}, in addition to storing the type and name of a
+   constructor in the language definition, a value of the data type
+   \inlhask{HValue} is also stored for each constructor:
+   \begin{haskellcode}
+   newtype HValue = HV (forall a. a)
+   \end{haskellcode}
+   This is used to store real executable values, to be cast into the
+   type it represents, when a generated expression is to be
+   constructed. The constructors stored in the language, are then put
+   together in the same fashion as was done when searching for a
+   matching expression.
+
+   This tactic to construct executable values from expressions should
+   currently be possible in \quickgen. However, with the addition of
+   type classes, this is no longer possible since the complete
+   instance for a type class needs to be fully realized to be able to
+   find the concrete function to be executed. The following session in
+   ghci should describe the problem:
+
+   \begin{alltt}
+   \(\lambda\)> let hId = HV (unsafeCoerce id)
+   \(\lambda\)> let hMempty = HV (unsafeCoerce mempty)
+
+   <interactive>:21:32:
+       No instance for (Monoid a0) arising from a use of `mempty'
+       The type variable `a0' is ambiguous
+       ...
+   \(\lambda\)> let hMemptyList = HV (unsafeCoerce (mempty :: [a]))
+   \end{alltt}
 
    \newpage
 
@@ -2292,16 +2351,100 @@ reduced when compared to the previous one.
   the language. Even though no bugs was found, by artificially
   introducing bugs these was quickly discovered by the procedure. This
   leads us to conclude that \quickgen can be successfully used to
-  perform some regression testing when implementing or enhancing an
+  perform simple regression testing when implementing or enhancing an
   EDSL.
+
+  However, additional work to make the library fully usable is
+  required. For instance, support of type classes is one of the key
+  features missing from the library. Furthermore, defining a generator
+  is currently a bit more complex than the author initially imagined.
+  Automating this task somehow would further improve the usability of
+  the library.
 
 \newpage
 
 \section*{References}
 
 # Mark all references as cited
-  \nocite{*}
+#  \nocite{*}
   \printbibliography[heading=none]
+
+#+BEGIN_LATEX
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\appendix
+#+END_LATEX
+
+* Feldspar generator specification
+  \label{appendix:feldspar-api}
+
+  \begin{listing}[H]
+  \begin{haskellcode}
+  type DWord = Data WordN
+
+  lang :: Language
+  lang = $(defineLanguage [| ( plus'    :: DWord -> DWord -> DWord
+                             , times'   :: DWord -> DWord -> DWord
+                             , div'     :: DWord -> DWord -> DWord
+                             , sum'     :: Vector DWord -> DWord
+                             , zipWith' :: (DWord -> DWord -> DWord)
+                                        -> Vector DWord
+                                        -> Vector DWord
+                                        -> Vector DWord
+                             , map      :: (a -> b) -> Vector a -> Vector b
+                             , range    :: DWord -> DWord -> Vector DWord
+                             , id       :: a -> a
+                             , const    :: a -> b -> a
+                             , wordN0   :: DWord
+                             , wordN1   :: DWord
+                             , wordN2   :: DWord
+                             , wordN3   :: DWord
+                             )
+                           |])
+
+  gen :: Seed -> Maybe (Exp, Q.Type)
+  gen seed  = generate lang ty seed
+    where
+      ty = $(getType [t| Data WordN |])
+  \end{haskellcode}
+  \caption{API and generator used when testing Feldspar. The \texttt{range} function is a similar to the Haskell function \texttt{enumFromTo}.}
+  \end{listing}
+
+* Code added to feldspar-language
+  \label{appendix:feldspar}
+
+  These changes were made in version 0.6.0.3 of Feldspar.
+
+  \begin{haskellcode}
+  --------------------------------------------------
+  -- In module Feldspar.Core.Interpretation
+
+  optimize' :: ( Typeable a
+               , OptimizeSuper dom
+               )
+            => ASTF (dom :|| Typeable) a -> ASTF (Decor Info (dom :|| Typeable)) a
+  optimize' = S.fold $ \s as -> appArgs (Sym $ Decor undefined s) as
+
+
+  --------------------------------------------------
+  -- In module Felspar.Core.Frontend
+
+  reifyFeld' :: SyntacticFeld a
+      => BitWidth n
+      -> a
+      -> ASTF (Decor Info FeldDomain) (Internal a)
+  reifyFeld' n = flip evalState 0 .
+      (   return
+      <=< codeMotion prjDict mkId
+      .   optimize'
+      .   targetSpecialization n
+      <=< reifyM
+      .   Syntactic.desugar
+      )
+
+  eval' :: SyntacticFeld a => a -> Internal a
+  eval' = evalBind . reifyFeld' N32
+  \end{haskellcode}
 
 * Footnotes
 
@@ -2312,7 +2455,7 @@ themselves.
 [fn:2] For instance =lookupSubst :: Nat -> Substitution -> Maybe
 ([Variable], SType)= and \hbox{\tt (|->) :: Nat -> SType -> Substitution}
 
-[fn:3] =Seed= is simply a type alias for an integer.
+[fn:3] =Seed= is simply a type alias for an Integer.
 
 [fn:4]  \inlhask{Functor} is a superclass of \inlhask{Applicative}
 while \inlhask{Monoid} is mentioned in one of the instances.
@@ -2325,7 +2468,7 @@ infinite loop.
 
 [fn:7] The other one being \inlhask{generate'}.
 
-[fn:8] Normal matching only needs to look at for all quantified type variables.
+[fn:8] Normal matching only needs to look at forall quantified type variables.
 
 [fn:9] Since $t_2$ is a function type.
 
@@ -2381,5 +2524,14 @@ can be implemented by redefining the \textsc{Match} procedure, see
 \ref{algo:match}, to return a list of specialized types (for each $0
 \leq i \leq n$) and letting $n$ be a user configurable parameter.
 
-[fn:25] The definitions of the needed functions can be found in
+[fn:25] The needed changes can be found in
 \autoref{appendix:feldspar}.
+
+[fn:26] There is actually an infinite number of ways to instantiate
+$?a$ to match the current goal of $Int$. Only considering one of them
+is a simplification to the original problem. See
+\autoref{sec:match-poly}.
+
+[fn:27] I.e. the guess $?a \mapsto Int$ was performed when $x$ was
+used as a constructor when generating $e_1$ in
+\autoref{sec:example-map1}.
