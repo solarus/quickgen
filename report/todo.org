@@ -1,10 +1,21 @@
 * DONE Template haskell .bib reference
 * DONTKNOW \inlhask not working
-* TODO THIH reference to real paper?
+* DONE THIH reference to real paper?
   Maybe better to keep proceedings reference since this is published
-  however, the complete article is much nicer to read!
+  however, the complete article is much nicer to read! (båda)
 
-* TODO Add text about Pred (Cxt)
-* TODO Check language
-** TODO Lets
-** TODO Then
+* DONE Add text about Pred (Cxt)
+* DONE Check language
+** DONE Lets
+** DONE Then
+** DONE for all
+** DONE need(s)
+** DONE sub goal
+** DONE sub-goals
+** DONE In this case => In this case,
+** DONE was => were
+** DONE that
+** DONE ghc => GHC
+** DONE haskell => Haskell
+* DONE Problem, goal (metod) i intro
+* DONE Kolla lambda i 3.3.1 (The ExpGen state)
