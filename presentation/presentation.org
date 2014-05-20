@@ -1,0 +1,647 @@
+#+TITLE: API-driven generation of\\ well-typed terms\\ \vspace{1cm} \small Masters thesis presentation\\ in Computer Science
+#+AUTHOR: David Spångberg
+#+EMAIL: david@tunna.org
+#+OPTIONS: toc:nil num:nil ::t @:t f:t
+#+startup: beamer
+#+LATEX_CLASS: beamer
+#+LATEX_HEADER: \usepackage{minted, tikz, amsmath, alltt}
+#+LATEX_HEADER: \usetikzlibrary{shapes,arrows,calc,positioning}
+
+
+#+BEGIN_LATEX
+\newminted{haskell}{frame=leftline}
+\newcommand{\ri}{\rightarrow}
+\newcommand{\doubcolon}{::}
+\newcommand{\myalert}[2]{\alert<#1>{#2}}
+
+\setbeamercovered{transparent=50}
+
+\tikzstyle{ctor}=[rectangle,draw=black]
+\tikzstyle{undec}=[rectangle,draw=black,dotted]
+\tikzstyle{lam}=[ellipse,draw=black]
+#+END_LATEX
+
+* What is software testing
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \setbeamercovered{invisible}
+
+  \pause
+
+  - Unit testing
+
+    \begin{haskellcode}
+    test_myInsert = myInsert 4 [1,3,7] == [1,3,4,7]
+    \end{haskellcode}
+    \pause
+
+  - Testing $myInsert$ will require several more tests!
+  - This is just one function.. \pause
+  - \Large Seems boring! \normalsize Lets skip testing altogether \pause
+
+  \bigskip
+
+  - \Large Important! \normalsize We have to do it :-(
+    - Estimated $312 billion (2012)
+    - 50% time spent on finding and fixing bugs
+
+* What now?
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  - Use QuickCheck!
+  - Specify properties for functions instead
+  - Better coverage for same (or less) amount of code
+  - Random test data generated automatically. Nice!
+
+  \begin{haskellcode}
+  prop_myInsert :: Int -> [Int] -> Bool
+  prop_myInsert x xs = isSorted (myInsert x (sort xs))
+  \end{haskellcode}
+
+  \begin{alltt}
+  \(\lambda\)> quickCheck prop_myInsert
+  +++ OK, passed 100 tests.
+  \end{alltt}
+
+* What do you mean arbitrary?
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{haskellcode}
+  test_optimize :: MyType -> Bool
+  test_optimize p = eval p == eval (optimize p)
+  \end{haskellcode}
+
+  \pause
+
+  #+BEGIN_LATEX
+  \begin{alltt}
+  \(\lambda\)> quickCheck test_optimize
+  \(\myalert{2-}{\text{ERROR}}\)
+    \(\myalert{2-}{\text{No instance for (Arbitrary MyType)}}\)
+  \end{alltt}
+  #+END_LATEX
+
+  \pause
+
+  - Now need to create generator instead! (Arbitrary)
+  - Sometimes easy, sometimes hard (harder than implementing the library)
+
+* Introducing QuickGen
+  - Library for creating custom generators from an API
+  - Polymorphism/higher order functions
+  - Easy to specify functions and values in API
+  - Easy to create generators for a type (functions!)
+  - Motivation: EDSL $\approx$ generator "for free"!
+
+* How to start using it
+  1. Specify list of functions and values to use \pause
+     - Set of \myalert{2}{Constructors} in a \myalert{2}{Language} \pause
+  2. Specify a \myalert{3}{goal type} \pause
+  3. Expression of correct type constructed from Constructors in Language \pause
+  4. Thats it!
+
+* A first example
+  - Generate $[Double]$ \pause
+  - $map \doubcolon (a \ri b) \ri [a] \ri [b]$ \pause
+  - Match on return type of $map$ \pause
+  - $Match([Double], [b]) \Longrightarrow$ "$b$ must be $Double$"
+    - New type for $map \doubcolon (a \ri Double) \ri [a] \ri [Double]$
+
+* A first example: Undecided types
+  New type for $map \doubcolon (a \ri Double) \ri [a] \ri [Double]$ \pause
+
+  #+BEGIN_LATEX
+  \begin{itemize}
+    \item Need to generate $(a \ri Double)$ and $[a]$ for some type $a$ \pause
+    \item Problem: What type to use for $a$? Can be anything! \pause
+      \begin{itemize}
+        \item Always select Int?
+        \item Generate random type?
+        \item Other? \pause
+      \end{itemize}
+    \item Solution: We say \alert<5>{$a$} is \alert<5>{undecided} $\Leftrightarrow~\alert<5>{?a}$
+    \begin{itemize}
+      \item Could say we're not doing anything. Nice!
+    \end{itemize}
+  \end{itemize}
+  #+END_LATEX
+
+* Intuition: Generating $[Double]$
+  - \alert{API}
+
+  |   | Constructor | Type                        |
+  |---+-------------+-----------------------------|
+  | / |         <r> | <                           |
+  |   |       $map$ | $(a \ri b) \ri [a] \ri [b]$ |
+  |   |   $fromInt$ | $Int \ri Double$            |
+  |   |        $ns$ | $[Int]$                     |
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {\phantom{$map$}};
+  \draw (init) -- (map);
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [right] at (init.east) {\color{red} $\leftarrow$ Goal type};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {\phantom{$map$}};
+  \draw (init) -- (map);
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [right] at (init.east) {$\leftarrow$ Goal type};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {\phantom{$map$}};
+  \draw (init) -- (map);
+
+  \node at (0,-5.2) {\color{red} Need to fill in the blanks!};
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {$map$};
+  \draw (init) -- (map);
+
+  \node at (0,-5.2) {Need to fill in the blanks!};
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {$map$};
+  \draw (init) -- (map);
+
+  \node at (0,-5.2) {Recall type of $map :: \textcolor{red}{(a \ri b) \ri [a] \ri [b]}$};
+
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {$map$};
+  \draw (init) -- (map);
+
+    \node [lam] (x) at (-4,-2) {$\lambda~(x :: ?a)$};
+    \draw (map.south west) -- (x.north) node [midway,yshift=15pt,xshift=-3pt] {$?a \ri Double$};
+
+      \node [ctor] (x2) at ($ (x) -(0,1.65) $) {\phantom{fromInt}};
+      \draw (x) -- (x2) node [midway,right] {$Double$};
+
+    \node [ctor] (ns) at (3,-2) {\phantom{ns}};
+    \draw (map.south east) -- (ns.north) node [midway,yshift=15pt] {$[?a]$};
+
+    \node at (0,-5.2) {Recall type of $map :: \textcolor{red}{(a \ri b) \ri [a] \ri [b]}$};
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {$map$};
+  \draw (init) -- (map);
+
+    \node [lam] (x) at (-4,-2) {$\lambda~(x :: ?a)$};
+    \draw (map.south west) -- (x.north) node [midway,yshift=15pt,xshift=-3pt] {$?a \ri Double$};
+
+      \node [ctor] (x2) at ($ (x) -(0,1.65) $) {\phantom{fromInt}};
+      \draw (x) -- (x2) node [midway,right] {$Double$};
+
+    \node [ctor] (ns) at (3,-2) {\phantom{ns}};
+    \draw (map.south east) -- (ns.north) node [midway,yshift=15pt] {$[?a]$};
+
+    \node at (0,-5.2) {Recall type of $map :: \textcolor{red}{(a \ri b) \ri [a] \ri [b]}$};
+    \node at (0,-5.8) {$b$ must be $Double$, $a$ can be anything, i.e undecided!};
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {$map$};
+  \draw (init) -- (map);
+
+    \node [lam] (x) at (-4,-2) {$\lambda~(x ::?a)$};
+    \draw (map.south west) -- (x.north) node [midway,yshift=15pt,xshift=-3pt] {$?a \ri Double$};
+
+      \node [ctor] (x2) at ($ (x) -(0,1.65) $) {\phantom{fromInt}};
+      \draw (x) -- (x2) node [midway,right] {$Double$};
+
+    \node [ctor] (ns) at (3,-2) {ns};
+    \node [right] (nsty) at (ns.east) {$[Int]$};
+    \draw (map.south east) -- (ns.north) node [midway,yshift=15pt] (g2ty) {$[?a]$};
+
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {$map$};
+  \draw (init) -- (map);
+
+    \node [lam] (x) at (-4,-2) {$\lambda~(x ::?a)$};
+    \draw (map.south west) -- (x.north) node [midway,yshift=15pt,xshift=-3pt] {$?a \ri Double$};
+
+      \node [ctor] (x2) at ($ (x) -(0,1.65) $) {\phantom{fromInt}};
+      \draw (x) -- (x2) node [midway,right] {$Double$};
+
+    \node [ctor] (ns) at (3,-2) {ns};
+    \node [right] (nsty) at (ns.east) {$[Int]$};
+    \draw (map.south east) -- (ns.north) node [midway,yshift=15pt] (g2ty) {$[?a]$};
+    \draw [<->,bend right=25,dotted,draw=blue] (nsty.north) to (g2ty.east);
+
+      \node [undec] (u1) at ($ (ns) -(0,1.5) $) {$?a \mapsto Int$};
+      \draw [dotted,draw=blue] (ns) -- (u1);
+
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {$map$};
+  \draw (init) -- (map);
+
+    \node [lam] (x) at (-4,-2) {$\lambda~(x :: \textcolor{red}{Int})$};
+    \draw (map.south west) -- (x.north) node [midway,yshift=15pt,xshift=-3pt] {$\textcolor{red}{Int} \ri Double$};
+
+      \node [ctor] (x2) at ($ (x) -(0,1.65) $) {\phantom{fromInt}};
+      \draw (x) -- (x2) node [midway,right] {$Double$};
+
+    \node [ctor] (ns) at (3,-2) {ns};
+    \node [right] (nsty) at (ns.east) {$[Int]$};
+    \draw (map.south east) -- (ns.north) node [midway,yshift=15pt] (g2ty) {$[\textcolor{red}{Int}]$};
+    \draw [<->,bend right=25,dotted,draw=blue] (nsty.north) to (g2ty.east);
+
+      \node [undec] (u1) at ($ (ns) -(0,1.5) $) {$?a \mapsto Int$};
+      \draw [dotted,draw=blue] (ns) -- (u1);
+
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {$map$};
+  \draw (init) -- (map);
+
+    \node [lam] (x) at (-4,-2) {$\lambda~(x :: \textcolor{red}{Int})$};
+    \draw (map.south west) -- (x.north) node [midway,yshift=15pt,xshift=-3pt] {$\textcolor{red}{Int} \ri Double$};
+
+      \node [ctor] (x2) at ($ (x) -(0,1.65) $) {fromInt};
+      \node [right] at (x2.east) {$Int \ri Double$};
+      \draw (x) -- (x2) node [midway,right] {$Double$};
+
+    \node [ctor] (ns) at (3,-2) {ns};
+    \node [right] (nsty) at (ns.east) {$[Int]$};
+    \draw (map.south east) -- (ns.north) node [midway,yshift=15pt] (g2ty) {$[\textcolor{red}{Int}]$};
+    \draw [<->,bend right=25,dotted,draw=blue] (nsty.north) to (g2ty.east);
+
+      \node [undec] (u1) at ($ (ns) -(0,1.5) $) {$?a \mapsto Int$};
+      \draw [dotted,draw=blue] (ns) -- (u1);
+
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {$map$};
+  \draw (init) -- (map);
+
+    \node [lam] (x) at (-4,-2) {$\lambda~(x :: \textcolor{red}{Int})$};
+    \draw (map.south west) -- (x.north) node [midway,yshift=15pt,xshift=-3pt] {$\textcolor{red}{Int} \ri Double$};
+
+      \node [ctor] (x2) at ($ (x) -(0,1.65) $) {fromInt};
+      \node [right] at (x2.east) {$Int \ri Double$};
+      \draw (x) -- (x2) node [midway,right] {$Double$};
+
+        \node [ctor] (x3) at ($ (x2) - (0,1.65) $) {\phantom{x}};
+        \draw (x2) -- (x3) node [midway,right] {$Int$};
+
+    \node [ctor] (ns) at (3,-2) {ns};
+    \node [right] (nsty) at (ns.east) {$[Int]$};
+    \draw (map.south east) -- (ns.north) node [midway,yshift=15pt] (g2ty) {$[\textcolor{red}{Int}]$};
+    \draw [<->,bend right=25,dotted,draw=blue] (nsty.north) to (g2ty.east);
+
+      \node [undec] (u1) at ($ (ns) -(0,1.5) $) {$?a \mapsto Int$};
+      \draw [dotted,draw=blue] (ns) -- (u1);
+
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {$map$};
+  \draw (init) -- (map);
+
+    \node [lam] (x) at (-4,-2) {$\lambda~(x :: \textcolor{red}{Int})$};
+    \draw (map.south west) -- (x.north) node [midway,yshift=15pt,xshift=-3pt] {$\textcolor{red}{Int} \ri Double$};
+
+      \node [ctor] (x2) at ($ (x) -(0,1.65) $) {fromInt};
+      \node [right] at (x2.east) {$Int \ri Double$};
+      \draw (x) -- (x2) node [midway,right] {$Double$};
+
+        \node [ctor] (x3) at ($ (x2) - (0,1.65) $) {x};
+        \draw (x2) -- (x3) node [midway,right] {$Int$};
+
+    \node [ctor] (ns) at (3,-2) {ns};
+    \node [right] (nsty) at (ns.east) {$[Int]$};
+    \draw (map.south east) -- (ns.north) node [midway,yshift=15pt] (g2ty) {$[\textcolor{red}{Int}]$};
+    \draw [<->,bend right=25,dotted,draw=blue] (nsty.north) to (g2ty.east);
+
+      \node [undec] (u1) at ($ (ns) -(0,1.5) $) {$?a \mapsto Int$};
+      \draw [dotted,draw=blue] (ns) -- (u1);
+
+  \end{tikzpicture}
+  \end{figure}
+
+* Intuition: Generating $[Double]$
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{figure}
+  \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
+  \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
+  \node (init) at (0,0.5) {$[Double]$};
+  \node [ctor] (map) at ($ (init) -(0,1) $) {$map$};
+  \draw (init) -- (map);
+
+    \node [lam] (x) at (-4,-2) {$\lambda~(x :: \textcolor{red}{Int})$};
+    \draw (map.south west) -- (x.north) node [midway,yshift=15pt,xshift=-3pt] {$\textcolor{red}{Int} \ri Double$};
+
+      \node [ctor] (x2) at ($ (x) -(0,1.65) $) {fromInt};
+      \node [right] at (x2.east) {$Int \ri Double$};
+      \draw (x) -- (x2) node [midway,right] {$Double$};
+
+        \node [ctor] (x3) at ($ (x2) - (0,1.65) $) {x};
+        \draw (x2) -- (x3) node [midway,right] {$Int$};
+
+    \node [ctor] (ns) at (3,-2) {ns};
+    \node [right] (nsty) at (ns.east) {$[Int]$};
+    \draw (map.south east) -- (ns.north) node [midway,yshift=15pt] (g2ty) {$[\textcolor{red}{Int}]$};
+    \draw [<->,bend right=25,dotted,draw=blue] (nsty.north) to (g2ty.east);
+
+      \node [undec] (u1) at ($ (ns) -(0,1.5) $) {$?a \mapsto Int$};
+      \draw [dotted,draw=blue] (ns) -- (u1);
+
+  \node at (1,-5.4) {Final expression: $\underline{map~(\lambda~x \ri fromInt~x)~ns}$};
+
+  \end{tikzpicture}
+  \end{figure}
+
+* Algorithm
+  Given a goal type $\mathbf{t}$ \pause
+
+  1. $\mathbf{t} = t_1 \ri \ldots \ri t_n \ri \mathbf{t'}$ (n can be 0) \pause
+     \begin{itemize}
+       \item Generate unique variable names $x_i$ \pause
+       \item Add all $x_i :: t_i$ to API
+     \end{itemize} \pause
+  2. Select constructor $\mathbf{C}$ /matching/ $\mathbf{t'}$ (with uses $>0$)
+     \begin{itemize}
+       \item $\mathbf{C} :: s_1 \ri \ldots \ri s_m \ri \mathbf{t'}$ (m can be 0) \pause
+       \item \textbf{Fail} if no constructor found
+     \end{itemize} \pause
+  3. Generate each subgoal $e_i :: s_i$ by calling 1. \pause
+     - If any recursive call failed
+       - Goto 2. and retry (max 3 times else *Fail*) \pause
+  4. Return $\mathbf{C}~e_1~\ldots~e_m :: \mathbf{t'}$
+
+* Did somebody say library?
+  We need \pause
+
+  - Language definition (API / list of constructors) \pause
+  - Generator function (not really necessary)
+
+* Example usage: API
+
+* Example usage: API
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+   \begin{haskellcode}
+   lang :: Language
+   lang = $(defineLanguage
+     [| ( map        :: (a -> b) -> [a] -> [b]
+        , foldr      :: (a -> b -> b) -> b -> [a] -> b
+        , id         :: a -> a
+        , const      :: a -> b -> a
+        , cons       :: a -> [a] -> [a]
+        , nil        :: [a]
+        , app        :: (a -> b) -> a -> b
+        , succ       :: Int -> Int
+        , succ       :: Double -> Double
+        , arbiInt    :: Int
+        , arbiDouble :: Double
+        ) |])
+   \end{haskellcode}
+
+* Example usage: API
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+   \begin{haskellcode}
+   lang :: Language
+   lang = $(defineLanguage
+     [| ( map
+        , foldr
+        , id
+        , const
+        , cons
+        , nil
+        , app
+        , succ       :: Int -> Int
+        , succ       :: Double -> Double
+        , arbiInt
+        , arbiDouble
+        ) |])
+   \end{haskellcode}
+
+* Example usage: API
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+   \begin{haskellcode}
+   lang :: Language
+   lang = $(defineLanguage
+     [| ( map        :: (a -> b) -> [a] -> [b]
+        , foldr      :: (a -> b -> b) -> b -> [a] -> b
+        , id         :: a -> a
+        , const      :: a -> b -> a
+        , cons       :: a -> [a] -> [a]
+        , nil        :: [a]
+        , app        :: (a -> b) -> a -> b
+        , succ       :: Int -> Int
+        , succ       :: Double -> Double
+        , arbiInt    :: Int
+        , arbiDouble :: Double
+        ) |])
+   \end{haskellcode}
+
+* Example usage: API
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+   \begin{haskellcode}
+   lang :: Language
+   lang = $(defineLanguage -- TH library function
+     [| ( map        :: (a -> b) -> [a] -> [b]
+        , foldr      :: (a -> b -> b) -> b -> [a] -> b
+        , id         :: a -> a
+        , const      :: a -> b -> a
+        , cons       :: a -> [a] -> [a]
+        , nil        :: [a]
+        , app        :: (a -> b) -> a -> b
+        , succ       :: Int -> Int
+        , succ       :: Double -> Double
+        , arbiInt    :: Int
+        , arbiDouble :: Double
+        ) |])
+   \end{haskellcode}
+
+* Example usage: Generator
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{haskellcode}
+  gen :: Int -> Maybe Exp
+  gen seed = generate lang ty seed
+    where
+      ty = $(getType [t| a -> [a] |])
+  \end{haskellcode}
+
+  \vspace{2.015cm}
+
+* Example usage: Generator
+  :PROPERTIES:
+  :BEAMER_opt: fragile
+  :END:
+
+  \begin{haskellcode}
+  gen :: Int -> Maybe Exp
+  gen seed = generate lang ty seed
+    where
+      ty = $(getType [t| a -> [a] |])
+
+  main = do
+    seeds <- randoms <$> newStdGen
+    mapM_ (print . gen) (take 50 seeds)
+  \end{haskellcode}
+
+* Demo
+
+  ...
+
+* Where are my values!
+  \pause
+  - Above example only gives strings, want real executable values! \pause
+  - Currently relies on GHC API
+    - Not really nice..
+
+* Future work
+  - \textbf{Type classes}
+  - Better (user friendly) way to get values from generator
+  - More expressions in API definitions
+    - $(:)$ is better than $cons$
+
+* Conclusions
+  - Usable for simple regression testing (GHC API..)
+  - Needs more features (usability)
