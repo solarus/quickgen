@@ -365,13 +365,16 @@
   \end{tikzpicture}
   \end{figure}
 
+* How to terminate
+  TODO: \alert{måste skriva om uses! Använder på nästa slide}
+
 * Algorithm
   Given a goal type $\mathbf{t}$ \pause
 
   1. $\mathbf{t} = t_1 \ri \ldots \ri t_n \ri \mathbf{t'}$ (n can be 0) \pause
-     - Generate unique variable names $x_i$ \pause
+     - Generate unique variable names $x_i$
      - Add all $x_i \doubcolon t_i$ to API \pause
-  2. Select constructor $\mathbf{C}$ /matching/ $\mathbf{t'}$ (with uses $>0$)
+  2. Select constructor $\mathbf{C}$ /matching/ $\mathbf{t'}$ (with uses $>0$) \pause
      - Introduce guesses if needed
      - $\mathbf{C} \doubcolon s_1 \ri \ldots \ri s_m \ri \mathbf{t'}$ (m can be 0)
      - *Fail* if no constructor found \pause
