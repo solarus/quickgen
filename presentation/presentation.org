@@ -30,6 +30,8 @@
   :BEAMER_opt: fragile
   :END:
 
+  \label{intro}
+
   \setbeamercovered{invisible}
 
   \pause
@@ -41,9 +43,9 @@
     \end{haskellcode}
     \pause
 
-  - Testing $myInsert$ will require several more tests!
+  - Requires several more tests!
   - This is just one function.. \pause
-  - \Large Seems boring! \normalsize Lets skip testing altogether \pause
+  - \Large Seems boring! \normalsize Lets skip it \pause
 
   \bigskip
 
@@ -77,7 +79,7 @@
   :END:
 
   \begin{haskellcode}
-  prop_apa :: MyComplexType -> Bool
+  prop_apa :: MyCleverType -> Bool
   prop_apa c = my_clever_property (apa c)
   \end{haskellcode}
 
@@ -87,14 +89,20 @@
   \begin{alltt}
   \(\lambda\)> quickCheck prop_apa \( \pause \)
   \(\myalert{3-}{\text{ERROR}}\)
-    \(\myalert{3-}{\text{No instance for (Arbitrary MyComplexType)}}\)
+    \(\myalert{3-}{\text{No instance for (Arbitrary MyCleverType)}}\)
   \end{alltt}
   #+END_LATEX
 
   \pause
 
   - Now need to create generator instead! (Arbitrary)
-  - Sometimes easy, sometimes hard (harder than implementing library!)
+  - Sometimes easy, sometimes hard \pause
+  - Hard when satisfying some property
+    - Well-"typedness"
+
+* Related work
+  - Random lambda terms (Pa\l{}ka)
+  - MagicHaskeller (Katayama)
 
 * Introducing QuickGen
   - Library for creating custom generators from an API
@@ -104,20 +112,23 @@
   - Motivation: EDSL $\approx$ generator "for free"!
 
 * How to start?
-  1. Specify list of functions and values to use \pause
-     - Set of \myalert{2-}{Constructors} in an \myalert{2-}{API} (Language) \pause
-  2. Specify a \myalert{3-}{goal type} \pause
-  3. Expression of correct type constructed from Constructors in API \pause
+  1. Specify list of functions and values to use
+     - Set of \myalert{1,5}{Constructors} in an \myalert{1,5}{API}
+       (Language) \pause
+  2. Specify a \myalert{2,5}{goal type} \pause
+  3. Random expression of correct type constructed using API \pause
   4. Thats it!
 
-* How is it done?
+* A problem appears
+  \label{problem1}
+
   Example:
 
   - Generate $[Double]$ \pause
-  - $map \doubcolon (a \ri b) \ri [a] \ri [b]$ \pause
-  - Match on return type of $map$ \pause
+  - $map \doubcolon (a \ri \myalert{5}{b}) \ri [a] \ri \myalert{3}{[\myalert{5}{b}]}$ \pause
+  - Match on \myalert{3}{return type} of $map$ \pause
   - $Match([Double], [b]) \Longrightarrow$ "$b$ must be $Double$"
-    - New type for $map \doubcolon (a \ri \myalert{4}{Double}) \ri [a] \ri [\myalert{4}{Double}]$
+    - New type for $map \doubcolon (a \ri \myalert{5}{Double}) \ri [a] \ri [\myalert{5}{Double}]$
 
 * Decisions decisions
   New type for $map \doubcolon (a \ri Double) \ri [a] \ri [Double]$ \pause
@@ -131,6 +142,24 @@
     - Doing as little as possible. Nice! \pause
   - However, need to keep track of \myalert{6}{guesses} (if $?a$
     specialized later)
+
+* A problem appears
+  \label{problem2}
+
+  Example:
+
+  - Generate $[Double]$
+  - $id \doubcolon a \ri a$ \pause
+
+   \[ \myalt{2-}{id~\myalt{3-}{(id}{\myonly{2}{?}}~\myalt{4-}{(id}{\myonly{3}{?}}~\myalt{5-}{(id}{\myonly{4}{?}}~\myalt{6-}{(id~?}{\myonly{5}{?}}}{}~\myonly{7}{\ldots} \]
+
+* Limiting uses
+
+  - Solution: Limit \myalert{1}{uses} of each constructor with \myalert{1}{function type}
+    - $Uses(a \ri a) = 5$
+    - $Uses(Int) = \infty$
+  - Store uses together with constructor
+  - Decrease by one when used
 
 * Generating $[Double]$
   - \alert{API}
@@ -146,6 +175,8 @@
   :PROPERTIES:
   :BEAMER_opt: fragile
   :END:
+
+  \label{generate-box}
 
   \begin{figure}
   \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
@@ -181,10 +212,10 @@
   \node (init) at (0,0.5) {$[Double]$};
   \node [ctor] (map) at ($ (init) -(0,1) $) {\myalt{6}{\alert{$map$}}{\phantom{$map$}}};
   \draw (init) -- (map);
-  \node [right] at (init.east) {$\leftarrow$ \myalert{1}{Goal type}}; \pause
-  \node [right,xshift=0.35cm] at (map.east) {$\leftarrow$ \myalert{2}{Fill in}}; \pause
+  \node [right] at (init.east) {$\leftarrow$ \myalert{1-2}{Goal type}}; \pause
+  \node at (0,-5.2) {\myalert{2}{Match} the \myalert{2}{goal type} with \myalert{2,5}{return type} of \myalert{2}{Constructors}}; \pause
 
-  \node at (0,-5.2) {\myalert{3-4}{Match} the \myalert{3-4}{goal type} with \myalert{3-}{return type} of \myalert{3-4}{Constructors}}; \pause
+  \node [right,xshift=0.35cm] at (map.east) {$\leftarrow$ \myalert{3-4}{Fill in}}; \pause
   \node at (0,-5.8) {\myalert{4}{Fill in} blanks with random matching Constructor!};
 
   \node<5> [myblock=4.9cm, anchor=south west] at (-5.5,-4) {$map :: (a \ri b) \ri [a] \ri \alert{[b]}$\\$fromInt :: Int \ri \alert{Double}$\\$ns :: \alert{[Int]}$};
@@ -203,8 +234,8 @@
   \node [ctor] (map) at ($ (init) -(0,1) $) {$map$};
   \draw (init) -- (map);
 
-  \node at (0,-5.2) {Recall type of $map :: \alert{(a \ri b) \ri [a] \ri [b]}$}; \pause
-  \node at (0,-5.8) {$b$ must be $Double$, $a$ can be anything, i.e \myalert{2}{undecided}!};
+  \node<2-> at (0,-5.2) {Recall type of $map :: \myalert{2}{(a \ri b)} \ri \myalert{2}{[a]} \ri [b]$};
+  \node<3-> at (0,-5.8) {\alert{$b$} must be \alert{$Double$}, \alert{$a$} can be anything, i.e \alert{undecided}!};
   \end{tikzpicture}
   \end{figure}
 
@@ -336,6 +367,8 @@
   :BEAMER_opt: fragile
   :END:
 
+  \label{generate-end}
+
   \begin{figure}
   \begin{tikzpicture}[->, >=stealth', shorten >=1pt, thick]
   \draw [draw=none] (-5.5,1) rectangle (5.5,-6.5);
@@ -365,19 +398,18 @@
   \end{tikzpicture}
   \end{figure}
 
-* How to terminate
-  TODO: \alert{måste skriva om uses! Använder på nästa slide}
-
 * Algorithm
+  \label{generate-code}
+
   Given a goal type $\mathbf{t}$ \pause
 
   1. $\mathbf{t} = t_1 \ri \ldots \ri t_n \ri \mathbf{t'}$ (n can be 0) \pause
      - Generate unique variable names $x_i$
-     - Add all $x_i \doubcolon t_i$ to API \pause
+     - Add all $(x_i, t_i, Uses(t_i))$ to API \pause
   2. Select constructor $\mathbf{C}$ /matching/ $\mathbf{t'}$ (with uses $>0$) \pause
+     - *Fail* if no constructor found
      - Introduce guesses if needed
-     - $\mathbf{C} \doubcolon s_1 \ri \ldots \ri s_m \ri \mathbf{t'}$ (m can be 0)
-     - *Fail* if no constructor found \pause
+     - $\mathbf{C} \doubcolon s_1 \ri \ldots \ri s_m \ri \mathbf{t'}$ (m can be 0) \pause
   3. Generate each subgoal $e_i :: s_i$ by calling 1. \pause
      - If any recursive call failed
        - Goto 2. and retry (max 3 times else *Fail*) \pause
@@ -387,32 +419,33 @@
   We need \pause
 
   - Language definition (API / list of constructors) \pause
-  - Generator function (not really necessary)
+  - Goal type
 
-* Example usage: API
+* Example usage: QuickGen test suite
 
-* Example usage: API
+* Example usage: QuickGen test suite
   :PROPERTIES:
   :BEAMER_opt: fragile
   :END:
-   \begin{haskellcode}
-   lang :: Language
-   lang = $(defineLanguage
-     [| ( map        :: (a -> b) -> [a] -> [b]
-        , foldr      :: (a -> b -> b) -> b -> [a] -> b
-        , id         :: a -> a
-        , const      :: a -> b -> a
-        , cons       :: a -> [a] -> [a]
-        , nil        :: [a]
-        , app        :: (a -> b) -> a -> b
-        , succ       :: Int -> Int
-        , succ       :: Double -> Double
-        , arbiInt    :: Int
-        , arbiDouble :: Double
-        ) |])
-   \end{haskellcode}
 
-* Example usage: API
+  \begin{haskellcode}
+  lang :: Language
+  lang = $(defineLanguage
+    [| ( map        :: (a -> b) -> [a] -> [b]
+       , foldr      :: (a -> b -> b) -> b -> [a] -> b
+       , id         :: a -> a
+       , const      :: a -> b -> a
+       , cons       :: a -> [a] -> [a]
+       , nil        :: [a]
+       , app        :: (a -> b) -> a -> b
+       , succ       :: Int -> Int
+       , succ       :: Double -> Double
+       , arbiInt    :: Int
+       , arbiDouble :: Double
+       ) |])
+  \end{haskellcode}
+
+* Example usage: QuickGen test suite
   :PROPERTIES:
   :BEAMER_opt: fragile
   :END:
@@ -433,7 +466,7 @@
         ) |])
    \end{haskellcode}
 
-* Example usage: API
+* Example usage: QuickGen test suite
   :PROPERTIES:
   :BEAMER_opt: fragile
   :END:
@@ -454,7 +487,7 @@
         ) |])
    \end{haskellcode}
 
-* Example usage: API
+* Example usage: QuickGen test suite
   :PROPERTIES:
   :BEAMER_opt: fragile
   :END:
@@ -475,7 +508,7 @@
         ) |])
    \end{haskellcode}
 
-* Example usage: Generator
+* Example usage: QuickGen test suite
   :PROPERTIES:
   :BEAMER_opt: fragile
   :END:
@@ -489,7 +522,7 @@
 
   \vspace{2.015cm}
 
-* Example usage: Generator
+* Example usage: QuickGen test suite
   :PROPERTIES:
   :BEAMER_opt: fragile
   :END:
@@ -514,13 +547,43 @@
   - Above example only gives strings, want real executable values! \pause
   - Currently relies on GHC API
     - Not really nice..
+    - Except that expressions type checked (done in test suite)
+
+* Results
+  \label{results}
+
+  - Generator library
+  - Tested on Feldspar
+    - Small API, polymorphism/higher order
+    - Found artificially introduced bug \pause
+  - Tested on Copilot
+    - Larger API, polymorphism
+    - Similar to Copilot hand-made generator
+    - Visual inspection
+    - 25-30% size of original generator \pause
+  - No \myalert{3}{Type Classes}
 
 * Future work
+  \label{future}
+
   - \textbf{Type classes}
   - Better (user friendly) way to get values from generator
   - More expressions in API definitions
     - $(:)$ is better than $cons$
 
 * Conclusions
+  \label{conclusions}
+
   - Usable for simple regression testing (GHC API..)
   - Needs more features (usability)
+
+* Summary
+  - \hyperlink{intro}{Introduction}
+  - \hyperlink{problem1}{Problem: Undecided variables}
+  - \hyperlink{problem2}{Problem: Termination / Uses}
+  - \hyperlink{generate-box}{Generate with boxes} \hyperlink{generate-end}{[2]}
+  - \hyperlink{generate-code}{Generate pseudo code}
+  - Demo
+  - \hyperlink{results}{Results}
+  - \hyperlink{future}{Future Work}
+  - \hyperlink{conclusions}{Conclusions}
