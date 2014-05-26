@@ -40,7 +40,7 @@ lang = $(defineLanguage [| ( arbiInt
                            , sing
                            , map
                            , app
-                           , succInt
-                           , succDouble
+                           , succ :: Int -> Int
+                           , succ :: Double -> Double
                            )
                          |])
