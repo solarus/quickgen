@@ -1,4 +1,4 @@
-#+TITLE: API-driven generation of\\ well-typed terms\\ \vspace{1cm} \small Masters thesis presentation\\ in Computer Science
+#+TITLE: API-driven generation of\\ well-typed terms\\ \vspace{1cm} \small Master's thesis presentation\\ in Computer Science
 #+AUTHOR: David Spångberg
 #+EMAIL: david@tunna.org
 #+OPTIONS: toc:nil num:nil ::t @:t f:t
@@ -294,7 +294,7 @@
       \node [undec] (u1) at ($ (ns) -(0,1.5) $) {$?a \mapsto Int$};
       \draw [dotted,draw=blue] (ns) -- (u1);
 
-  \node at (0,-5.2) {Matching $[?a]$ with $[Int]$ introduced \alert{guess}}; \pause
+  \node at (0,-5.2) {$Match([?a], [Int])$ introduced \alert{guess}}; \pause
   \node at (0,-5.8) {Need to update $?a$ everywhere!};
   \end{tikzpicture}
   \end{figure}
@@ -325,7 +325,7 @@
       \node [undec] (u1) at ($ (ns) -(0,1.5) $) {$?a \mapsto Int$};
       \draw [dotted,draw=blue] (ns) -- (u1);
 
-  \node at (0,-5.2) {Matching $[?a]$ with $[Int]$ introduced \alert{guess}};
+  \node at (0,-5.2) {$Match([?a], [Int])$ introduced \alert{guess}};
   \node at (0,-5.8) {Need to update $?a$ everywhere!};
   \end{tikzpicture}
   \end{figure}
