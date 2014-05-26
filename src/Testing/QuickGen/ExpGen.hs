@@ -1,6 +1,7 @@
 {-# OPTIONS -fno-warn-unused-do-bind #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving
-           , TupleSections #-}
+           , TupleSections
+           , NamedFieldPuns #-}
 
 module Testing.QuickGen.ExpGen
        ( ExpGen
@@ -10,7 +11,6 @@ module Testing.QuickGen.ExpGen
        ) where
 
 import           Control.Applicative
-import           Control.Lens (Field2, (^.), (&), (%~), (.~), _1, _2, _3, _5, _6)
 import           Control.Monad.State
 import           Data.Char (chr, ord)
 import qualified Data.Map as M
@@ -24,15 +24,21 @@ type NextType   = Nat
 
 -- TODO: Make this a data type and derive lenses instead of using i.e.
 -- _1 or pattern matching and the whole state when using get.
-type EGState = (NextLambda, NextType, [Context], StdGen, Substitution, ClassEnv)
+data EGState = S { nextLambda :: NextLambda
+                 , nextType   :: NextType
+                 , contexts   :: [Context]
+                 , stdGen     :: StdGen
+                 , guesses    :: Substitution
+                 , classEnv   :: ClassEnv
+                 }
 
 newtype ExpGen a = EG { unEG :: State EGState a }
   deriving (Functor, Monad, Applicative, MonadState EGState)
 
 generate :: Language -> Type -> Seed -> Maybe (Exp, Type)
-generate lang t seed = (, applys subst t) <$> e
+generate lang t seed = (, applys guesses t) <$> e
   where
-    (e, (_,_,_,_,subst,_)) = runEG seed lang $ do
+    (e, S { guesses }) = runEG seed lang $ do
         t' <- bindForall <$> uniqueTypes t
         generate' t'
 
@@ -45,15 +51,16 @@ generate' (Type qs cxt (FunT (t:ts))) = do
     (ns', ret) <- localLambda ts' (generate' t')
     return (LamE (reverse ns') <$> ret)
 
-generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
+generate' t = replicateM 3 p >>= return . listToMaybe . catMaybes
   where
     p = do
         m <- randomMatching t
         case m of
             Nothing -> return Nothing
             Just (i, (n, Type qs cxt st), s) -> do
-                (_,_,ctxs,_,s',_) <- get
-                modify (& _5 %~ maybe (error "should not happen") id . (`unionSubst` s))
+                S { contexts, guesses } <- get
+                let u' = maybe (error "should not happen") id (guesses `unionSubst` s)
+                modify (\s -> s { guesses = u' })
                 decUses i
                 case st of
                     FunT (_:ts) -> do
@@ -62,8 +69,8 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
                                 ret <- generate' (Type qs cxt t')
                                 case ret of
                                     Nothing -> do
-                                        modify (& _3 .~ ctxs)
-                                        modify (& _5 .~ s')
+                                        modify (\s -> s { contexts = contexts
+                                                        , guesses = guesses })
                                         return Nothing
                                     Just a -> go ts' (a:args)
 
@@ -72,8 +79,8 @@ generate' t = replicateM 2 p >>= return . listToMaybe . catMaybes
 
 randomMatching :: Type -> ExpGen (Maybe (Id, Constructor, Substitution))
 randomMatching goalType = do
-    subst <- getSubstitution
-    let gt = applys subst goalType
+    guesses <- getGuesses
+    let gt = applys guesses goalType
         f i (mu, (n, t)) acc
             -- If number of uses is a Just and less than 1 then
             -- discard this constructor. TODO: maybe remove
@@ -81,7 +88,7 @@ randomMatching goalType = do
             -- uses?
             | maybe False (< 1) mu = acc
             | otherwise            = do
-                t' <- uniqueTypes (applys subst t)
+                t' <- uniqueTypes (applys guesses t)
                 case runStateT (match gt t') emptySubst of
                     Just (newT, s) -> (:) <$> pure (i, (n, newT), s) <*> acc
                     Nothing -> acc
@@ -98,15 +105,15 @@ randomMatching goalType = do
 -- type variable id.
 uniqueTypes :: Type -> ExpGen Type
 uniqueTypes t@(Type vs _ _) = do
-    td <- (^. _2) <$> get
+    td <- getNextType
     let subst = toSubst [ (n, let v = (i, Forall) in ([v], VarT v))
                         | (i, (n, Forall)) <- zip [td..] vs
                         ]
-    modify (& _2 %~ (+ sizeSubst subst))
+    modify (\s -> s { nextType = sizeSubst subst + (nextType s) })
     return (apply subst t)
 
 runEG :: Seed -> Language -> ExpGen a -> (a, EGState)
-runEG seed (L env cs) g = runState g' (0, 0, [], gen, M.empty, env)
+runEG seed (L env cs) g = runState g' (S 0 0 [] gen emptySubst env)
   where
     g'  = unEG $ pushContext cs >> g
     gen = snd . next . mkStdGen $ seed
@@ -115,42 +122,47 @@ runEG seed (L env cs) g = runState g' (0, 0, [], gen, M.empty, env)
 -- new depth and the number of constructors added.
 pushContext :: [Constructor] -> ExpGen (Depth, Int)
 pushContext cs = do
-    (depth, td, ctxs, g, s, env) <- get
+    S { nextLambda } <- get
     let uses = 20 -- FIXME: arbitrarily chosen
         getUses (_, t)
             | isSimple t = Nothing
             | otherwise  = Just (max 1 (uses - numArgs t))
         ctx = M.fromList [ (i, (getUses c, c))
-                         | (i, c) <- zip [depth..] cs
+                         | (i, c) <- zip [nextLambda..] cs
                          ] :: Context
         len = M.size ctx
-        depth' = depth + len
-    modify ((_3 %~ (ctx:)) . (_1 .~ depth'))
-    return (depth', len)
+        nextLambda' = nextLambda + len
+    modify (\s -> s { nextLambda = nextLambda', contexts = ctx : contexts s})
+    return (nextLambda', len)
 
 popContext :: ExpGen ()
-popContext = modify (& _3 %~ tail)
+popContext = modify (\s -> s { contexts = tail (contexts s)})
 
-nextLambda :: ExpGen NextLambda
-nextLambda = fmap (^. _1) get
+getNextLambda :: ExpGen NextLambda
+getNextLambda = nextLambda <$> get
+
+getNextType :: ExpGen NextType
+getNextType = nextType <$> get
 
 getContexts :: ExpGen [Context]
-getContexts = (^. _3) <$> get
+getContexts = contexts <$> get
 
-getSubstitution :: ExpGen Substitution
-getSubstitution = (^. _5) <$> get
+getGuesses :: ExpGen Substitution
+getGuesses = guesses <$> get
 
 getEnv :: ExpGen ClassEnv
-getEnv = (^. _6) <$> get
+getEnv = classEnv <$> get
 
 getRandomR :: (Int, Int) -> ExpGen Int
-getRandomR p = state f
-  where
-    f (d, td, cs, g, s, e) = let (a, g') = randomR p g in (a, (d, td, cs, g', s, e))
+getRandomR p = do
+    g <- stdGen <$> get
+    let (a, g') = randomR p g
+    modify (\s -> s { stdGen = g' } )
+    return a
 
 localLambda :: [Type] -> ExpGen a -> ExpGen ([Name], a)
 localLambda ts eg = do
-    n <- nextLambda
+    n <- getNextLambda
     let cs = map constr (zip [n..] ts)
         ns = map fst cs
 
@@ -165,7 +177,7 @@ localLambda ts eg = do
                     in (mkName ("_lam_" ++ chr (c + ord 'a') : '_' : show n), t)
 
 modContext :: ([Context] -> [Context]) -> ExpGen ()
-modContext f = modify (& _3 %~ f)
+modContext f = modify (\s -> s { contexts = f (contexts s) })
 
 decUses :: Id -> ExpGen ()
 decUses i = modContext (findAndUpdate f i)
