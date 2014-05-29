@@ -15,7 +15,7 @@
 #+LATEX_HEADER: \usepackage[justification=centering]{caption}
 #+LATEX_HEADER: \usepackage[style=alphabetic,citestyle=alphabetic]{biblatex}
 #+LATEX_CLASS: myreport
-# +LATEX_CLASS_OPTIONS: [draft]
+#+LATEX_CLASS_OPTIONS: [draft]
 
 # #### Palatino font
 #+LATEX_HEADER: \usepackage[sc]{mathpazo}
@@ -28,6 +28,7 @@
 \hyphenation{optimizations}
 \hyphenation{successfully}
 \hyphenation{table}
+\hyphenation{functions}
 
 \setlength{\parskip}{0.2cm}
 \setlength{\parindent}{0pt}
@@ -179,7 +180,7 @@ well-typed expressions in standard Haskell is presented. The
 expressions are randomly constructed from a set of functions and
 values specified by a user. Both the types of these functions and the
 type of the generated expression can be polymorphic and/or higher
-order, i.e., containing functions with polymorphic types as arguments.
+order, i.e. containing functions with polymorphic types as arguments.
 The main motivation for this library is for generating test data when
 testing an Embedded Domain Specific Language (EDSL) where constructing
 a generator for the language by hand might be both tedious and
@@ -188,7 +189,7 @@ error-prone.
 The library was successfully used to define a generator producing
 terms similar to those computed by such a hand-made generator. The
 code size and complexity of the final generator was significantly
-reduced when compared to the previous one.
+reduced when compared to the hand-made one.
 
 \newpage
 
@@ -209,7 +210,7 @@ reduced when compared to the previous one.
 
 * Introduction
   When developing a compiler for an Embedded Domain Specific Language
-  (EDSL) one often want to test certain aspects of the compiler. For
+  (EDSL) one often want to test certain aspects of the compiler, for
   instance, testing that the result of evaluating an expression
   produces the same result both before and after certain
   optimizations. One way to achieve this is to design unit tests that
@@ -218,45 +219,47 @@ reduced when compared to the previous one.
   unit tests have to be developed. Similarly, when optimizations are
   modified, the corresponding unit tests have to be updated.
 
-  Instead, when testing compilers, it is possible to construct a
-  generator for random Abstract Syntax Trees (AST) of the given
-  language and use this generator to test the optimization procedures.
-  However, these ASTs might have several invariants and constructing a
+  Instead, when testing a compiler, it is possible to construct a
+  generator for random Abstract Syntax Trees (ASTs) of the given
+  language and use this generator to test the implementation. However,
+  these ASTs might have several invariants and constructing a
   generator producing only valid ASTs might be non-trivial. One
   solution to this problem is to only use smart constructors given by
   an Application Programming Interface (API) to produce values of the
   requested type. However, combining these smart constructors in a
   type-correct way might be equally non-trivial.
 
-  Aspects of the compiler other than optimizations can also be tested
-  in similar ways. One example is testing that interpreting a program
-  versus compiling and executing it produces the same result. This
-  test and several others has similar preconditions as the
-  optimization tests, it requires that a program is somehow generated
-  or constructed before the test in question can be run.
+  Aspects of the compiler, other than optimizations, can also be
+  tested in similar ways. One example is testing that interpreting a
+  program versus compiling and executing it produces the same result.
+  This test and several others have similar preconditions as the
+  optimization tests; it requires that a program is generated or
+  constructed before the test in question can be run.
 
 ** Random generation
-   Instead of creating a generator for an AST manually one might want
-   to randomly generate values of the AST by using functions from an
-   API instead. This is reasonably since all meaningful terms in the
-   AST should be describable somehow from the API provided by the DSL.
-   What is missing is a procedure taking a number of functions, used
-   to produce values within an AST, together with a goal type that
-   should be the final type for the generated expression. This
-   procedure could be called repeatedly to find different random
-   values of the goal type within the AST. If functions are added or
-   removed from the API, these functions only need to be added or
+   Instead of creating a generator for an AST manually, one might want
+   to randomly generate values of the AST by using a list of functions
+   from an API instead. This is reasonable since all meaningful terms
+   in the AST should be describable somehow from the API provided by
+   the EDSL. What is missing is a procedure, taking a list of
+   functions together with a goal type, producing random expressions
+   of the goal type by combining the given functions in a type-correct
+   way. To create a generator for an AST, one simply specifies the
+   type of the AST as the goal type and the list of functions as the
+   functions from an API, working on that AST. If functions are added
+   or removed from the API, these functions only need to be added or
    removed from the list of available functions supplied to the
-   procedure. Even better, if the AST or the functions in the API are
-   changed, no changes are required for the term generation procedure.
+   procedure. Even better, if the AST or functions in the API are
+   modified, no modification is required for the term generation
+   procedure.
 
 ** Introducing QuickGen
    In this report, the Haskell library \quickgen is presented, usable
-   for randomly generating higher order possibly functional terms with
-   polymorphic type variables. This library was successfully used to
-   define a generator producing expressions similar to those produced
-   by the hand-made generator used by \citeauthor{copilot} in
-   \cite{copilot}.
+   for generating random functions and values, with higher order
+   types, containing polymorphic type variables. This library was
+   successfully used to define a generator producing expressions
+   similar to those produced by the hand-made generator used by
+   \citeauthor{copilot} in \cite{copilot}.
 
    A /Language/ (i.e. an API) is simply defined in Template Haskell
    \cite{TH}, by specifying the functions and values available during
@@ -282,8 +285,7 @@ reduced when compared to the previous one.
    \end{haskellcode}
 
    A generator for terms of type \inlhask{a -> [a]} using
-   \inlhask{lang} above can then be defined with the following
-   definition:
+   \inlhask{lang} above can then be defined in the following way:
 
    \begin{haskellcode}
    f :: Seed -> Maybe Exp
@@ -292,27 +294,30 @@ reduced when compared to the previous one.
 
    \pagebreak
 
-   Different seeds supplied to this function then produce different
-   random well typed expressions using the available functions and
-   values from \inlhask{lang}. The generated expressions can later be
-   turned into real Haskell terms by using, for instance, the GHC API
+   Different seeds supplied to this function then produce random well
+   typed expressions, using the available functions and values from
+   \inlhask{lang}. The generated expressions can later be turned into
+   real Haskell terms by using, for instance, the GHC API
    \cite{ghcapi}.
 
 ** Related work
    Generating higher-order terms and functions have been the subject
-   of some research recently. For instance, in \cite{lambda} a
-   generator very similar to the one presented in this thesis is
-   introduced. This generator was successfully used to discover bugs
-   in the Glasgow Haskell Compiler (GHC) \cite{ghc}. The following
-   sections provide a brief overview over related research that has
-   been used as inspiration for the duration of this project[fn:23].
+   of research recently. For instance, in \cite{lambda} a generator
+   very similar to the one presented in this thesis is introduced.
+   This generator was successfully used to discover bugs in the
+   Glasgow Haskell Compiler (GHC) \cite{ghc}. The following sections
+   provide a brief overview over related research that has been used
+   as inspiration for the duration of this project.
 
 *** Inductive programming
     In the field of inductive programming \cite{ip}, the interest lies
     in generating a program from an incomplete specification. For
     instance, in \cite{mh}, \citeauthor{mh} presents a generator that
     searches for all expressions, in a breadth-first manner, matching
-    a goal type and at the same time satisfies a predicate.
+    a goal type and at the same time satisfies a predicate. Since this
+    generator produces and examines all well-typed expressions,
+    instead of randomly searching for one, it was deemed not suitable
+    for producing random expressions with deep nesting[fn:23].
 
 *** Efficient enumeration
     In \cite{feat} a library for defining enumerations of arbitrary
@@ -320,7 +325,9 @@ reduced when compared to the previous one.
     indexed efficiently. As an example, the term at position
     $10^{100}$ for the complex =Exp= data type defined in Template
     Haskell is generated in less than a second on a normal desktop
-    computer.
+    computer. However, Feat is currently not able to enumerate terms
+    with complicated invariants, such as well-typed terms,
+    \cite[p. 71]{feat}.
 
 *** Theorem proving
     \citeauthor{djinn} presents a library for generating expressions
@@ -2569,7 +2576,7 @@ can be found in the class environment.
 of the predicates as the third argument and all of the predicates must
 be satisfied.
 
-[fn:23] Indeed, the interface in the =Testing.QuickGen.TH= Haskell
+[fn:23] However, the interface in the =Testing.QuickGen.TH= Haskell
 module was greatly inspired by the one used in \cite{mh}.
 
 [fn:24] In any case, if this functionality is required in the future,
