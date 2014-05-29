@@ -372,17 +372,17 @@ reduced when compared to the hand-made one.
    hand-made generator used when testing the EDSL Copilot
    \cite{copilot} is defined and discussed. The last two chapters,
    chapters \ref{chap:fut} and \ref{chap:conclusions}, discuss future
-   work and conclusions of the project respectively.
+   work and conclusions of the project, respectively.
 
 * Algorithm
   \label{chap:algo}
 
   This section is dedicated to the formal definition of the algorithm
   used to generate expressions from a user API. The first part
-  contains an example run of the complete algorithm followed by a
+  contains an example run of the complete algorithm, followed by a
   discussion regarding some tricky parts. The last two subsections
-  contain more formal definitions, with pseudo code, to the functions
-  responsible for /type matching/ and /term generation/ respectively.
+  contain more formal definitions, with pseudo code, of the functions
+  responsible for /type matching/ and /term generation/, respectively.
 
 ** A complete example
   \label{sec:example}
@@ -402,49 +402,48 @@ reduced when compared to the hand-made one.
     |   |              $n$ | $Int$                       |
     |   |              $d$ | $Double$                    |
 
-  The first step is choosing a random function or value where the
+  The first step is to choose a random function or value where the
   return type matches our current goal type. In table \ref{table:api1}
-  above, the term /constructor/ is used to refer to one of these
+  above, the term /constructor/ is used to refer to one of the
   functions or values that can be used by the algorithm to generate
-  expressions[fn:10]. Just from looking at the available constructors,
-  one finds that all but the last two values have return types that
-  match our current goal: $[Int]$. The constructors that do match,
-  however, need to be slightly specialized to exactly match our goal
-  type.
+  expressions, this is also the term used in the rest of this thesis.
+  Just by looking at the available constructors, one finds that all
+  but the last two values have return types that match our current
+  goal: $[Int]$. The constructors that do match, however, need to be
+  slightly specialized to correctly match our goal type.
 
   Assume that $map$ was the first randomly selected matching
   constructor. In this case, for $map$ to match our goal type of
-  $[Int]$, the forall quantified type variable $b$ has to be
-  instantiated to the type $Int$. The other type variable, $a$, having
+  $[Int]$, the universally quantified type variable $b$ has to be
+  instantiated to the type $Int$. The other type variable, $a$ has
   nothing to do with the current goal and can therefore be
   instantiated to anything. We might at this point generate a random
-  type for $a$ based on the constructors in scope. This is done by
-  \citeauthor{lambda} in \cite{lambda}. Here another tactic is
-  employed, and we say that the type variable is /undecided/ instead.
-  We will introduce the special notation $?a$ to mean exactly this;
-  that the type variable $a$ is undecided. What this means is that the
-  type of $a$ has not been specialized yet but might be in a later
-  stage of the generation algorithm. In the end, the final specialized
-  type for $map$ that we arrive at is $(?a \ri Int) \ri [?a] \ri
-  [Int]$. At this point, it might help to visualize the current
-  expression as: \[ map~e_1~e_2 \] where $e_1$ and $e_2$ are two
-  placeholder expressions with types $(?a \ri Int)$ and $[?a]$
-  respectively. To succeed, we need to generate these new
-  subexpressions (subgoals) in some order instead. In this example, we
-  choose to do it from left to right starting with $e_1$:
+  type for $a$ based on the constructors in scope -- this is done by
+  \citeauthor{lambda} in \cite{lambda}. Here, another tactic is
+  employed: we say that the type variable is /undecided/. We introduce
+  the special notation $?a$ to mean exactly this; that the type
+  variable $a$ is undecided. What this means is that the type of $a$
+  has not been specialized yet, but might be in a later stage of the
+  generation algorithm. In the end, the final specialized type for
+  $map$ is $(?a \ri Int) \ri [?a] \ri [Int]$. At this point, it might
+  help to visualize the current expression as: \[ map~e_1~e_2 \] where
+  $e_1$ and $e_2$ are two placeholder expressions with types $(?a \ri
+  Int)$ and $[?a]$, respectively. To succeed, we need to generate
+  these new subexpressions (subgoals) in some order. In this example,
+  we choose to do it from left to right, starting with $e_1$:
 
   - \emph{Generating $e_1$ with type $?a \ri Int$}:
     \phantomsection
     \label{sec:example-map1}
 
     At this point, the algorithm differs slightly from what was done
-    when starting to generate $[Int]$ above. The difference is that
-    this time, we are trying to generate a function. In the end we
-    want a lambda abstraction on the form: \[\lambda x \ri body \]
+    when starting to generate $[Int]$ above; the difference is that
+    this time, we are trying to generate a function. In the end, we
+    want a lambda abstraction of the form: \[\lambda x \ri body \]
     where the argument $x$ can be used inside $body$. To proceed, all
     arguments are added as constructors available when generating the
     body of the lambda abstraction. In this case, the only constructor
-    added is $x ::\;?a$ resulting in the following set of
+    added is $x ::\;?a$, resulting in the following set of
     constructors:
 
     #+NAME: table:api2
@@ -461,12 +460,13 @@ reduced when compared to the hand-made one.
     |   |   $\color{red}x$ | $\color{red}?a$             |
 
     From here on, the algorithm is exactly the same as for the case
-    when generating an expression of type $[Int]$ seen above: a random
-    matching constructor $\mathcal{C}$ is chosen and the arguments of
-    $\mathcal{C},~y_1 \ldots y_n$, are recursively generated. If all
-    arguments were successfully generated then $body$ would be equal
-    to $\mathcal{C}~y_1~\ldots~y_n$ and the complete expression $e_1$
-    would be $(\lambda x \ri \mathcal{C}~y_1~\ldots~y_n)$.
+    when generating an expression of type $[Int]$ as seen above: a
+    random matching constructor $\mathcal{C}$ is chosen and the
+    arguments of $\mathcal{C},~y_1 \ldots y_n$, are recursively
+    generated. If all arguments are successfully generated, then
+    $body$ will be equal to $\mathcal{C}~y_1~\ldots~y_n$ and the
+    complete expression $e_1$ will be $(\lambda x \ri
+    \mathcal{C}~y_1~\ldots~y_n)$.
 
     Here, only the two constructors $n$ and $x$ match the current
     goal, which is $Int$, and are therefore the only candidates for
@@ -474,89 +474,91 @@ reduced when compared to the hand-made one.
     = (\lambda x \ri n)$ and continue generating $e_2 ::\;[?a]$. If we
     choose $\mathcal{C} = x$, we return with $e_1 = (\lambda x \ri
     x)$ [fn:26]. At this point, instead of continuing generating
-    $e_2 ::\;[?a]$ as before, we now need to generate $e_2 ::\;[Int]$,
-    the reason being that in the original types of $e_1$ and $e_2$,
-    $(?a \ri Int)$ and $[?a]$ respectively, the undecided type
-    variable $?a$ refers to the same undecided type in both
-    expressions. If we start generating $e_1$ and decide that $?a$ has
-    to be an $Int$ then this choice has to be remebered when
-    generating $e_2$. To illustrate the difference, both these cases
-    will be considered below:
+    $e_2 ::\;[?a]$ as before, we now need to generate $e_2 ::\;[Int]$.
+    The reason is that in the original types of $e_1$ and $e_2$, $(?a
+    \ri Int)$ and $[?a]$, respectively, the undecided type variable
+    $?a$ refers to the same type in both expressions. If we start
+    generating $e_1$ and decide that $?a$ has to be an $Int$, then
+    this choice has to be remembered when generating $e_2$. To
+    illustrate the difference, both of these cases will be considered
+    below:
 
   - \emph{Case $e_1 = (\lambda x \ri n)$: Generating $e_2$ with type $[?a]$}:
 
-    This time no new constructors are added to the API since we are
+    This time, no new constructors are added to the API since we are
     not generating a function. The API at this point is therefore the
     one found in table \ref{table:api1}. Similar to before, when
     choosing $map$ as a constructor, the first three constructors are
     the only ones matching the current goal. Suppose the second one,
-    $sing$, is chosen. The specialized type for $sing$, in this case,
-    would be $(?a \ri [?a])$ and a new subgoal for an $?a$ is created.
-    Here $?a$ can be matched with any constructor in the API but let
-    us assume $d :: Double$ is chosen, resulting in $e_2 = sing~d$.
-    Since this is the last subgoal, the term generation algorithm
-    terminates with the complete expression $map~(\lambda x \ri
-    n)~(sing~d)$.
+    $sing$, is chosen. In this case, the specialized type for $sing$
+    would be $(?a \ri [?a])$ and a new subgoal for an expression of
+    type $?a$ is created. Here, $?a$ can be matched with any
+    constructor in the API, but let us assume $d :: Double$ is chosen,
+    resulting in $e_2 = sing~d$. Since this is the last subgoal, the
+    term generation algorithm terminates with the complete expression
+    $map~(\lambda x \ri n)~(sing~d)$.
 
   - \emph{Case $e_1 = (\lambda x \ri x)$: Generating $e_2$ with type $[Int]$}:
 
     Similar to the case for $[?a]$, no new constructors are added and
-    the API is still the one found in table \ref{table:api1}. Suppose
-    that the randomly selected constructor chosen is the same as in
-    the last step, $sing$. Here is where the difference in choice in
-    $e_1$ is visible when generating $e_2$. In the case above, all
-    constructors matched the goal of $?a$. However, in this case, $?a$
-    has already been instantiated to a type, namely $Int$, when
-    generating $e_1$. This forces us to choose $n$ as our constructor
-    since no other constructors match the current goal. Again, this
-    terminates the algorithm and the final expression would be
-    $map~(\lambda x \ri x)~(sing~n)$.
+    the API is therefore the one found in table \ref{table:api1}.
+    Suppose that the randomly selected constructor chosen is the same
+    as in the last step, $sing$. Here is where the difference in
+    choice in $e_1$ is visible when generating $e_2$. In the case
+    above, all constructors matched the goal of $?a$. However, in this
+    case, $?a$ has already been instantiated to a type when generating
+    $e_1$, namely $Int$. This forces us to choose $n$ as our
+    constructor, since no other constructors match the current goal.
+    Again, this terminates the algorithm leaving us with the final
+    expression $map~(\lambda x \ri x)~(sing~n)$.
 
 *** Undecided variables
    \label{sec:undecided}
 
    When generating $e_1$ in section \ref{sec:example} above, two
    different cases were considered. In the first case, the undecided
-   variable $?a$ was never instantiated. The second one showed that a
+   variable $?a$ was never instantiated. The second case showed that a
    guess made for an undecided variable in one part needs to be
    remembered in the rest of the generation process. How this
    information about guesses for undecided variables should be handled
-   is non-trivial. Let us look at an example:
+   is non trivial. Let us look at an example:
 
-   \example Imagine we are generating a term of type $t$ using the
-   following constructor: \[ c :: t_1 \ri \ldots \ri t_n \ri t \]
-   Furthermore, assume the undecided variable $?a$ is part of the type
-   of $c$, i.e., $?a$ is present in at least one, and potentially all,
-   of the types $t_1, \ldots, t_n$ and $t$. If we start generating a
-   subgoal, for instance $t_1$, we might select another constructor
-   containing additional subgoals which in turn might introduce even
-   more subgoals. At any point in these subtrees we might decide that
-   $?a$ should have type $Int$. It is critical that this information
-   is shared between all subgoals. One could try updating the API by
-   exchanging every usage of $?a$ with $Int$. However, this does not
-   solve the problem that $?a$ might be present in one of the subgoals
-   at the same level or higher up. If the subgoals and intermediate
-   constructors were saved on a stack one might traverse this stack
-   updating the types for subgoals containing $?a$. However, this
-   stack, and the API, might grow to be very large making it
-   inefficient to traverse the stack every time an undecided variable
-   is updated.
+   \example Imagine that we are generating a term of type $t$ using
+   the following constructor: \[ c :: t_1 \ri \ldots \ri t_n \ri t \]
+   Furthermore, assume that the undecided variable $?a$ is part of the
+   type of $c$, i.e., $?a$ is present in at least one, and potentially
+   all, of the types $t_1, \ldots, t_n$ and $t$. If we start
+   generating a subgoal, for instance $t_1$, we might select another
+   constructor containing additional subgoals which in turn might
+   introduce even more subgoals. At any point in these subtrees we
+   might decide that $?a$ should have type $Int$. It is critical that
+   this information is shared between all subgoals. One could try
+   to update the API by exchanging every usage of $?a$ with $Int$.
+   However, this does not solve the problem that $?a$ might be present
+   in one of the subgoals at the same level or higher up. If the
+   subgoals and intermediate constructors were saved on a stack one
+   might traverse this stack updating the types for subgoals
+   containing $?a$. However, this stack, and the API, might grow to be
+   very large making it inefficient to traverse the stack every time
+   an undecided variable is updated.
 
    An alternative tactic, that is employed in this project, is to have
    a global set of guesses for undecided variables, henceforth
    referred to as $\mathbb{U}$, that is consulted before trying to
    generate a subgoal containing undecided variables. Suppose that we
    have a goal type $t$ containing the undecided variable $?a$.
-   Further assume that $\mathbb{U}$ contains the following guess for
-   $?a$ saying that $?a$ should be substituted by $Int$: $?a \mapsto
-   Int$. To continue, we substitute each occurence of $?a$ with $Int$
-   within the type $t$.
+   Further assume that $\mathbb{U}$ contain a guess, $?a \mapsto Int$,
+   indicating that $?a$ should be substituted by $Int$. To continue,
+   we substitute each occurence of $?a$ with $Int$ inside the type
+   $t$.
 
    The set of guesses, $\mathbb{U}$, is also consulted before trying
    to match a goal with any constructor $c$ from the API since the
    type of $c$ might also contain undecided variables. Finally, when a
-   guess for an undecided variable is performed[fn:27], this guess is
-   recorded in $\mathbb{U}$.
+   guess for an undecided variable is performed, this guess is
+   recorded in $\mathbb{U}$. For instance, the guess $?a \mapsto Int$
+   was performed when $x$ was used as a constructor when generating
+   $e_1$ in \autoref{sec:example-map1}.
 
    \pagebreak
 
@@ -565,7 +567,7 @@ reduced when compared to the hand-made one.
 
     One more type of expression needs to be discussed before
     continuing, namely expressions with polymorphic types. To see how
-    this is done in this project let us first look at a problematic
+    this is done in this project, let us first look at a problematic
     example run:
 
     - Imagine that we want to generate an expression with goal type $a
@@ -576,7 +578,7 @@ reduced when compared to the hand-made one.
       arguments with their respective types to the API and finally
       generating the lambda body with the updated API. The goal type
       when generating the body would be $[a]$. Furthermore, let us
-      assume the API is the following:
+      assume that the API is the following:
 
       #+CAPTION: The constructors marked in red were added by the algorithm when generating the lambda abstraction.
       #+ATTR_LATEX: :placement [H]
@@ -599,12 +601,12 @@ reduced when compared to the hand-made one.
       $succ_{Int}$ above also introduced the guess $?b \mapsto Int$ in
       $\mathbb{U}$. The variables $e_1$ and $e_3$ refers to the
       currently unsolved subgoals. At this point, the current goal
-      type is $Int$. By looking at the types in the API alone, it
-      would be perfectly reasonable to choose $x_1$ as a constructor
-      for this goal since $x_1$ is forall quantified and can be
-      matched with anything. However, if we substitute $e_1$ by $x_1$
-      and try to type check the resulting expression in, for instance,
-      =ghci= we get the following:
+      type, the type of $e_3$, is $Int$. By looking at the types in
+      the API alone, it would be perfectly reasonable to choose $x_1$
+      as a constructor for this goal, since $x_1$ is universally
+      quantified and can be matched with anything. However, if we
+      substitute $e_1$ by $x_1$ and try to type check the resulting
+      expression in, for instance, =ghci= we get the following:
 
       \pagebreak
 
@@ -617,24 +619,25 @@ reduced when compared to the hand-made one.
       \end{alltt}
 
     The problem above is that the type of $x_1$ and $x_2$ should not
-    be $\forall~a.~a$ when introduced to the API above. A better
-    approach is to substitute every forall quantified type variable
-    with a dummy unique data type constructor. This is the tactic
-    employed by \citeauthor{mh} in \cite{mh}. Thus, in the example
-    above, before starting the generation process, each occurrence of
-    the type variable $a$ in $a \ri a \ri [a]$ should be exchanged by
-    an unique data type constructor, for instance $A_1$, resulting in
-    the type $A_1 \ri A_1 \ri [A_1]$. Later during matching, the type
-    $A_1$ will be matched using the same procedure used to match other
-    type constructors. The exact procedure for matching type
-    constructors can be found in \autoref{lst:matchaux}.
+    be a universally quantified type variable ($\forall~a.~a$), when
+    introduced to the API above. A solution to this problem is to
+    substitute every universally quantified type variable with a dummy
+    unique type constructor. This is the tactic employed by
+    \citeauthor{mh} in \cite{mh}. Thus, in the example above, before
+    starting the generation process, each occurrence of the type
+    variable $a$ in $a \ri a \ri [a]$ should be exchanged by a unique
+    type constructor, for instance $A_1$, resulting in the type $A_1
+    \ri A_1 \ri [A_1]$. Later during matching, the type $A_1$ will be
+    matched using the same procedure used to match other type
+    constructors. The exact procedure for matching type constructors
+    can be found in \autoref{lst:matchaux}.
 
 *** Termination
     \label{sec:algo-termination}
 
     There is one simplification to the simple algorithm presented
-    above that need to be mentioned. The algorithm if implemented
-    directly is not guaranteed to terminate. To see why, consider the
+    above that need to be mentioned. The algorithm, if implemented
+    directly, is not guaranteed to terminate. To see why, consider the
     following example:
 
     #+ATTR_LATEX: :placement [H]
@@ -677,20 +680,22 @@ reduced when compared to the hand-made one.
     still limiting the search space enough to make the algorithm
     terminate if no solution can be found.
 
-    A more detailed discussion about this and other termination
-    strategies can be found in \autoref{sec:fut-termination}.
+    The solution with \textsc{Uses} above is not the only way to solve
+    the issue of termination. In \autoref{sec:fut-termination}, some
+    other termination strategies are discussed.
 
 *** Subgoal ordering
     \label{sec:algo-sgo}
 
     After choosing $map$ as the first constructor in the original
     algorithm in section \ref{sec:example}, we choose to generate the
-    subgoals to $map$ from left to right. With the addition of uses
-    as mentioned in section \ref{sec:algo-termination} above, the
-    order in which subgoals are generated actually influences the
-    final shape of the finished expression. Again, let us illustrate
-    this by looking at an example where we want to generate an
-    expression with type $Int$ using the following API:
+    subgoals to $map$ from left to right. With the addition of limited
+    uses of constructors, as mentioned in section
+    \ref{sec:algo-termination} above, the order in which subgoals are
+    generated influence the final shape of generated
+    expressions[fn:10]. Again, let us illustrate this by looking at an
+    example where we want to generate an expression with type $Int$
+    using the following API:
 
     #+CAPTION: API containing constructors with a limited number of uses
     #+ATTR_LATEX: :placement [H]
@@ -703,20 +708,20 @@ reduced when compared to the hand-made one.
     As before, the API contains the constructors available for use
     when generating expressions. The difference this time is that a
     limited number of uses, here two, is also imposed on the first
-    constructor. The second constructor, having no subgoals, can be
-    seen having an infinite number of uses. Suppose $const$, with the
-    specialized type $Int \ri ?b \ri Int$, is our first randomly
-    chosen constructor. After choosing $const$, we must also update
-    the API decreasing the number of uses for $const$ by one. From
-    here, we can choose to generate either of the subgoals, $Int$
-    respectively $?b$. If we choose to generate from left to right
-    starting with $Int$, and $const$ is our next random choice of
-    constructor then we have effectively used up all usages of $const$
-    available in this run of the algorithm. This forces us to choose
-    $n$ as a constructor in all remaining subgoals including in the
-    goal for $?b$. If we go right to left instead, we may experience
-    the same problem, i.e. we may limit the available constructors,
-    and thereby forcing the shape of the finished expression.
+    constructor. The second constructor, having no subgoals, is given
+    an infinite number of uses. Suppose $const$, with the specialized
+    type $Int \ri ?b \ri Int$, is our first randomly chosen
+    constructor. After choosing $const$, we must also update the API
+    decreasing the number of uses for $const$ by one. From here, we
+    can choose to generate either of the subgoals, $Int$ respectively
+    $?b$. If we choose to generate from left to right starting with
+    $Int$, and $const$ is our next random choice of constructor, then
+    we have effectively used up all usages of $const$ available in
+    this run of the algorithm. This forces us to choose $n$ as a
+    constructor in all remaining subgoals, including the goal for
+    $?b$. If we go right to left instead, we may experience the same
+    problem, i.e. we may limit the available constructors, thereby
+    forcing the shape of the finished expression.
 
     In general, if there are several constructors in the API
     containing at least one subgoal, the generated expressions are
@@ -724,9 +729,9 @@ reduced when compared to the hand-made one.
     start from the left, most usages of constructors will be present
     in the leftmost subgoals.
 
-    Due to implementation details, the concrete algorithm in this
-    project generates goals from right to left making the expressions
-    biased towards the right. In one of the sections in future work,
+    Due to implementation details, the algorithm used in this project
+    generates goals from right to left making the expressions biased
+    towards the right. In one of the sections in future work,
     \autoref{sec:fut-ordering}, some alternative tactics regarding
     subgoal ordering are discussed.
 
@@ -743,33 +748,33 @@ reduced when compared to the hand-made one.
 
    The \textsc{Match} algorithm presented below is similar to regular
    type matching in the respect that it finds a substitution for the
-   forall quantified type variables. However, there are some
+   universally quantified type variables. However, there are some
    differences. Let us look at one example to see how it differs from
    normal type matching: \[ \textsc{Match}(Int,~a \rightarrow b)
    \Longrightarrow (?a \rightarrow Int) \] The first difference we see
    is that \textsc{Match} actually returns a new type instead of a
    substitution. \textsc{Match} did find a substitution but then
    immediately applied it to the second argument to produce a
-   specialized type. Further, a normal type matching algorithm
-   wouldn't find a substitution at all, it would fail on this
-   particular input since a value type normally cannot be matched
-   against a function. \textsc{Match} however returns the type $(?a
-   \rightarrow Int)$.
+   specialized type. Further, a normal type matching algorithm would
+   not find a substitution at all, it would fail on this particular
+   input, since a value type normally cannot be matched against a
+   function. \textsc{Match} however returns the type $(?a \rightarrow
+   Int)$.
 
    From the original type we can see that $b$ has been turned into
-   $Int$ which might not be all that surprising. The type variable $a$
-   however has lost its forall quantifier and been turned into an
-   undecided type variable as explained in section \ref{sec:example}
-   above. Further, the \textsc{Match} function only looks at the
-   return type of the second argument during matching. Therefore, in
-   this example, the only type variable considered during matching was
-   $b$. All of the remaining forall quantified type variables, in
-   this case, $a$, will be turned into undecided type variables, here
+   $Int$ which might not be all that surprising. The type variable
+   $a$, however, has lost its quantifier and been turned into an
+   undecided type variable, as explained in section \ref{sec:example}.
+   Further, the \textsc{Match} function only looks at the return type
+   of the second argument during matching. Therefore, in this example,
+   the only type variable considered during matching was $b$. All of
+   the remaining universally quantified type variables, which in this
+   case is $a$, will be turned into undecided type variables, here
    $?a$.
 
    The intuition is that a function $f$ of type $(a \rightarrow Int)$
    can be used to construct a value of type $Int$ if we give it
-   another value of type $a$. Since $a$ is forall quantified then a
+   another value of type $a$. Since $a$ is universally quantified, a
    value of any type can be given to $f$ for it to produce an $Int$.
 
    With this small introduction it is time to look at the algorithm
@@ -777,19 +782,19 @@ reduced when compared to the hand-made one.
 
    \pagebreak
 
-   - Let $\mathbb{U}$ be a set of guesses for undecided
-     variables[fn:13]. Then the \textsc{Match} function takes two
-     types, $t_1$ and $t_2$, and finds out if the type $t_2$ can be
-     specialized in such a way that a value of this specialized type
-     can be used in the construction of a value of type $t_1$. If
-     $\textsc{Match}$ is successful, the specialized version of $t_2$
-     is returned. In addition to returning the specialized type, the
-     set of guesses might be updated during matching. If no match is
-     found then a failure is raised instead.
+   - Let $\mathbb{U}$ be the set of guesses for undecided variables,
+     as discussed in \autoref{sec:undecided}. Then the \textsc{Match}
+     function takes two types, $t_1$ and $t_2$, and finds out if the
+     type $t_2$ can be specialized in such a way that a value of this
+     specialized type can be used in the construction of a value of
+     type $t_1$. If $\textsc{Match}$ is successful, the specialized
+     version of $t_2$ is returned. In addition to returning the
+     specialized type, the set of guesses might be updated during
+     matching. If no match is found, the algorithm will fail.
 
    \begin{algorithmic}[1]
    \Function{Match}{$t_1, t_2$}
-     \If{$t_2$ is a function type $t_2 = x_1 \ri \ldots \ri x_n$}
+     \If{$t_2$ is a function type $t_2 = (x_1 \ri \ldots \ri x_n)$}
        \State $s \gets \Call{MatchAux}{t_1, x_n}$
      \Else
        \State $s \gets \Call{MatchAux}{t_1, t_2}$
@@ -812,18 +817,19 @@ reduced when compared to the hand-made one.
 
    - Let $t_1 = [Int]$ and $t_2 = (a \ri b)\ri[a]\ri[b]$.
      \textsc{Match} will proceed by trying to find a substitution for
-     $[Int]$ and the return type of $t_2$ [fn:9], namely $[b]$.
+     $[Int]$ and the return type of $t_2$, $[b]$, since $t_2$ is a
+     function type.
      - In \textsc{MatchAux} the second case will match with
        $\mathcal{C}=[\,]$ and $y_1=b$. Since $t_1$ is also of this
        form, $\mathcal{C}=[\,]$ and $x_1=Int$, then
        \textsc{MatchAux}$(Int, ~b)$ will be called recursively.
-     - Now since the second argument is forall quantified, the
+     - Now since the second argument is universally quantified, the
        singleton substitution $\{b~\mapsto~Int\}$ is returned. This is
        also the value returned to \textsc{Match}.
    - The substitution returned from \textsc{MatchAux} is applied to
      $t_2 = ~(a \ri b) \ri [a] \ri [b]$ resulting in $(a \ri Int) \ri
      [a] \ri [Int]$.
-   - In the last step the remaining forall quantified variable is
+   - In the last step the remaining universally quantified variable is
      turned into an undecided one and $(?a \ri Int) \ri [?a] \ri
      [Int]$ is returned.
 
@@ -836,7 +842,7 @@ reduced when compared to the hand-made one.
        \EndCase
 
        \Case{$\mathcal{C}(y_1, \ldots, y_n)$}
-         \If{$t_1$ is not the same type constructor as $t_2$, i.e. $t_1 \neq \mathcal{C}(x_1, \ldots, x_n)$ \footnote{For some types $x_1 \ldots x_n$.}}
+         \If{$t_1$ is not the same type constructor as $t_2$, i.e. $t_1 \neq \mathcal{C}(x_1, \ldots, x_n)$ \footnotemark}
            \State \Raise{No\_Match}
          \Else
            \State \Return{$\bigcup_i~\Call{MatchAux}{x_i, y_i}$}
@@ -879,6 +885,8 @@ reduced when compared to the hand-made one.
    \caption{The complete matching algorithm.}\label{lst:matchaux}
    \end{listing}
 
+   \footnotetext{For some types $x_1 \ldots x_n$.}
+
 *** Unique types
     \label{sec:unique}
 
@@ -904,18 +912,18 @@ reduced when compared to the hand-made one.
     specialized type $(?a \ri Int) \ri [?a] \ri [Int]$. This time,
     since we already have a guess for the undecided variable $?a$ in
     $\mathbb{U}$, the subgoals for the inner $map$ would be updated to
-    $([Int] \ri Int)$ and $[ [Int] ]$ respectively. However, these
+    $([Int] \ri Int)$ and $[ [Int] ]$, respectively. However, these
     types does not permit us to choose, for instance, $xs$ as a second
     argument for the inner $map$ which is incorrect.
 
-    A simple way to solve this problem is to exchange every forall
+    A simple way to solve this problem is to exchange every universally
     quantified type variable in a type $t$ with a natural number
     before supplying $t$ as the second argument to \textsc{Match}.
     Start with $n := 0$ which represents the next unique natural
     number to be used in a type. The general procedure is defined
     as follows:
 
-    - For some type $t$ find the set of forall quantified type
+    - For some type $t$ find the set of universally quantified type
       variables encountered in $t$: \[ \textsc{Vars}(t) = \{
       a_1,\ldots,a_m \}\]
     - Create the substitution $s = \{a_1 \mapsto n , \ldots, a_m
@@ -924,7 +932,7 @@ reduced when compared to the hand-made one.
     - Update $t$ by applying the substitution $s$ to $t$
 
     At this point every type variables in $t$ is unique for the entire
-    run of the algorithm since it isn't legal to have natural numbers
+    run of the algorithm since it is not legal to have natural numbers
     as types in standard Haskell. This makes it completely safe to
     introduce mappings for undecided variables in $\mathbb{U}$ in
     \textsc{MatchAux}.
@@ -949,7 +957,7 @@ reduced when compared to the hand-made one.
     |   |           $sing$ | $a \ri [a]$                           |
     When the matching algorithm in \autoref{algo:match} above matches
     $head$ with our current goal type it would immediately notice that
-    the return type of $head$ is forall quantified and produce the
+    the return type of $head$ is universally quantified and produce the
     substitution $\{a \mapsto Int\}$. The specialized type returned by
     the algorithm would be $[Int] \ri Int$. However, this is not the
     only valid specialization of this type to produce a constructor
@@ -959,7 +967,7 @@ reduced when compared to the hand-made one.
     expression, another specialization of the type of $head$ would
     have to be considered: \[ [?b \ri Int] \ri ?b \ri Int \] In
     general, there are an infinite number of valid instantiations for
-    a forall quantified type variable when matching against a goal
+    a universally quantified type variable when matching against a goal
     type $t$, each on the form: $?a_1 \ri \ldots \ri ?a_n \ri t$ where
     $n$ can be zero. \citeauthor{mh} uses this tactic when enumerating
     expressions in \cite{mh}.
@@ -993,7 +1001,7 @@ reduced when compared to the hand-made one.
    \EndFunction
    \end{algorithmic}
 
-   On the second line of the algorithm, all forall quantified
+   On the second line of the algorithm, all universally quantified
    variables are substituted with unique dummy data types as discussed
    in \autoref{sec:example-poly}. A similar transformation is done
    with the undecided type variables on the third line to avoid
@@ -1111,12 +1119,12 @@ reduced when compared to the hand-made one.
 *** Variables, Forall and Undecided
     \label{variables}
 
-    In Haskell a type can contain forall quantified type variables.
+    In Haskell a type can contain universally quantified type variables.
     For instance in the type for \inlhask{id :: a -> a} an implicit
-    forall for the type variable =a= is introduced resulting in the
+    =forall= for the type variable =a= is introduced resulting in the
     final type \inlhask{id :: forall a. a -> a}. This type says that
     \inlhask{id} works for *any* type =a=, be it integers, list of
-    strings or functions containing their own forall quantified type
+    strings or functions containing their own universally quantified type
     variables. \quickgen introduces another kind of quantifier,
     \inlhask{Undecided}, as first introduced in \autoref{sec:example}.
     Internally, the types used for representing variables are the
@@ -1181,7 +1189,7 @@ reduced when compared to the hand-made one.
     constraints on these variables, in types. The second data type,
     \inlhask{SType}, has constructors for representing functions,
     variables, constructors and lists. For instance, the implicitly
-    forall quantified type $a \ri b \ri b$ could be represented as:
+    universally quantified type $a \ri b \ri b$ could be represented as:
 
     \begin{haskellcode}
     Type [(0, Forall), (1, Forall)] [] (FunT [ VarT (1, Forall)
@@ -1204,7 +1212,7 @@ reduced when compared to the hand-made one.
 
     The rest of the constructors, \inlhask{VarT, ConT} and
     \inlhask{ListT} represents type variables, type constructors and
-    lists respectively. The observant reader may notice that there is
+    lists, respectively. The observant reader may notice that there is
     currently no way to represent type variables with arguments, i.e.
     there is no way to represent the type of \inlhask{return :: Monad m => a -> m a}
     This limitation and ways to solve it are discussed further in
@@ -1343,7 +1351,7 @@ reduced when compared to the hand-made one.
    The library contains a small module named =Testing.QuickGen.TH=
    with two exported Template Haskell functions,
    \inlhask{defineLanguage} and \inlhask{getType}, that a user can use
-   to construct a \inlhask{Language} or a \inlhask{Type} respectively.
+   to construct a \inlhask{Language} or a \inlhask{Type}, respectively.
    Example usage of these functions are shown in
    \autoref{lst:th-example} below:
 
@@ -1509,7 +1517,7 @@ reduced when compared to the hand-made one.
     The type \inlhask{EGState} is a tuple with several elements. The
     first two elements, \inlhask{NextLambda} and \inlhask{NextType},
     is used to generate unique identifiers for lambda variables and
-    type variables respectively. The list (stack) of
+    type variables, respectively. The list (stack) of
     \inlhask{Context}'s contain all \inlhask{Constructor}'s introduced
     in either the language definition or in a lambda abstraction
     generated by the algorithm. If, for instance, the starting
@@ -1948,7 +1956,7 @@ reduced when compared to the hand-made one.
     The first element in the return value of \inlhask{genStreams} is
     the final language value, containing the complete API together
     with all \inlhask{s_i} variables. The second and third elements
-    are the generated streams and the updated standard generator value
+    are the generated streams and the updated standard generator value,
     respectively. It should be noted that this is not exactly the same
     tactic as employed by the Copilot generator since an expression
     \inlhask{s_i}, constructed by the latter generator, can use any
@@ -1959,7 +1967,7 @@ reduced when compared to the hand-made one.
     this extra step in the generation process.
 
     Finally the \inlhask{genTriggers} and \inlhask{genSpec} functions
-    were defined to generate triggers and a complete spec respectively.
+    were defined to generate triggers and a complete spec, respectively.
 
     \pagebreak
 
@@ -2029,7 +2037,7 @@ reduced when compared to the hand-made one.
    behaviour of the program, we will require two evaluation functions,
    one that optimizes the program and evaluates it and another one
    just performing the evaluations. We will call these evaluation
-   procedures $\textsc{Eval}_{opt}$ and $\textsc{Eval}$ respectively.
+   procedures $\textsc{Eval}_{opt}$ and $\textsc{Eval}$, respectively.
    To test the optimizations done by the language, we need to generate
    and compile an expression $e$. We proceed by comparing the output
    of running both $\text{Eval}_{opt}(e)$ and $\text{Eval}(e)$.
@@ -2226,7 +2234,7 @@ reduced when compared to the hand-made one.
    For instance, consider the following example during type matching
    with some goal type \inlhask{Cxt => gt} against the following
    constructor \inlhask{plus :: Num a => a -> a -> a}. For these
-   particular types, since $a$ is forall quantified, the substitution
+   particular types, since $a$ is universally quantified, the substitution
    $\{a \mapsto gt\}$ will be produced on line three in the
    \inlhask{match} function found in \autoref{match}. This
    substitution is applied to the type \inlhask{Num a => a -> a -> a}
@@ -2527,20 +2535,12 @@ infinite loop.
 
 [fn:7] The other one being \inlhask{generate'}.
 
-[fn:8] Normal matching only need to look at forall quantified type variables.
-
-[fn:9] Since $t_2$ is a function type.
-
-[fn:10] This is also the term that will be used in the rest of this
-thesis.
+[fn:8] Normal matching only need to look at universally quantified type variables.
 
 [fn:11] This is done in \cite{lambda}.
 
 [fn:12] This function is closer to traditional type matching compared
 to \textsc{Match}.
-
-[fn:13] A more detailed explanation about $\mathbb{U}$ is found in
-section \ref{sec:undecided}.
 
 [fn:14] The /copilot-core/ Haskell package \cite{copilot-core} also
 defines one more mechanism in its \inlhask{Spec} data type called an
@@ -2549,7 +2549,7 @@ for Copilot programs included in this same package and is therefore
 not considered in the \quickgen generator either.
 
 [fn:15] Where \inlhask{a} was substituted with \inlhask{Word64} and
-\inlhask{Bool} respectively.
+\inlhask{Bool}, respectively.
 
 [fn:16] Modulo the number of available types and the inclusion of
 \inlhask{drop} in the Copilot generator.
@@ -2591,6 +2591,5 @@ $?a$ to match the current goal of $Int$. Only considering one of them
 is a simplification to the original problem. See
 \autoref{sec:match-poly}.
 
-[fn:27] I.e. the guess $?a \mapsto Int$ was performed when $x$ was
-used as a constructor when generating $e_1$ in
-\autoref{sec:example-map1}.
+[fn:10] This is also true for undecided variables as was shown in
+\autoref{sec:undecided}.
