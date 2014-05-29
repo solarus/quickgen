@@ -254,16 +254,13 @@ reduced when compared to the hand-made one.
    procedure.
 
 ** Introducing QuickGen
-   In this report, the Haskell library \quickgen is presented, usable
-   for generating random functions and values, with higher order
-   types, containing polymorphic type variables. This library was
-   successfully used to define a generator producing expressions
-   similar to those produced by the hand-made generator used by
-   \citeauthor{copilot} in \cite{copilot}.
-
-   A /Language/ (i.e. an API) is simply defined in Template Haskell
-   \cite{TH}, by specifying the functions and values available during
-   term generation, for example:
+   In this report, the library \quickgen, written in the programming
+   language Haskell \cite{haskell2010}, is presented. The library can
+   be used to generate random functions and values, with higher order
+   types, containing polymorphic type variables. A /Language/ (i.e. an
+   API) is simply defined using Template Haskell \cite{TH}, by
+   specifying the functions and values available during term
+   generation, for example:
 
    \begin{haskellcode}
    lang :: Language
@@ -339,6 +336,8 @@ reduced when compared to the hand-made one.
     suitable for generating random terms.
 
 ** Problem and goal
+   \todo{kolla här igen (emax and markus kommentarer)}
+
    The goal of this project is to implement a reusable library, in the
    programming language Haskell, for defining generators for functions
    and values, possibly of higher order and/or polymorphic type, to be
@@ -366,14 +365,14 @@ reduced when compared to the hand-made one.
    of the algorithms used when generating expressions. Some
    limitations are also discussed here. After this, in
    \autoref{chap:impl}, the current implementation in the programming
-   language Haskell \cite{haskell2010} is discussed. This chapter can
-   be used as an extended documentation to the implementation. Example
-   usage of the library is presented in \autoref{chap:examples}. Among
-   others, a generator with similar behaviour to that of the hand-made
-   generator used when testing the EDSL Copilot is defined and
-   discussed. The last two chapters, chapters \ref{chap:fut} and
-   \ref{chap:conclusions}, discusses future work and conclusions of
-   the project respectively.
+   language Haskell is discussed. This chapter can be used as an
+   extended documentation to the implementation. Example usage of the
+   library is presented in \autoref{chap:examples}. For instance, the
+   implementation of a generator with similar behaviour to that of the
+   hand-made generator used when testing the EDSL Copilot
+   \cite{copilot} is defined and discussed. The last two chapters,
+   chapters \ref{chap:fut} and \ref{chap:conclusions}, discuss future
+   work and conclusions of the project respectively.
 
 * Algorithm
   \label{chap:algo}
