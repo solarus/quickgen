@@ -897,6 +897,8 @@ reduced when compared to the hand-made one.
 
     \pagebreak
 
+    \todo{Hard to follow. List?}
+
     \example Imagine we are generating a value with type $[ [Int] ]$
     using the API found in table \ref{table:api1}. Further suppose
     that the final, well-typed, expression we want to generate is the
@@ -913,7 +915,7 @@ reduced when compared to the hand-made one.
     since we already have a guess for the undecided variable $?a$ in
     $\mathbb{U}$, the subgoals for the inner $map$ would be updated to
     $([Int] \ri Int)$ and $[ [Int] ]$, respectively. However, these
-    types does not permit us to choose, for instance, $xs$ as a second
+    types do not permit us to choose, for instance, $xs$ as a second
     argument for the inner $map$ which is incorrect.
 
     A simple way to solve this problem is to exchange every universally
@@ -931,7 +933,7 @@ reduced when compared to the hand-made one.
     - Let $n := n + m$
     - Update $t$ by applying the substitution $s$ to $t$
 
-    At this point every type variables in $t$ is unique for the entire
+    At this point every type variable in $t$ is unique for the entire
     run of the algorithm since it is not legal to have natural numbers
     as types in standard Haskell. This makes it completely safe to
     introduce mappings for undecided variables in $\mathbb{U}$ in
@@ -955,9 +957,9 @@ reduced when compared to the hand-made one.
     |   |     $succ_{Int}$ | $Int \ri Int$                         |
     |   |              $n$ | $Int$                                 |
     |   |           $sing$ | $a \ri [a]$                           |
-    When the matching algorithm in \autoref{algo:match} above matches
-    $head$ with our current goal type it would immediately notice that
-    the return type of $head$ is universally quantified and produce the
+    When the matching algorithm in \autoref{algo:match} matches $head$
+    with our current goal type, it would immediately notice that the
+    return type of $head$ is universally quantified and produce the
     substitution $\{a \mapsto Int\}$. The specialized type returned by
     the algorithm would be $[Int] \ri Int$. However, this is not the
     only valid specialization of this type to produce a constructor
@@ -967,18 +969,22 @@ reduced when compared to the hand-made one.
     expression, another specialization of the type of $head$ would
     have to be considered: \[ [?b \ri Int] \ri ?b \ri Int \] In
     general, there are an infinite number of valid instantiations for
-    a universally quantified type variable when matching against a goal
-    type $t$, each on the form: $?a_1 \ri \ldots \ri ?a_n \ri t$ where
-    $n$ can be zero. \citeauthor{mh} uses this tactic when enumerating
-    expressions in \cite{mh}.
+    a universally quantified type variable when matching against a
+    goal type $t$; each on the form: $?a_1 \ri \ldots \ri ?a_n \ri t$
+    where $n$ can be zero. \citeauthor{mh} uses this tactic when
+    enumerating expressions in \cite{mh}.
 
     In this project, it was decided to only consider the simple case,
     when $n = 0$. This is since instantiations where $n > 1$ does not
     make sense in several EDSL's, for instance in the Feldspar core
     language \cite{feldspar}. Furthermore, such instantiations taking
     extra arguments are not interesting for testing most of the time.
-    In \cite{lambda}, setting $n > 1$ already did not give any
-    advantage in testing[fn:24].
+    In \cite{lambda}, it was argued that setting $n > 1$ did not give
+    any advantage in testing. In any case, if this functionality is
+    required in the future, it can be implemented by redefining the
+    \textsc{Match} procedure, see \ref{algo:match}, to return a list
+    of specialized types, for each $0 \leq i \leq n$, letting $n$ be a
+    user configurable parameter.
 
 ** Generating expressions
    \label{algo:generate}
@@ -1002,13 +1008,13 @@ reduced when compared to the hand-made one.
    \end{algorithmic}
 
    On the second line of the algorithm, all universally quantified
-   variables are substituted with unique dummy data types as discussed
-   in \autoref{sec:example-poly}. A similar transformation is done
-   with the undecided type variables on the third line to avoid
-   capturing these undecided variables in later stages of the
-   generation process[fn:20]. The last line calls and returns the
-   result of the auxiliary function. Before introducing this function,
-   we need some additional definitions:
+   variables are substituted with unique dummy types as discussed in
+   \autoref{sec:example-poly}. A similar transformation is done with
+   the undecided type variables on the third line, to avoid capturing
+   these undecided variables in later stages of the generation
+   process[fn:20]. The last line calls and returns the result of the
+   auxiliary function. Before introducing this function, we need some
+   additional definitions:
 
    - Let $\textsc{Uses}(t)$ denote the number of uses for a
      constructor of type $t$, see \ref{sec:algo-termination}, $\Gamma$
@@ -1046,6 +1052,8 @@ reduced when compared to the hand-made one.
      Otherwise, all the expressions $e_i$ were set and we can return
      the complete expression $n$ applied to the arguments
      $e_1~\ldots~e_m$.
+
+   \todo{fix backtracking}
 
    \begin{listing}[H]
    \begin{algorithmic}[1]
@@ -2577,11 +2585,6 @@ be satisfied.
 
 [fn:23] However, the interface in the =Testing.QuickGen.TH= Haskell
 module was greatly inspired by the one used in \cite{mh}.
-
-[fn:24] In any case, if this functionality is required in the future,
-it can be implemented by redefining the \textsc{Match} procedure, see
-\ref{algo:match}, to return a list of specialized types (for each $0
-\leq i \leq n$) and letting $n$ be a user configurable parameter.
 
 [fn:25] The required changes can be found in
 \autoref{appendix:feldspar}.
