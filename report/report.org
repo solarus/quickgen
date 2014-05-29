@@ -39,7 +39,7 @@
 
 \newminted{haskell}{linenos}
 \ifdraft
-  {\newcommand{\inlhask}[1]{\mbox{\texttt{\color{purple}#1}}}}
+  {\newcommand{\inlhask}[1]{\mbox{\color{purple}\lstinline?#1?}}}
   {\newcommand{\inlhask}[1]{\mintinline{haskell}?#1?}}
 
 \providecommand*{\listingautorefname}{listing}
