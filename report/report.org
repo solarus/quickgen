@@ -2110,7 +2110,7 @@ reduced when compared to the hand-made one.
 * Future work
   \label{chap:fut}
 
-  Due to time limitations the scope and complexity of the project was
+  Due to time limitations, the scope and complexity of the project was
   reduced by limiting the implementation of the final project. This
   chapter discusses some of these limitations and how they affect the
   final product.
@@ -2121,7 +2121,7 @@ reduced when compared to the hand-made one.
    Currently there is no way to represent type variables with multiple
    arguments. This functionality was never prioritized since type
    classes were not fully implemented in the library. To see the
-   limitation let us look at the \inlhask{SType} data type found in
+   limitation, let us look at the \inlhask{SType} data type found in
    the =Testing.QuickGen.Types= module:
    \begin{haskellcode}
    data SType =
@@ -2133,7 +2133,7 @@ reduced when compared to the hand-made one.
    This implementation makes it possible to represent, for instance, the
    type \inlhask{Maybe Int} as \inlhask{ConT "Maybe" [ConT "Int" []]}.
    However, it is not possible to represent \inlhask{m a} as in
-   \inlhask{return :: Monad m => a -> m a} since there are no ways to
+   \inlhask{return :: Monad m => a -> m a} since there is no way to
    give arguments to the type variable \inlhask{m}. The definition of
    \inlhask{VarT} on line 3 above can be changed slightly, mimicking
    the definition of \inlhask{ConT}, to allow type arguments:
@@ -2143,7 +2143,7 @@ reduced when compared to the hand-made one.
      | VarT Variable [SType]
      ...
    \end{haskellcode}
-   Now it is possible to at least represent type variables with type
+   Now it is possible to, at least, represent type variables with type
    arguments. What is missing is to update the matching algorithm,
    introduced in \autoref{algo:match}, to correctly handle type
    variables. However, this update is highly dependent on first
@@ -2159,14 +2159,14 @@ reduced when compared to the hand-made one.
    API only containing the type class \inlhask{Num}. Furthermore, the
    calculated class environment contained several type classes that
    did not seem relevent for the particular API. Two different
-   approaches to handle this problem is discussed:
+   approaches to handle this problem are discussed:
 
    - Instead of automatically trying to calculate the complete class
      environment, a user could specify exactly which instances of a
-     particular type class they are interested in at the same time an
-     API is specified. Thus, only those specific instances are added
-     to the class environment. Let us look at some of the instances of
-     the \inlhask{Monoid} type class as an example:
+     particular type class they are interested in at the same time as
+     an API is specified. Then, only those specific instances are
+     added to the class environment. Let us look at some of the
+     instances of the \inlhask{Monoid} type class as an example:
 
      \begin{listing}[H]
      \begin{haskellcode}
@@ -2188,7 +2188,7 @@ reduced when compared to the hand-made one.
      instead specify in the API to only include the first and third
      instance removing the extraneous instances altogether. The
      function \inlhask{mempty} could still be used, in this case, to
-     produce values of complicated types, for instance
+     produce values of complicated types; for instance
      \inlhask{((([],[]),[]),([],[])) :: ((([a],[b]),[c]),([d],[e])) }.
 
    - If the user is interested in a big set of instances, specifying
@@ -2210,7 +2210,7 @@ reduced when compared to the hand-made one.
      function and a specific user might even be interested in
      expressions on this form.
 
-  None of the suggestions above completely solves the problem at hand.
+  None of the suggestions above completely solve the problem at hand.
   However, it might be possible to combine them, i.e. letting a user
   specify a set of instances that should be included and then taking
   the union with the set of instances that somehow relates to the
@@ -2219,7 +2219,7 @@ reduced when compared to the hand-made one.
 ** Type Classes
    \label{sec:fut-tc}
 
-   Complete support of type classes was initially a goal of the
+   Complete support for type classes was initially a goal of the
    project but was never fully realized. What is missing is to
    implement something similar to performing class /entailment/ as
    defined in \cite{thih2}. This function would have a type similar to
@@ -2235,37 +2235,40 @@ reduced when compared to the hand-made one.
    \end{haskellcode}
 
    The first three lines were introduced in \autoref{sec:impl-types}
-   and are repeated here just to make it clearer. The intuition is
-   that \inlhask{entail} is given a class environment, a list of
-   predicates (the initial constraints for the type) and a predicate
-   that we want to find out if it is true or not given the class
-   environment and the constraints. If $ps$ is empty and $p$ is equal
+   and are repeated here for clarity. The intuition is that
+   \inlhask{entail} is given a class environment, a list of predicates
+   (the initial constraints for the type) and a predicate that we want
+   to find out if it is true or not given the class environment and
+   the constraints. If \inlhask{ps} is empty and \inlhask{p} is equal
    to, for instance, \inlhask{ClassP "Num" (VarT (a, Forall))}, this
    corresponds to finding an instance of \inlhask{Num a} in the class
-   environment $ce$ \cite{thih2}. With this function in place one must
-   make sure that all class constraints are satisfied for a specific
-   constructor given the specialized type of the constructor together
-   with the class environment and class constraints of the current
-   goal type.
+   environment \inlhask{ce} \cite{thih2}. This function would be used,
+   after type matching, to verify that all class constraints, for a
+   given specialized constructor, can be satisfied using the current
+   class environment and class constraints of the current goal type.
 
    For instance, consider the following example during type matching
    with some goal type \inlhask{Cxt => gt} against the following
    constructor \inlhask{plus :: Num a => a -> a -> a}. For these
-   particular types, since $a$ is universally quantified, the substitution
-   $\{a \mapsto gt\}$ will be produced on line three in the
-   \inlhask{match} function found in \autoref{match}. This
-   substitution is applied to the type \inlhask{Num a => a -> a -> a}
+   particular types, since $a$ is universally quantified, the
+   substitution $\{a \mapsto gt\}$ will be produced on line three in
+   the \inlhask{match} function found in \autoref{match}. This
+   substitution is then applied to the type \inlhask{Num a => a -> a -> a},
    producing \inlhask{Num gt => gt -> gt -> gt}. What needs to be done
    is to find out if $gt$ really is an instance of the \inlhask{Num}
    type class which is exactly what \inlhask{entail} is defined to do.
-   The constraints to send to this function is simply the constraints
+   The constraints to send to this function are simply the constraints
    found in our goal type, \inlhask{Cxt}. The next step is to identify
-   our predicate(s) to examine. In this case, it will be
-   \inlhask{ClassP "Num" st} although in general it can be several if,
-   for instance, the type of our constructor is \inlhask{(Num a, Num b) => (a, b)} [fn:22].
+   our predicate(s) to verify. In this case, it will be
+   \inlhask{ClassP "Num" st}. In general, several predicates may need
+   to be verified. For instance, if the type of our constructor is
+   \inlhask{(Num a, Num b) => (a, b)}, then both predicates
+   \inlhask{Num a} and \inlhask{Num b} needs to be sent to
+   \inlhask{entail} as the third argument and both predicates must be
+   satisfied.
 
    If \inlhask{entail} returns true, it successfully found an instance
-   for \inlhask{Num st} and the constructor \inlhask{plus} is safe to
+   for \inlhask{Num st}, and the constructor \inlhask{plus} is safe to
    use as a constructor for a value of the current goal type.
 
 *** Entailment and undecided variables
@@ -2315,7 +2318,7 @@ reduced when compared to the hand-made one.
    directly specify \inlhask{(:) :: a -> [a] -> [a]} and
    \inlhask{[] :: [a]} to be available as constructors. This feature
    was never a priority since it has little effect on the type of
-   expressions that can be generated by the library. I.e. in several
+   expressions that can be generated by the library. In several
    examples throughout this thesis, a constructor named \inlhask{cons}
    was used instead of \inlhask{(:)}. The definition of this
    constructor would simply be \inlhask{cons = (:)} in these examples
@@ -2341,14 +2344,14 @@ reduced when compared to the hand-made one.
    found in \autoref{sec:generate}, subgoals for constructors with
    functional types are generated from right to left due to an
    implementation detail. This has the effect that expressions
-   generated by the current algorithm tends to be biased towards the
+   generated by the current algorithm tend to be biased towards the
    right, i.e. the deepest nesting of constructors are more probable
    to be found on the rightmost arguments to functions. By instead
    generating the subgoals in a random order, one should be able to
    generate expressions with deep nesting in arbitrary subgoals. This
    makes the distribution of expressions more evenly spread out in the
    complete domain of the problem. However, this would most probably
-   not effect the probability of balanced expressions, i.e. these kind
+   not effect the probability of balanced expressions, i.e. this kind
    of expressions might still be underrepresented in the final
    distribution.
 
@@ -2357,7 +2360,7 @@ reduced when compared to the hand-made one.
 
    A method to ensure termination of the generation algorithm was
    presented in \autoref{sec:algo-termination}. Several other
-   strategies exists that might be worth examining. For instance, in
+   strategies exist that might be worth examining. For instance, in
    \cite{lambda}, an algorithm similar to the one presented in this
    project is discussed where each subgoal is limited by a size
    parameter. This parameter is then decreased for each recursive
@@ -2382,10 +2385,10 @@ reduced when compared to the hand-made one.
    using the function \inlhask{compileExpr} from the GHC API. This is
    also the way that was presented in \autoref{chap:examples}. A
    complete generator suffers from this limitation in that it has to
-   depend on the GHC API. In addition, it also has to include modules
-   and source code, containing the API used by the generated
-   expressions, while compiling the expression. A more automated way
-   to construct real executable values from expressions is required.
+   depend on the GHC API. In addition, it has to include modules and
+   source code, containing the API used by the generated expressions,
+   while compiling the expression. A more automated way to construct
+   real executable values from expressions is required.
 
    In \cite{mh}, in addition to storing the type and name of a
    constructor in the language definition, a value of the data type
@@ -2393,11 +2396,11 @@ reduced when compared to the hand-made one.
    \begin{haskellcode}
    newtype HValue = HV (forall a. a)
    \end{haskellcode}
-   This is used to store real executable values, to be cast into the
-   type it represents, when a generated expression is to be
-   constructed. The constructors stored in the language, are then put
-   together in the same fashion as was done when searching for a
-   matching expression.
+   This is used to store a real executable value. Later, when a
+   generated expression is to be constructed, the value associated
+   with each constructor is extracted and cast into its corresponding
+   type. The constructors are then put together in the same fashion
+   as was done when searching for a matching expression.
 
    This tactic to construct executable values from expressions should
    currently be possible in \quickgen. However, with the addition of
@@ -2407,14 +2410,14 @@ reduced when compared to the hand-made one.
    =ghci= should describe the problem:
 
    \begin{alltt}
-   \(\lambda\)> let hId = HV (unsafeCoerce id)
-   \(\lambda\)> let hMempty = HV (unsafeCoerce mempty)
+   \(\lambda\)> let hId = HV (unsafeCoerce id) -- OK
+   \(\lambda\)> let hMempty = HV (unsafeCoerce mempty) -- Not OK
 
    <interactive>:21:32:
        No instance for (Monoid a0) arising from a use of `mempty'
        The type variable `a0' is ambiguous
        ...
-   \(\lambda\)> let hMemptyList = HV (unsafeCoerce (mempty :: [a]))
+   \(\lambda\)> let hMemptyList = HV (unsafeCoerce (mempty :: [a])) -- OK
    \end{alltt}
 
    \newpage
