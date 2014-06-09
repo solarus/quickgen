@@ -1664,9 +1664,10 @@ reduced when compared to the hand-made one.
 ** Simple usage
    Bundled with the \quickgen library is a test suite where one of the
    tests include testing the complete usage of the library. First an
-   API[fn:18] is defined using the function \inlhask{defineLanguage}
-   as discussed in \autoref{TH}. This API includes a selection of some
-   common functions found in the Haskell Prelude:
+   API, or more more correctly a value of type \inlhask{Language}, is
+   defined using the function \inlhask{defineLanguage} as discussed in
+   \autoref{TH}. This API includes a selection of some common
+   functions found in the Haskell Prelude:
 
    \begin{listing}[H]
    \begin{haskellcode}
@@ -1693,8 +1694,7 @@ reduced when compared to the hand-made one.
    is used as the first argument to the function \inlhask{generate}
    presented in \autoref{sec:generate}. In the current setup,
    \inlhask{generate} will be called multiple times with
-   \inlhask{lang} and two different goal types, the first one being
-   $a \ri [a]$ and the second one $[Int]$.
+   \inlhask{lang} and the two goal types, $a \ri [a]$ and $[Int]$:
 
    \begin{haskellcode}
    -- | Generates values of type `[Int]'
@@ -1707,7 +1707,7 @@ reduced when compared to the hand-made one.
    genPolyList :: Seed -> Maybe (Exp, Type)
    genPolyList seed = generate lang ty seed
      where
-       ty = $(getType [t| a -> [a] |])
+       ty = $(getType [t| forall a. a -> [a] |])
    \end{haskellcode}
 
    For both of these functions, a random list of seed values will be
@@ -1732,10 +1732,9 @@ reduced when compared to the hand-made one.
    string and compiles this string as an expression using the modules
    loaded into scope. If successful, a value that can safely be cast
    into a list of integers is returned. The compilation can fail,
-   however, with a similar error message that GHC reports for
+   however, with an error message similar to what GHC report for
    incorrect source files. If this happens, the current test case will
-   be aborted, and the compilation error message will be displayed for
-   the user.
+   be aborted, and the error message will be displayed to the user.
 
    The function \inlhask{checkTypeListInt} and the respective function
    for the polymorphic test case are then called 50 times each to
@@ -1754,10 +1753,10 @@ reduced when compared to the hand-made one.
    \end{haskellcode}
    \caption{A randomly generated polymorphic function.} \label{lst:gen-output}
    \end{listing}
-   The running time for the complete test case, randomly generating
-   followed by type checking 100 expressions, takes around 10 seconds
-   to complete on a modern laptop. Furthermore, the memory usage
-   remains low for the complete duration of the test.
+   The running time for the complete test case, random generation
+   followed by type checking of 100 expressions, averages around 10
+   seconds on a modern laptop. Furthermore, the memory usage remains
+   low for the complete duration of the test.
 
 ** a DIY High-Assurance compiler
    \label{sec:copilot-example}
@@ -1823,8 +1822,8 @@ reduced when compared to the hand-made one.
    \end{listing}
 
    \em \hspace{5pt} -- Before continuing, it should be noted that the
-   types for the streams given in listing \ref{lst:structure} above is
-   just a selection of the available types for Copilot streams, a
+   types for the streams given in listing \ref{lst:structure} above
+   are just a selection of the available types for Copilot streams. A
    complete list of instances can be found in \cite{copilot-core}.
    Furthermore, it is not required that, for instance, \inlhask{s_n}
    on line 9 to have type \inlhask{Stream Int32}. Instead, any type
@@ -1850,12 +1849,13 @@ reduced when compared to the hand-made one.
     since type classes were not fully implemented at the time of the
     experiment, some restrictions had to be made to the constructors
     available in the API. Specifically, since functions and values
-    with type class constraints wont function properly, these
-    functions was specialized to a selected subset of the types within
-    the type class. For instance, instead of having the more general
-    function \inlhask{app :: Typed a => [a] -> Stream a -> Stream a}
-    in the API, two specialized versions[fn:15] of this function were
-    defined and included instead. The complete API can be found in
+    with type class constraints does not function properly, these
+    functions were specialized to a selected subset of the types
+    within the type class. For instance, instead of having the more
+    general function
+    \inlhask{app :: Typed a => [a] -> Stream a -> Stream a} in the
+    API, two specialized versions[fn:15] of this function were defined
+    and included instead. The complete API can be found in
     \autoref{lst:copilot-api}.
 
     This API contains a selection of the functions and values
@@ -1864,9 +1864,9 @@ reduced when compared to the hand-made one.
     the function \inlhask{drop}, used in listing \ref{lst:copilot-fib}
     above, has been left out of the API because of some issues with
     totality of this function. Secondly, the API contains functions
-    called \inlhask{cycle...} that has no counterpart in the Copilot
+    called \inlhask{cycle...} that have no counterpart in the Copilot
     standard library. These functions are used to create infinite
-    streams from finite list in the same sense \inlhask{cycle} from
+    streams from finite list in the same way as \inlhask{cycle} from
     the Haskell standard library works.
 
     \begin{listing}[H]
@@ -1880,7 +1880,7 @@ reduced when compared to the hand-made one.
     \caption{The definition of the cycle function together with example usage.}
     \end{listing}
 
-    To generate Copilot expressions a variant of the
+    To generate Copilot expressions, a variant of the
     \inlhask{generate} function was defined that reruns the generation
     process with new random seeds until it succeeds.
 
@@ -2018,17 +2018,19 @@ reduced when compared to the hand-made one.
     \autoref{lst:structure}, the difference being a call to the
     Copilot \inlhask{prettyPrint} function before the \inlhask{do} on
     line 11. This expression was later type checked, compiled and
-    executed using the GHC API \cite{ghcapi}. The resulting values was
-    compared to random values produced by the Copilot random generator
-    and the two generators was found, by visual inspection, to be
-    similar in operation[fn:16]. However, the running time of the
-    \quickgen generator was significantly higher than that of the
-    corresponding generator in Copilot. On a modern laptop, the former
-    generator requires around one second to generate a complete
+    executed using the GHC API \cite{ghcapi}. The resulting values
+    were compared to random values produced by the Copilot random
+    generator and the two generators were found, by visual inspection,
+    to be similar in operation[fn:16]. However, this test is not
+    enough to draw any real conclusions but it is an indication that
+    the library is heading the right way. Furthermore, the running
+    time of the \quickgen generator was significantly higher than that
+    of the corresponding generator in Copilot. On a modern laptop, the
+    former generator requires around one second to generate a complete
     specification, the latter, in many cases, is perceived to finish
-    instantly. Still, it is the authors understanding that one second,
-    in this case, is short enough to render the \quickgen generator
-    usable as a source for random test data.
+    instantly. Still, it is the author's understanding that one
+    second, in this case, is short enough to render the \quickgen
+    generator usable as a source for random test data.
 
     What is worth noting is that the size of the complete \quickgen
     generator was estimated to be about 25 to 30 percent the size of
@@ -2039,17 +2041,17 @@ reduced when compared to the hand-made one.
 
 ** Feldspar
    Since one of the motivations for this project was to implement a
-   random generator for the EDSL Feldspar, see \cite{feldspar}, it
-   seemed natural that one of the use case examples was to test this
+   random generator for the EDSL Feldspar \cite{feldspar}, it seemed
+   natural that one of the use case examples was to test this
    language. As in \autoref{sec:copilot-example}, a language,
    \inlhask{lang}, and a generator, \inlhask{gen}, were defined. Since
    these definitions are very similar to those in the previous
    examples, the specification of the language and generator can be
    found in \autoref{appendix:feldspar-api}.
 
-   To test that, for instance, optimizations does not change the
-   behaviour of the program, we will require two evaluation functions,
-   one that optimizes the program and evaluates it and another one
+   To test that, for instance, optimizations do not change the
+   behaviour of the program, we will require two evaluation functions
+   -- one that optimizes the program and evaluates it and another one
    just performing the evaluations. We will call these evaluation
    procedures $\textsc{Eval}_{opt}$ and $\textsc{Eval}$, respectively.
    To test the optimizations done by the language, we need to generate
@@ -2071,18 +2073,19 @@ reduced when compared to the hand-made one.
    were discovered for the particular type of expressions generated.
    To proceed, a bug was artificially introduced into the
    =Feldspar.Core.Constructs.Num= module, incorrectly optimizing an
-   expression similar to $1+n$ by replacing it with the value $n$.
-   Indeed, this bug was quickly discovered by the procedure and
-   several counterexamples were produced.
+   expression similar to $1+n$ by replacing it with the value $n$. The
+   exact modifications can be found in \autoref{appendix:feldspar}.
+   The bug was quickly discovered by the procedure and several
+   counterexamples were produced.
 
 ** Summary
-   This section started with a demonstration of one of the test cases
-   bundled with the \quickgen library. This particular example use
-   showed how to use the functions introduced in \ref{chap:impl}, to
-   describe an API later used when generating, for instance, higher
-   order functions. Fairly complicated expressions were generated
-   reasonably quickly, averaging about 100 ms per expression, while
-   still using low amounts of memory on the host computer.
+   This chapter started with a demonstration of one of the test cases
+   bundled with the \quickgen library. This particular example showed
+   how to use the functions introduced in \autoref{chap:impl}, to
+   describe an API used when generating, for instance, higher order
+   functions. Fairly complicated expressions were generated reasonably
+   quickly, averaging at about 100 ms per expression, while still
+   using low amounts of memory on the host computer.
 
    In the second example, a more refined generator was defined
    producing random expressions with form similar to those generated
@@ -2459,6 +2462,8 @@ reduced when compared to the hand-made one.
 * Feldspar generator specification
   \label{appendix:feldspar-api}
 
+  \todo{Add compile with ghc-api code}
+
   \begin{listing}[H]
   \begin{haskellcode}
   type DWord = Data WordN
@@ -2491,11 +2496,14 @@ reduced when compared to the hand-made one.
   \caption{API and generator used when testing Feldspar. The \texttt{range} function is a similar to the Haskell function \texttt{enumFromTo}.}
   \end{listing}
 
-* Code added to feldspar-language
+* Changes made to feldspar-language
   \label{appendix:feldspar}
 
-  These changes were made in version 0.6.0.3 of Feldspar.
+  \vspace{-1cm}
 
+  All changes were made in version 0.6.0.3 of =feldspar-language=.
+
+  \begin{listing}[H]
   \begin{haskellcode}
   --------------------------------------------------
   -- In module Feldspar.Core.Interpretation
@@ -2526,6 +2534,29 @@ reduced when compared to the hand-made one.
   eval' :: SyntacticFeld a => a -> Internal a
   eval' = evalBind . reifyFeld' N32
   \end{haskellcode}
+  \caption{\texttt{eval'} function that was added, i.e. evaluation function for unoptimized code.}
+  \end{listing}
+
+
+  \begin{listing}[H]
+  \begin{haskellcode}
+  --------------------------------------------------
+  -- In module Feldspar.Core.Constructs.Num
+
+  -- Original code on line 110
+  constructFeatOpt (C' Add) (a :* b :* Nil)
+      | Just 0 <- viewLiteral b = return a
+      | Just 0 <- viewLiteral a = return b
+      | alphaEq a b = constructFeatOpt (c' Mul) (a :* literalDecor 2 :* Nil)
+
+  -- Artificially introduced bug
+  constructFeatOpt (C' Add) (a :* b :* Nil)
+      | Just 0 <- viewLiteral b = return a
+      | Just 1 <- viewLiteral a = return b
+      | alphaEq a b = constructFeatOpt (c' Mul) (a :* literalDecor 2 :* Nil)
+  \end{haskellcode}
+  \caption{Artificially introduced bug: optimizing $1 + n$ to $n$.}
+  \end{listing}
 
 * Footnotes
 
@@ -2561,9 +2592,6 @@ not considered in the \quickgen generator either.
 \inlhask{drop} in the Copilot generator.
 
 [fn:17] By removing comments, import statements and empty lines.
-
-[fn:18] Or more correctly a value of type \inlhask{Language}, see
-\autoref{sec:other-types}.
 
 [fn:19] The complete implementation of the compilation process using
 the GHC API is beyond the scope of this thesis but the curious reader
