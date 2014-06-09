@@ -2073,10 +2073,10 @@ reduced when compared to the hand-made one.
    were discovered for the particular type of expressions generated.
    To proceed, a bug was artificially introduced into the
    =Feldspar.Core.Constructs.Num= module, incorrectly optimizing an
-   expression similar to $1+n$ by replacing it with the value $n$. The
-   exact modifications can be found in \autoref{appendix:feldspar}.
-   The bug was quickly discovered by the procedure and several
-   counterexamples were produced.
+   expression $1+n$ by replacing it with the value $n$. The bug was
+   quickly discovered by the procedure and several counterexamples
+   were produced. The exact modifications to introduce the bug can be
+   found in \autoref{appendix:feldspar}.
 
 ** Summary
    This chapter started with a demonstration of one of the test cases
