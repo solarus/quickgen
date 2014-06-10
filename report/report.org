@@ -1052,8 +1052,6 @@ reduced when compared to the hand-made one.
      the complete expression $n$ applied to the arguments
      $e_1~\ldots~e_m$.
 
-   \todo{fix backtracking}
-
    \begin{listing}[H]
    \begin{algorithmic}[1]
    \Function{GenerateAux}{$t$}
@@ -1067,7 +1065,7 @@ reduced when compared to the hand-made one.
        \Else \Comment{$v$ is here \texttt{Nothing}}
          \State \textbf{return} \texttt{Nothing} \label{lst:generateaux:if2}
        \EndIf
-     \Else \Comment{$t$ is here a value type}
+     \Else~Retry up to 3 times \Comment{$t$ is here a value type}
        \State $\mathbb{U}' \gets \mathbb{U}$
        \State $\Gamma' \gets \Gamma$
 
@@ -1274,9 +1272,7 @@ reduced when compared to the hand-made one.
     wants a case match for a specific data type to be generated, a
     function directly corresponding to this case match can be added to
     the API. Below is an example showing how such a function would be
-    defined for the \inlhask{Maybe a} Haskell data type.
-
-    \todo{referera till maybe och säg vad man ska göra efter att man skrivit koden nedan}
+    defined for the \inlhask{Maybe} Haskell data type:
 
     \begin{haskellcode}
     data Maybe a = Nothing | Just a
@@ -1286,6 +1282,11 @@ reduced when compared to the hand-made one.
         Nothing -> b
         Just a  -> f a
     \end{haskellcode}
+
+    It might be worth noting that this particular function,
+    \inlhask{maybe}, is already present in the Haskell Prelude[fn:3].
+    Defining it again is probably unnecessary. In any case, the last
+    step is to simply add this function to the API.
 
 *** Other types
     \label{sec:other-types}
@@ -2567,8 +2568,7 @@ reduced when compared to the hand-made one.
 for the list type constructor since a user might add this data type
 themselves.
 
-[fn:2] For instance =lookupSubst :: Nat -> Substitution -> Maybe
-([Variable], SType)= and \hbox{\tt (|->) :: Nat -> SType -> Substitution}
+[fn:2] For instance \inlhask{lookupSubst :: Nat -> Substitution -> Maybe ([Variable], SType)} and \\ \inlhask{(|->) :: Nat -> SType -> Substitution}.
 
 [fn:6] With the appropriate types \inlhask{Int} respectively
 \inlhask{Double}.
@@ -2621,3 +2621,5 @@ is a simplification to the original problem. See
 
 [fn:10] This is also true for undecided variables as was shown in
 \autoref{sec:undecided}.
+
+[fn:3] It can be found here: http://hackage.haskell.org/package/base-4.7.0.0/docs/Prelude.html#v:maybe.
