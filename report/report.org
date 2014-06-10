@@ -336,29 +336,22 @@ reduced when compared to the hand-made one.
     suitable for generating random terms.
 
 ** Problem and goal
-   \todo{kolla här igen (emax and markus kommentarer)}
+   The problem is that there is currently no automatic way to
+   construct specialized generators for an EDSL, i.e. by specifying an
+   API, in the programming language Haskell. The generators, when
+   constructed, should be capable of generating any well-typed
+   standard Haskell expression, of a given goal type. Any, in this
+   context, means functions and values, possibly higher order and/or
+   containing polymorphic type variables. In the best case scenario,
+   the generators should be able to construct terms from functions, in
+   the API, using type classes.
 
-   The goal of this project is to implement a reusable library, in the
-   programming language Haskell, for defining generators for functions
-   and values, possibly of higher order and/or polymorphic type, to be
-   used as test data while testing an EDSL. Furthermore, the functions
-   and values should be valid well-typed expressions in standard
-   Haskell.
-
-   The problem is closely related to the goal statement in the sense
-   that no such library for easily defining specialized generators for
-   an EDSL exists, capable of generating any standard Haskell
-   expression of a given goal type from a user specified API. Any, in
-   this context, means functions and values, possibly higher order
-   and/or containing polymorphic type variables. In the best case
-   scenario, this generator would also be able to construct terms
-   using constructors with types containing type classes.
-
-   The goal is considered reached when the library has been
-   successfully used to generate terms similar to those produced by an
-   existing hand-made generator for a real world EDSL or alternatively
-   to use the library to find either existing or artificially
-   introduced bugs in an EDSL without such a predefined generator.
+   The goal is to implement a library automatically constructing such
+   generators. The functions and values produced from the generators
+   should possibly have higher order and/or polymorphic types. The
+   goal of the project is considered reached when the library has been
+   used to successfully test a real world domain specific language,
+   such as \textsc{Feldspar} \cite{feldspar}.
 
 ** Structure
    This thesis starts in \autoref{chap:algo} with a formal definition
