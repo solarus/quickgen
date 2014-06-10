@@ -890,33 +890,39 @@ reduced when compared to the hand-made one.
 
     \pagebreak
 
-    \todo{Hard to follow. List?}
-
     \example Imagine we are generating a value with type $[ [Int] ]$
     using the API found in table \ref{table:api1}. Further suppose
     that the final, well-typed, expression we want to generate is the
     following: \[ map~(\lambda xs \ri map~(\lambda x \ri x)~xs)~[ [n]
     ] \] If we follow the general algorithm introduced in section
     \ref{sec:example} in minute detail we would use the same undecided
-    type variable $?a$ for both uses of $map$. If we start generating
-    the second argument to the outer $map$ the guess $(?a \mapsto
-    [Int])$ would be added to $\mathbb{U}$. Next, we would generate
-    the lambda $\lambda xs \ri e_3$ introducing $xs$, now with type
-    $[Int]$, in the API. The placeholder $e_3$, also with type
-    $[Int]$, would be the next subgoal and we choose $map$ with the
-    specialized type $(?a \ri Int) \ri [?a] \ri [Int]$. This time,
-    since we already have a guess for the undecided variable $?a$ in
-    $\mathbb{U}$, the subgoals for the inner $map$ would be updated to
-    $([Int] \ri Int)$ and $[ [Int] ]$, respectively. However, these
-    types do not permit us to choose, for instance, $xs$ as a second
-    argument for the inner $map$ which is incorrect.
+    type variable $?a$ for both uses of $map$, which is not correct.
+    To see this, imagine the generation algorithm proceeds as follows:
 
-    A simple way to solve this problem is to exchange every universally
-    quantified type variable in a type $t$ with a natural number
-    before supplying $t$ as the second argument to \textsc{Match}.
-    Start with $n := 0$ which represents the next unique natural
-    number to be used in a type. The general procedure is defined
-    as follows:
+    - We choose $map$ as our first constructor, introducing $?a \ri
+      [Int]$ and $[ [?a] ]$ as subgoals.
+    - We continue with the second subgoal, i.e. we generate the
+      expression $[ [n] ]$, introducing the guess $(?a \mapsto [Int])$
+      in $\mathbb{U}$.
+    - The first subgoal, $\lambda xs \ri e_3$, to the outer $map$ is
+      generated. Since $?a$ was resolved to $[Int]$, $xs$ will also
+      have this type.
+    - The remaining subgoal is that for the placeholder expression
+      $e_3$ with type $[Int]$. Again, we choose to use $map$ as our
+      constructor, introducing the subgoals $?a \ri Int$ and $[?a]$.
+      This time, since we already have a guess for the undecided
+      variable $?a$ in $\mathbb{U}$, the subgoal for the inner $map$
+      will be updated to $([Int] \ri Int)$ and $[ [Int] ]$,
+      respectively. However, these types do not permit us to choose,
+      for instance, $xs$ as a second argument for the inner $map$
+      which is incorrect.
+
+    A simple way to solve this problem is to exchange every
+    universally quantified type variable in a type $t$ with a natural
+    number before supplying $t$ as the second argument to
+    \textsc{Match}. Start with $n := 0$ which represents the next
+    unique natural number to be used in a type. The general procedure
+    is defined as follows:
 
     - For some type $t$ find the set of universally quantified type
       variables encountered in $t$: \[ \textsc{Vars}(t) = \{
