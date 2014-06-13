@@ -15,7 +15,7 @@
 #+LATEX_HEADER: \usepackage[justification=centering]{caption}
 #+LATEX_HEADER: \usepackage[style=alphabetic,citestyle=alphabetic]{biblatex}
 #+LATEX_CLASS: myreport
-#+LATEX_CLASS_OPTIONS: [draft]
+# +LATEX_CLASS_OPTIONS: [draft]
 
 # #### Palatino font
 #+LATEX_HEADER: \usepackage[sc]{mathpazo}
@@ -348,12 +348,12 @@ reduced when compared to the hand-made one.
    the generators should be able to construct terms from functions, in
    the API, using type classes.
 
-   The goal is to implement a library automatically constructing such
-   generators. The functions and values produced from the generators
-   should possibly have higher order and/or polymorphic types. The
-   goal of the project is considered reached when the library has been
-   used to successfully test a real world domain specific language,
-   such as \textsc{Feldspar} \cite{feldspar}.
+   The goal is to implement a library that automatically constructs
+   such generators. The functions and values produced from the
+   generators should possibly have higher order and/or polymorphic
+   types. The goal of the project is considered reached when the
+   library has been used to successfully test a real world EDSL, such
+   as \textsc{Feldspar} \cite{feldspar}.
 
 ** Structure
    This thesis starts in \autoref{chap:algo} with a formal definition
@@ -555,8 +555,6 @@ reduced when compared to the hand-made one.
    was performed when $x$ was used as a constructor when generating
    $e_1$ in \autoref{sec:example-map1}.
 
-   \pagebreak
-
 *** Generating polymorphic expressions
     \label{sec:example-poly}
 
@@ -603,8 +601,6 @@ reduced when compared to the hand-made one.
       substitute $e_1$ by $x_1$ and try to type check the resulting
       expression in, for instance, =ghci= we get the following:
 
-      \pagebreak
-
       \begin{alltt}
       \(\lambda\)> :t (\(\lambda\) x_1 x_2 -> map undefined (sing (succ_int x_1))) :: a -> a -> [a]
 
@@ -612,6 +608,8 @@ reduced when compared to the hand-made one.
           Couldn't match expected type `a' with actual type `Int'
           ...
       \end{alltt}
+
+    \pagebreak
 
     The problem above is that the type of $x_1$ and $x_2$ should not
     be a universally quantified type variable ($\forall~a.~a$), when
@@ -995,8 +993,6 @@ reduced when compared to the hand-made one.
    $\textsc{Match}$ algorithm, the first function we look at,
    $\textsc{Generate}$, does some basic computations and then
    delegates the more complicated work to an auxiliary function.
-
-   \pagebreak
 
    \begin{algorithmic}[1]
    \Function{Generate}{$t$}
@@ -1643,8 +1639,7 @@ reduced when compared to the hand-made one.
     last section are combined into a complete algorithm that is used
     to generate expressions. This is also the algorithm presented in
     pseudocode in section \ref{algo:generate}.
-
-    \newpage
+    \pagebreak
 
 * Example usage
   \label{chap:examples}
@@ -2105,7 +2100,7 @@ reduced when compared to the hand-made one.
    this point, a bug was artificially introduced into the language.
    This bug was then quickly discovered by a simple testing procedure.
 
-\newpage
+\pagebreak
 
 * Future work
   \label{chap:fut}
@@ -2277,12 +2272,16 @@ reduced when compared to the hand-made one.
     definition of types used in standard Haskell, however, this
     project introduces another type that is not present in standard
     Haskell, namely the type of undecided type variables. Imagine that
-    our current goal type is \inlhask{?a} and that
+    our current goal type is =?a= and that
     \inlhask{mempty :: Monoid m => m} is the chosen constructor. This
-    would introduce a guess for \inlhask{?a} as
-    \inlhask{Monoid ?a => ?a}. If the type for \inlhask{?a} is never
-    fully realized, this could actually result in a compile error. To
-    see why consider the following expressions:
+    would introduce a guess for =?a= as
+    #+BEGIN_LATEX
+    \texttt{\color{purple}Monoid \color{black} ?a \color{violet} => \color{black} ?a}.
+    #+END_LATEX
+    If the type for =?a= is never fully realized, this could actually
+    result in a compile error. To see why consider the following
+    expressions:
+
     \begin{alltt}
     \(\lambda\)> :t const (5 :: Int) mempty
 
@@ -2292,9 +2291,10 @@ reduced when compared to the hand-made one.
     \(\lambda\)> :t const (5 :: Int) (mappend [] mempty)
     const (5 :: Int) (mappend [] mempty) :: Int
     \end{alltt}
+
     In the first example, the type of \inlhask{mempty} would still be
-    \inlhask{?a}. In the second one, the type would have been further
-    specialized to \inlhask{[?a]} giving us an unambiguous instance
+    =?a=. In the second one, the type would have been further
+    specialized to $[\texttt{?a}]$ giving us an unambiguous instance
     for the type class. This problem could be solved by trying to
     default the instances to some instance in the class environment.
     This is done in standard Haskell most notably with the
@@ -2302,6 +2302,9 @@ reduced when compared to the hand-made one.
     \autoref{sec:impl-exp}, would also have to be updated, by adding a
     way to add type annotations to constructors if needed, possibly
     with the following definition of \inlhask{ConE}:
+
+    \pagebreak
+
     \begin{haskellcode}
     data Exp =
         ConE Name (Maybe Type)
@@ -2422,7 +2425,7 @@ reduced when compared to the hand-made one.
    \(\lambda\)> let hMemptyList = HV (unsafeCoerce (mempty :: [a])) -- OK
    \end{alltt}
 
-   \newpage
+   \pagebreak
 
 * Conclusions
   \label{chap:conclusions}
