@@ -101,7 +101,7 @@
 \vspace{4cm}
 
 \bigskip
-{\LARGE API-driven generation of well-typed terms} \\
+{\LARGE API-Driven Generation of Well-Typed Terms} \\
 \emph{\Large Master of Science Thesis in Computer Science}
 
 \vspace{3.5cm}
@@ -137,7 +137,7 @@ Internet.
 
 \vspace{2cm}
 
-{\large \bf API-driven generation of well-typed terms} \\
+{\large \bf API-Driven Generation of Well-Typed Terms} \\
 {\large \textsc{David Spångberg}}
 
 \bigskip
