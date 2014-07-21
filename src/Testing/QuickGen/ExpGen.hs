@@ -123,7 +123,7 @@ runEG seed (L env cs) g = runState g' (S 0 0 [] gen emptySubst env)
 pushContext :: [Constructor] -> ExpGen (Depth, Int)
 pushContext cs = do
     S { nextLambda } <- get
-    let uses = 20 -- FIXME: arbitrarily chosen
+    let uses = 7 -- FIXME: arbitrarily chosen
         getUses (_, t)
             | isSimple t = Nothing
             | otherwise  = Just (max 1 (uses - numArgs t))

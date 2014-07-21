@@ -23,7 +23,7 @@ library
                  , Testing.QuickGen.TH
                  , Testing.QuickGen.THInstances
                  , Testing.QuickGen.Types
-  build-depends:   base ==4.6.*
+  build-depends:   base ==4.7.*
                  , template-haskell
                  , mtl
                  , random
@@ -47,11 +47,10 @@ test-suite testing
 
   hs-source-dirs: testing
 
-  build-depends: base ==4.6.*
+  build-depends: base ==4.7.*
                , quickgen
                , containers
                , template-haskell
-               , groom
                , mtl
                , test-framework
                , test-framework-hunit

@@ -29,17 +29,23 @@ succInt = succ
 succDouble :: Double -> Double
 succDouble = succ
 
+
+-- When template haskell was changed in 7.8 it made it seems to be
+-- required to add the type signatures for functions in the language
+-- definition that was defined in the same module (e.g. need to add
+-- type signature for `nil' but not for `id'). This can be avoided if
+-- the definition of `lang' is moved to a separate module.
 lang :: Language
-lang = $(defineLanguage [| ( arbiInt
-                           , arbiDouble
-                           , nil
-                           , cons
+lang = $(defineLanguage [| ( arbiInt :: Int
+                           , arbiDouble :: Double
+                           , nil :: [a]
+                           , cons :: a -> [a] -> [a]
                            , id
                            , foldr
                            , const
-                           , sing
+                           , sing :: a -> [a]
                            , map
-                           , app
+                           , app :: (a -> b) -> a -> b
                            , succ :: Int -> Int
                            , succ :: Double -> Double
                            )
